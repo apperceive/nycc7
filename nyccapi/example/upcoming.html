@@ -1,0 +1,54 @@
+<!DOCTYPE html> 
+<html> 
+   <head> 
+   <meta charset="utf-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+   <title>NYCC</title> 
+   
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+   <link rel="apple-touch-icon" href="img/apple-touch-icon.jpg" />
+
+   <link rel="stylesheet" href="http://code.jquery.com/mobile/1.1.1/jquery.mobile-1.1.1.min.css" />
+   <link rel="stylesheet" href="css/styles.css" />
+   
+   <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+   <script src="http://code.jquery.com/mobile/1.1.1/jquery.mobile-1.1.1.min.js"></script>
+   <script src="js/ridelist.js"></script>
+</head>
+
+<body>
+
+ <div id='upcoming' data-role="page" data-title="NYCC - Upcoming Rides"  data-theme='b'>
+   <header data-role="header" class="nycc">
+       <h1>
+         <a href='/nyccapi/example/index.html'>
+           <img src="img/logo.png" alt="NYCC" />
+         </a>
+       </h1>
+   </header>
+   <!-- /header -->
+ 
+   <div data-role="content">
+     <div id="wrapper">
+       <ul id="rideList" data-role="listview" data-inset="true" data-filter="true" data-theme="c" data-dividertheme="d" data-counttheme="e">
+        <li> hello, </li>
+        <li> nycc! </li>
+      </ul>
+       <a href="#" data-role="button" data-icon="star">Star button</a>
+     </div>
+     <div id="busy"/>Loading...</div>
+   </div>
+   
+   <footer data-role="footer" class="nycc">
+      <h4> nycc.org </h4>
+   </footer>
+
+ </div>
+ <!-- /page -->
+
+  
+   
+ </body>
+</html>

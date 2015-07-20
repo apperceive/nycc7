@@ -1,0 +1,62 @@
+<?php
+
+// add buttons to rides node content
+// theme will place in proper region (node--rides.tpl.php)
+// uses bootstrap classes, can we push that to theme?
+
+function nycc_rides2_node_view($node, $view_mode, $langcode) {
+  global $user;
+  if ($node->type == 'rides' && $view_mode == 'full') {
+    
+    // todo: depending on button, check for paid member, check ride status approved, ride not passed, space available, wait list, check user not already joined, check user meets other validations (e.g., waiver acknowleged, emergency info exists, etc), some buttons are only for leaders (not a role).  Need functions for all this to keep this code clean.
+    
+    $nid = $node->nid;
+    
+    $buttons = array();
+    
+    $buttons[] = l(t('Join'), "node/$nid/join", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
+    
+    $buttons[] = l(t('Revise Ride Details'), "node/$nid/edit", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-edit-btn'))));
+    
+    $buttons[] = l(t('Withdraw'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    
+    $buttons[] = l(t('Re-list This Ride'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    
+    $buttons[] = l(t('Roster & Waiver Form'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    
+    $buttons[] = l(t('Email Participants '), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    
+    $buttons[] = l(t('Ride Attendance'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    
+    $buttons[] = l(t('Email Leaders'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+
+
+    
+    $node->content['nycc_buttons'] = array(
+      '#markup' => theme_item_list(array(
+                    'title' => 'Buttons go here',
+                    'items' => $buttons,
+                    'type' => 'ul',
+                    'attributes' => array(),
+                   )),
+      // '#weight' => 100,
+      // '#theme' => 'function_name_without_theme',
+    );
+  } // rides
+} // hook_node_view
+
+
+// alternative method, use template vars
+// can be overridden in theme (nycc7_preprocess_node)
+// code would be similar to above
+// why favor one method over another
+function nycc_rides2_preprocess_node(&$variables) {
+  $node = $variables ['node'];
+  $variables ['nycc_test'] = 'sample data';
+  
+  // available in tpl as $nycc_test, can print to display
+  
+} //nycc_rides2_preprocess_node
+
+// todo: use hook_node_prepare to customize ride node form
+

@@ -1,0 +1,4 @@
+name = NYCC Election Module 
+description = Handle board of director elections
+package = NYCC
+core = 6.x

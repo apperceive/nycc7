@@ -1,0 +1,31 @@
+; $Id: theme429.info,v 1.6 Exp $
+name = theme429
+description = this template is made by template-help.com.
+version = 6.17
+core = 6.x
+engine = phptemplate
+stylesheets[all][] = style.css
+stylesheets[all][] = style-og.css
+stylesheets[print][] = print.css
+
+regions[left] = Left sidebar
+regions[right] = Right sidebar
+regions[content_top] = Content Top
+regions[content] = Content
+regions[header] = Header
+regions[nav] = Navigation
+regions[footer] = Footer
+regions[header_blocks]             = Header Blocks
+regions[main_top]                  = Main Top
+regions[back_to_home]                  = Back To Home
+regions[content_bottom] = Content Bottom
+;regions[twocol_row1_left]          = 2Col Row1 Left
+;regions[twocol_row1_right]         = 2Col Row1 Right
+;regions[twocol_row2_left]          = 2Col Row2 Left
+;regions[twocol_row2_right]         = 2Col Row2 Right
+;regions[twocol_middle]             = 2Col Middle
+;regions[threecol_row1_left]       = 3Col Row1 Left
+;regions[threecol_row1_right]      = 3Col Row1 Right
+;regions[threecol_row2_left]       = 3Col Row2 Left
+;regions[threecol_row2_right]      = 3Col Row2 Right
+;regions[right_column]            = Right Column

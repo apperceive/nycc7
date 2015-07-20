@@ -1,0 +1,6 @@
+name = NYCC Rides Module (V2)
+description = Handle all rides functionality
+package = NYCC
+core = 7.x 
+files[]=nycc_rides2.module
+
