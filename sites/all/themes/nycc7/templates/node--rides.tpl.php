@@ -85,6 +85,8 @@
   hide($content['comments']);
   hide($content['links']);
   hide($content['field_tags']);
+  hide($content['field_ride_current_riders']);
+  hide($content['field_ride_waitlist']);
   hide($content['field_ride_status']);
   hide($content['field_ride_speed']);
   hide($content['field_ride_select_level']);
@@ -114,7 +116,6 @@
 
   <div class='row'>
     <div class='col-sm-2'>
-      <h3>Ride stats go here</h3>
       <?php print render($content['field_ride_status']); ?>      
       <?php print render($content['field_ride_select_level']); ?>
       <?php print render($content['field_ride_speed']); ?>
@@ -127,6 +128,8 @@
     </div>
     <div class='col-sm-2'>
       <?php print render($content['nycc_buttons']); ?>
+      <?php print render($content['field_ride_current_riders']); ?>
+      <?php print render($content['field_ride_waitlist']); ?>
     </div>
   </div>
   

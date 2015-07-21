@@ -692,7 +692,13 @@ function nycc_rides_join_ride($nid=null) {
     		drupal_set_message("nycc_rides_join_ride - unable to load ride: $nid");
 			drupal_goto("node/$nid");
     	}
-    		
+		
+		if(!nycc_rides_ride_is_upcoming($ride)){
+    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid has attempted to join a ride that has already taken place. Ride: %nid", array('%uid'=>$user_uid, '%nid'=>$nid), WATCHDOG_WARNING);
+    		drupal_set_message("Warning: You can not join this ride as it has already taken place. ");
+			drupal_goto("node/$nid");		
+		}
+
 		if(nycc_rides_is_rider($ride, $user)){
     		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid has already joined ride %nid", array('%uid'=>$user_uid, '%nid'=>$nid), WATCHDOG_WARNING);
     		drupal_set_message("Warning: You are already signed up for this ride.");
@@ -809,25 +815,24 @@ function nycc_rides_withdraw_from_ride($nid=null) {
     	$current_riders = $ride->field_ride_current_riders['und'];
     	if(is_array($current_riders) && (!empty($current_riders))) {
 			foreach($current_riders as $ndx => $val) {
-				foreach($val as $current_rider_uid) {
-					if ($current_rider_uid == $user_uid) {
-						unset($ride->field_ride_current_riders[$ndx]);
-						drupal_set_message("You have withdrawn from this ride.");
-						watchdog("rides", "user: %uid (%uname) withdrew from ride: %nid (%rname)", array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title), WATCHDOG_INFO);
-					
-					
-						//TODO: If WHy is this here?
-						$ride->field_ride_additional_dates['und'][0]['value'] = "";
+				if ($val['uid'] == $user_uid) {
+					unset($ride->field_ride_current_riders['und'][$ndx]);
+					drupal_set_message("You have withdrawn from this ride's participant list.");
+					watchdog("rides", "user: %uid (%uname) withdrew from ride: %nid (%rname)", array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title), WATCHDOG_INFO);
+				
+				
+					//TODO: If WHy is this here?
+					$ride->field_ride_additional_dates['und'][0]['value'] = "";
 
-						//adding event logging
-						//TODO: IF Add back
-						//nycc_log_action($ride, $user_uid, "Withdraw From Ride");          
-					
-						node_save($ride);
-						drupal_goto("node/$nid");
-						break;
-					}
+					//adding event logging
+					//TODO: IF Add back
+					//nycc_log_action($ride, $user_uid, "Withdraw From Ride");          
+				
+					node_save($ride);
+					drupal_goto("node/$nid");
+					break;
 				}
+
 			}    	
     	}
 
@@ -836,24 +841,20 @@ function nycc_rides_withdraw_from_ride($nid=null) {
     	$current_waiters = $ride->field_ride_waitlist['und'];
     	if(is_array($current_waiters) && (!empty($current_waiters))) {    	
 			foreach($current_waiters as $ndx => $val) {
-				foreach($val as $current_waiter_uid) {
-					if ($current_waiter_uid == $user_uid) {
-						unset($ride->field_ride_waitlist[$ndx]);
-						if (!is_array($ride->field_ride_waitlist)) {
-							$ride->field_ride_waitlist[] = array("uid" => NULL);
-						}
-						$ride->field_ride_additional_dates['und'][0]['value'] = "";
-						node_save($ride);
+				if ($val['uid'] == $user_uid) {
+					unset($ride->field_ride_waitlist['und'][$ndx]);
+				
+					$ride->field_ride_additional_dates['und'][0]['value'] = "";
+					node_save($ride);
 
 
-						//adding event logging
-						//nycc_log_action($ride, $user_uid, "Withdraw From Waitlist");     
-					 
-						drupal_set_message("You have withdrawn from this ride's waiting list.");
-						watchdog("rides", "user: %uid (%uname) withdrew from ride waitlist: %nid (%rname)", array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title), WATCHDOG_INFO);
-						drupal_goto("node/$nid");
-						break;
-					}
+					//adding event logging
+					//nycc_log_action($ride, $user_uid, "Withdraw From Waitlist");     
+				 
+					drupal_set_message("You have withdrawn from this ride's waiting list.");
+					watchdog("rides", "user: %uid (%uname) withdrew from ride waitlist: %nid (%rname)", array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title), WATCHDOG_INFO);
+					drupal_goto("node/$nid");
+					break;
 				}
 			}
     	}

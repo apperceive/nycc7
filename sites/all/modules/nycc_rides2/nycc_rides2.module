@@ -16,25 +16,25 @@ function nycc_rides2_node_view($node, $view_mode, $langcode) {
     
     $buttons[] = l(t('Join'), "node/$nid/join", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
     
-    $buttons[] = l(t('Revise Ride Details'), "node/$nid/edit", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-edit-btn'))));
+    $buttons[] = l(t('Revise Ride Details'), "node/$nid/edit", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-edit-btn'))));
     
-    $buttons[] = l(t('Withdraw'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    $buttons[] = l(t('Withdraw'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'btn-primary', 'nycc-xxx-btn'))));
     
-    $buttons[] = l(t('Re-list This Ride'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    $buttons[] = l(t('Re-list This Ride'), "#", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
     
-    $buttons[] = l(t('Roster & Waiver Form'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    $buttons[] = l(t('Roster & Waiver Form'), "#", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
     
-    $buttons[] = l(t('Email Participants '), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    $buttons[] = l(t('Email Participants '), "#", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
     
-    $buttons[] = l(t('Ride Attendance'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    $buttons[] = l(t('Ride Attendance'), "#", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
     
-    $buttons[] = l(t('Email Leaders'), "#", array('attributes' => array('class' => array('btn', 'nycc-btn', 'nycc-xxx-btn'))));
+    $buttons[] = l(t('Email Leaders'), "#", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
 
 
     
     $node->content['nycc_buttons'] = array(
       '#markup' => theme_item_list(array(
-                    'title' => 'Buttons go here',
+                    'title' => '',
                     'items' => $buttons,
                     'type' => 'ul',
                     'attributes' => array(),
