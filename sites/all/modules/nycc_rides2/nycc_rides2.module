@@ -1,5 +1,7 @@
 <?php
 
+// new line comment here for git demo
+
 // add buttons to rides node content
 // theme will place in proper region (node--rides.tpl.php)
 // uses bootstrap classes, can we push that to theme?
