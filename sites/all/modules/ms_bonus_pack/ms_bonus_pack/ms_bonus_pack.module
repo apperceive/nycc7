@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Adds support for updates for Bonus Pack.
+ *
+ * Copyright 2008-2013 MoneyScripts.net - Leighton Whiting
+ */
+
+/**
+ * Implements hook_ms_license().
+ */
+function ms_bonus_pack_ms_license() {
+  return array(
+    'ms_bonus_pack' => array(
+      'title' => t('MS Bonus Pack'),
+      'link' => 'http://www.moneyscripts.net/bonus-pack',
+    ),
+  );
+}

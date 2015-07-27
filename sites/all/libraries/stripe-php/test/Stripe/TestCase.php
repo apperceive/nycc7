@@ -6,13 +6,45 @@
  */
 abstract class StripeTestCase extends UnitTestCase
 {
+  const API_KEY = "tGN0bIwXnHdwOa85VABjPdSn8nWY7G7I";
+
+  protected static function authorizeFromEnv()
+  {
+    $apiKey = getenv('STRIPE_API_KEY');
+    if (!$apiKey) {
+      $apiKey = self::API_KEY;
+    }
+    Stripe::setApiKey($apiKey);
+  }
+
+  /**
+   * Create a valid test charge.
+   */
+  protected static function createTestCharge(array $attributes = array())
+  {
+    self::authorizeFromEnv();
+
+    return Stripe_Charge::create(
+        $attributes + array(
+          "amount" => 2000,
+          "currency" => "usd",
+          "description" => "Charge for test@example.com",
+          'card' => array(
+            'number'    => '4242424242424242',
+            'exp_month' => 5,
+            'exp_year'  => date('Y') + 3,
+          ),
+        )
+    );
+  }
+
 
   /**
    * Create a valid test customer.
    */
   protected static function createTestCustomer(array $attributes = array())
   {
-    authorizeFromEnv();
+    self::authorizeFromEnv();
 
     return Stripe_Customer::create(
         $attributes + array(
@@ -30,7 +62,7 @@ abstract class StripeTestCase extends UnitTestCase
    */
   protected static function createTestRecipient(array $attributes = array())
   {
-    authorizeFromEnv();
+    self::authorizeFromEnv();
 
     return Stripe_Recipient::create(
         $attributes + array(
@@ -42,7 +74,7 @@ abstract class StripeTestCase extends UnitTestCase
             'routing_number' => '110000000',
             'account_number'  => '000123456789'
           ),
-      )
+        )
     );
   }
 
@@ -66,7 +98,7 @@ abstract class StripeTestCase extends UnitTestCase
    */
   protected static function retrieveOrCreatePlan($id)
   {
-    authorizeFromEnv();
+    self::authorizeFromEnv();
 
     try {
       $plan = Stripe_Plan::retrieve($id);
@@ -89,7 +121,7 @@ abstract class StripeTestCase extends UnitTestCase
    */
   protected static function retrieveOrCreateCoupon($id)
   {
-    authorizeFromEnv();
+    self::authorizeFromEnv();
 
     try {
       $coupon = Stripe_Coupon::retrieve($id);
@@ -102,5 +134,32 @@ abstract class StripeTestCase extends UnitTestCase
           )
       );
     }
+  }
+
+  /**
+   * Genereate a semi-random string
+   */
+  public function generateRandomString($length = 24)
+  {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU';
+    $charactersLength = strlen($characters);
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString .= $characters[rand(0, $charactersLength - 1)];
+    }
+    return $randomString;
+  }
+
+  protected static function createTestBitcoinReceiver($email)
+  {
+    $receiver = Stripe_BitcoinReceiver::create(
+        array(
+          'amount' => 100,
+          'currency' => 'usd',
+          'description' => 'some details',
+          'email' => $email
+        )
+    );
+    return $receiver;
   }
 }

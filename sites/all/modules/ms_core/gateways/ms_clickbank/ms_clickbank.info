@@ -1,0 +1,7 @@
+name = ClickBank Integration
+description = Provide Integration with ClickBank
+version = "7.x-3.1"
+core = 7.x
+package = MoneyScripts - Gateways
+dependencies[] = ms_core
+configure = admin/moneyscripts/gateways/ms_clickbank

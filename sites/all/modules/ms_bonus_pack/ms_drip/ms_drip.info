@@ -1,0 +1,7 @@
+name = Drip Content
+description = Adds the ability to Drip Content to users through sets of items and Rules
+core = 7.x
+version = "7.x-2.0"
+package = MoneyScripts - Bonus Pack
+dependencies[] = rules
+configure = admin/structure/ms_drip_sets

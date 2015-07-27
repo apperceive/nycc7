@@ -3,3 +3,5 @@ description = Handle all rides functionality
 package = NYCC
 core = 7.x 
 files[] = nycc_rides.reports.inc
+configure = admin/settings/nycc_rides
+

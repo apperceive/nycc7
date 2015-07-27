@@ -1,0 +1,46 @@
+diff --git a/modules/taxonomy/taxonomy.module b/modules/taxonomy/taxonomy.module
+index 4191146..2e2f7d3 100644
+--- a/modules/taxonomy/taxonomy.module
++++ b/modules/taxonomy/taxonomy.module
+@@ -1598,7 +1598,7 @@ function taxonomy_field_formatter_view($entity_type, $entity, $field, $instance,
+           );
+         }
+         else {
+-          $term = $item['taxonomy_term'];
++          $term = isset($item['taxonomy_term']) ? $item['taxonomy_term'] : taxonomy_term_load($item['tid']);
+           $uri = entity_uri('taxonomy_term', $term);
+           $element[$delta] = array(
+             '#type' => 'link',
+@@ -1612,7 +1612,13 @@ function taxonomy_field_formatter_view($entity_type, $entity, $field, $instance,
+ 
+     case 'taxonomy_term_reference_plain':
+       foreach ($items as $delta => $item) {
+-        $name = ($item['tid'] != 'autocreate' ? $item['taxonomy_term']->name : $item['name']);
++        if ($item['tid'] == 'autocreate') {
++          $name = $item['name'];
++        }
++        else {
++          $term = isset($item['taxonomy_term']) ? $item['taxonomy_term'] : taxonomy_term_load($item['tid']);
++          $name = $term->name;
++        }
+         $element[$delta] = array(
+           '#markup' => check_plain($name),
+         );
+@@ -1621,9 +1627,16 @@ function taxonomy_field_formatter_view($entity_type, $entity, $field, $instance,
+ 
+     case 'taxonomy_term_reference_rss_category':
+       foreach ($items as $delta => $item) {
++        if ($item['tid'] == 'autocreate') {
++          $name = $item['name'];
++        }
++        else {
++          $term = isset($item['taxonomy_term']) ? $item['taxonomy_term'] : taxonomy_term_load($item['tid']);
++          $name = $term->name;
++        }
+         $entity->rss_elements[] = array(
+           'key' => 'category',
+-          'value' => $item['tid'] != 'autocreate' ? $item['taxonomy_term']->name : $item['name'],
++          'value' => $name,
+           'attributes' => array(
+             'domain' => $item['tid'] != 'autocreate' ? url('taxonomy/term/' . $item['tid'], array('absolute' => TRUE)) : '',
+           ),

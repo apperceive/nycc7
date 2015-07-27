@@ -1,0 +1,7 @@
+name = Taxes
+description = Add Taxes to Orders
+version = "7.x-3.1"
+core = 7.x
+package = MoneyScripts - Extra
+dependencies[] = ms_core
+configure = admin/moneyscripts/ms_tax

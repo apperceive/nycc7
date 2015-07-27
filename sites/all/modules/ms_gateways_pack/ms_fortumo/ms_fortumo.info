@@ -1,0 +1,7 @@
+name = Fortumo Mobile Payments
+description = Gateway to use Fortumo Mobile Payments like SMS
+version = "7.x-2.0"
+core = 7.x
+package = MoneyScripts - Gateways
+dependencies[] = ms_core
+configure = admin/moneyscripts/gateways/ms_fortumo

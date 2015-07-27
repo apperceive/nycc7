@@ -1,0 +1,8 @@
+name = Stripe
+description = Stripe payment gateway integration
+core = 7.x
+version = "7.x-2.0"
+package = MoneyScripts - Gateways
+dependencies[] = ms_core
+dependencies[] = libraries
+configure = admin/moneyscripts/gateways/ms_stripe

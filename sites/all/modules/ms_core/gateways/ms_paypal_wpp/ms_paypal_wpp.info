@@ -1,0 +1,7 @@
+name = PayPal Web Payments Pro
+description = Integrates the Direct Payment and Express Checkout payment methods
+dependencies[] = ms_core
+package = MoneyScripts - Gateways
+core = 7.x
+version = "7.x-3.1"
+configure = admin/moneyscripts/gateways/ms_paypal_wpp
