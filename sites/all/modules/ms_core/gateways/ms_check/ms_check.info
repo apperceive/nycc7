@@ -1,0 +1,7 @@
+name = Checks and Bank Transfers
+description = Provides support for Manual Check and Bank Transfer payments
+dependencies[] = ms_core
+package = MoneyScripts - Gateways
+core = 7.x
+version = "7.x-3.1"
+configure = admin/moneyscripts/gateways/ms_check

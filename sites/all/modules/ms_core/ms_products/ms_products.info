@@ -1,0 +1,8 @@
+name = MS Products API
+description = Helper API for creating products modules
+package = MoneyScripts
+dependencies[] = ms_core
+version = "7.x-3.1"
+core = 7.x
+files[] = ms_products.classes.php
+files[] = ms_products.views.inc

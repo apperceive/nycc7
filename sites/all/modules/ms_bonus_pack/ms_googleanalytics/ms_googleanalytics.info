@@ -1,0 +1,6 @@
+name = MS Google Analytics
+description = Provides support for Google's E-Commerce tracking
+package = MoneyScripts - Bonus Pack
+dependencies[] = ms_core
+version = "7.x-2.0"
+core = 7.x

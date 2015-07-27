@@ -1,0 +1,7 @@
+name = Gift Cards
+description = Support for Generating Gift Cards, Activation, and Redemption
+package = MoneyScripts - Bonus Pack
+dependencies[] = ms_core
+version = "7.x-2.0"
+core = 7.x
+configure = admin/moneyscripts/ms_gift_cards

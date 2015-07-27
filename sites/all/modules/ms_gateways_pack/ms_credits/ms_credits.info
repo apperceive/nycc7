@@ -1,0 +1,7 @@
+name = MS Credits
+description = Support for selling credits in 'packages' and letting users use the credits to make purchases
+package = MoneyScripts - Bonus Pack
+dependencies[] = ms_core
+version = "7.x-2.0"
+core = 7.x
+configure = admin/moneyscripts/gateways/ms_credits

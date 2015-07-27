@@ -1,0 +1,126 @@
+<?php
+
+/**
+ * Implements hook_token_info(). 
+ */
+function nycc_tokens_token_info() {
+  $types['node'] = array(
+    'name' => t("Node Tokens"),
+    'description' => t("Node Tokens for NYCC."),
+  );
+  
+  $info['tokens']['node']['nycc_participant_emails_csv'] = array(
+    'name' => t("Participant Emails as CSV"),
+    'description' => t("Participant Emails as CSV"),
+  );
+ 
+   $info['tokens']['node']['nycc_leaders_emails_csv'] = array(
+    'name' => t("Leader Emails as CSV"),
+    'description' => t("Leader Emails as CSV"),
+  ); 
+  
+   $info['tokens']['node']['nycc_waiters_emails_csv'] = array(
+    'name' => t("Waitlist Emails as CSV"),
+    'description' => t("Waitlist Emails as CSV"),
+  ); 
+  
+  $info['tokens']['node']['nycc_ride_leader_names'] = array(
+    'name' => t("Ride Leader Names"),
+    'description' => t("Names of all Ride Leaders separated by comma"),
+  );   
+
+  $info['tokens']['node']['nycc_ride_coordinator_name'] = array(
+    'name' => t("Ride Coordinator Name"),
+    'description' => t("Name of Ride Coordinator for Ride Level"),
+  );
+  
+  $info['tokens']['node']['nycc_ride_location'] = array(
+    'name' => t("Ride Start Location"),
+    'description' => t("Location of Ride Start"),
+  );  
+  
+  $info['tokens']['node']['nycc_ride_roster_html'] = array(
+    'name' => t("Ride Roster"),
+    'description' => t("Ride Roster with contact info for Leaders"),
+  );
+
+  $info['tokens']['node']['nycc_trimmed_title'] = array(
+    'name' => t("Trimmed Title"),
+    'description' => t("Node Title trimmed to 45 characters"),
+  );  
+  return $info;
+
+}
+
+/**
+ * Implements hook_tokens(). This hook will operate the token and replace it with it's value.
+ */
+function nycc_tokens_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+    $sanitize = !empty($options['sanitize']);
+
+
+    // Node tokens for RIDES.
+    if ($type == 'node' && !empty($data['node']) &&  $data['node']->type == 'rides') {
+      $node = $data['node'];
+
+      foreach ($tokens as $name => $original) {
+        switch ($name) {
+          
+          case 'nycc_participant_emails_csv':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_rider_emails($node)) : nycc_rides_get_all_rider_emails($node);
+            break;
+
+          case 'nycc_leaders_emails_csv':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_leader_emails($node)) : nycc_rides_get_all_leader_emails($node);
+            break;          
+   
+          case 'nycc_waiters_emails_csv':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_waitlist_emails($node)) : nycc_rides_get_all_waitlist_emails($node);
+            break; 
+   
+          case 'nycc_ride_leader_names':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_leader_names($node)) : nycc_rides_get_all_leader_names($node);
+            break;
+          
+          case 'nycc_ride_coordinator_email':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_emails($node)) : nycc_rides_get_ride_coordinator_emails($node);
+            break;      
+
+          case 'nycc_ride_coordinator_name':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_names($node)) : nycc_rides_get_ride_coordinator_names($node);
+            break;      
+
+          case 'nycc_ride_location':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_location($node)) : nycc_rides_get_ride_location($node);
+            break;
+          
+          case 'nycc_ride_roster_html':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_output_riders_roster_html($node)) : nycc_output_riders_roster_html($node);
+            break;
+ 
+          case 'nycc_trimmed_title':
+            if (strlen($node->title) >45 ){
+                $replacements[$original] =  filter_xss(substr($node->title, 0, 40) . "...");
+            } else {
+                $replacements[$original] =  filter_xss( $node->title);
+            }            
+            $replacements[$original] = $sanitize ? filter_xss(nycc_output_riders_roster_html($node)) : nycc_output_riders_roster_html($node);
+            break;           
+        }
+      }
+      //
+      //// Chained token relationships.
+      //if ($format_tokens = token_find_with_prefix($tokens, 'body-format')) {
+      //  if ($items = field_get_items('node', $node, 'body')) {
+      //    $body_format = filter_format_load($items[0]['format']);
+      //    $replacements += token_generate('format', $format_tokens, array('format' => $body_format), $options);
+      //  }
+      //}
+    }
+  return $replacements;
+}
+
+
+
+

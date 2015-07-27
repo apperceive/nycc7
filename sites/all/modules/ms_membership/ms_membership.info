@@ -1,0 +1,12 @@
+name = Membership Suite
+description = Sell Membership to your Drupal Site
+package = MoneyScripts
+dependencies[] = ms_products
+version = "7.x-8.0"
+core = 7.x
+project = "ms_membership"
+project status url = http://www.moneyscripts.net/ms_project_status
+files[] = ms_membership.test
+configure = admin/moneyscripts/ms_membership
+l10n server = moneyscripts.net
+l10n url = https://www.moneyscripts.net/sites/default/filesnew/l10n_packager/l10n_server.xml

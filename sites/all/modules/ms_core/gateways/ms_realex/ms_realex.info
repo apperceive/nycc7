@@ -1,0 +1,8 @@
+name = Realex
+description = Support for Redirect, Remote and RealVault methods.
+core = 7.x
+version = "7.x-3.1"
+package = MoneyScripts - Gateways
+dependencies[] = ms_core
+files[] = ms_realex.class.php
+configure = admin/moneyscripts/gateways/ms_realex

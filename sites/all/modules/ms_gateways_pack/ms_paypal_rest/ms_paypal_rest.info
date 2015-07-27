@@ -1,0 +1,8 @@
+name = PayPal REST API
+description = PayPal REST API payment gateway integration
+core = 7.x
+version = "7.x-2.0"
+package = MoneyScripts - Gateways
+dependencies[] = ms_core
+configure = admin/moneyscripts/gateways/ms_paypal_rest
+php = 5.3

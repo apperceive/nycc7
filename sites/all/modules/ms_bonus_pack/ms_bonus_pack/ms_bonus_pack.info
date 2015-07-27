@@ -1,0 +1,10 @@
+name = Bonus Pack Updates
+description = Adds support for fetching module updates for the Bonus Pack modules
+package = MoneyScripts - Bonus Pack
+project = "ms_bonus_pack"
+project status url = http://www.moneyscripts.net/ms_project_status
+dependencies[] = ms_core
+version = "7.x-2.0"
+core = 7.x
+l10n server = moneyscripts.net
+l10n url = https://www.moneyscripts.net/sites/default/filesnew/l10n_packager/l10n_server.xml
