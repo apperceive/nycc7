@@ -1856,6 +1856,7 @@ function nycc_rides_get_ride_spots($node){
 	}
 }
 
+
 function nycc_rides_ride_allows_signups($node) {
 	if (is_numeric($node))
 		$node = node_load($node);
