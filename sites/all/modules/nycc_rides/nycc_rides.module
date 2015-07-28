@@ -11,7 +11,9 @@ TODO List:
 10) fix nycc_relist_ride - need to figure out how to load the leader data
 11) Fix how to handle multiple dates
 12) Fix Ride Submission Warning in nycc_rides_form_alter()
-
+13) fix disable join button with javascript
+14) fix SQL queries to determine how many rides or waitlists a user has joined
+15) implement required Profile
 */
 
 
@@ -30,7 +32,7 @@ function nycc_rides_init() {
 	variable_set("nycc_rides_debug", true);
 }
 
-
+ 
 
 
 function nycc_rides_menu() {
@@ -175,6 +177,8 @@ $items['admin/settings/nycc_rides'] = array(
     'access arguments' => array('cancel', 1),
     'type' => MENU_CALLBACK,
   );
+  
+  //WORKING
   $items['node/%/join'] = array(
     'title' => 'Join Ride',
     'page callback' => 'nycc_rides_join_ride',
@@ -184,6 +188,7 @@ $items['admin/settings/nycc_rides'] = array(
     'type' => MENU_CALLBACK,
   );
   
+  //WORKING
   $items['node/%/approve'] = array(
     'title' => 'Join Ride',
     'page callback' => 'nycc_rides_approve_ride',
@@ -201,7 +206,9 @@ $items['admin/settings/nycc_rides'] = array(
     'access arguments' => array(2, 1),
     'page arguments' => array(1),    
     'type' => MENU_CALLBACK,
-  );    
+  );
+  
+  //WORKING
   $items['node/%/withdraw'] = array(
     'title' => 'Withdraw From Ride',
     'page callback' => 'nycc_rides_withdraw_from_ride',
@@ -209,7 +216,16 @@ $items['admin/settings/nycc_rides'] = array(
     'access arguments' => array(2, 1),
     'page arguments' => array(1),    
     'type' => MENU_CALLBACK,
-  );    
+  );
+  
+  $items['node/%/relist'] = array(
+    'title' => 'Withdraw From Ride',
+    'page callback' => 'nycc_rides_withdraw_from_ride',
+    'access callback' => 'nycc_rides_access',
+    'access arguments' => array(2, 1),
+    'page arguments' => array(1),    
+    'type' => MENU_CALLBACK,
+  );     
 
 //   $items['node/%/attend'] = array(
 //     'title' => 'Ride Attendance and Notes',
@@ -430,8 +446,8 @@ function nycc_rides_node_presave($node) {
 
 
 function nycc_rides_node_prepare($node) {
-	if (arg(2) == "relist")  {
-        $onode = node_load(arg(1));
+	if (arg(3) == "relist")  {
+        $onode = node_load(arg(4));
 		if ($onode) {
 			$node->title = $onode->title;
 			$node->field_ride_select_level['und'][0]['value'] = $onode->field_ride_select_level['und'][0]['value'];
@@ -481,7 +497,7 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
   	//TODO: Fix the cancel button & instrusctions
 	//global $user;
 	if ($form_id == "rides_node_form") {
-		dpm($form);
+		//dpm($form);
     	$status = nycc_rides_get_ride_status($form['#node']);
     	$action = !nycc_rides_can_approve() && in_array($status, array('Approved','Pending','Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
 
@@ -682,6 +698,7 @@ function nycc_rides_output_ride_buttons($nid) {
 										   array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
 				}
 			} else {
+				//TODO: How to pass a disabled button?
 				$buttons[] = l(t('<s>Join Ride</s>'), "javascript:alert('" . $should_be_enabled['reason'] . ".')",
 										   array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-disabled-button', 'nycc-join-btn'))));
 				
@@ -711,7 +728,7 @@ function nycc_rides_output_ride_buttons($nid) {
 		}
 		if (!arg(2)) {
 			//TODO: Is this the right IF condition?				
-			$buttons[] = l(t('Re-list This Ride'), "node/$nid/relist", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+			$buttons[] = l(t('Re-list This Ride'), "node/add/rides/relist/$nid", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
 		}
 	} else {
 		watchdog("nycc_rides", "nycc_rides_output_ride_buttons could not load ride with nid: $nid");
@@ -767,12 +784,15 @@ function nycc_rides_output_ride_buttons($nid) {
 
 
 //RIDE ROSTER RELATED FUNCTIONS
-function nycc_rides_output_riders_roster_pdf($nid = null) {
-// used with printpdf
-// todo: allow pass of $node to avoid node_load
-  //global $theme_path;
+function nycc_rides_output_riders_roster_pdf($node = null) {
+	// used with printpdf
+	//global $theme_path;
+  if ($node && is_object($node))
+	$nid = $node->nid;
+	
   if (!$nid)
     $nid = ($_POST['nid'] > 0) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
+	
   if (is_numeric($nid) && ($nid > 0)) {
     $ride = node_load( $nid);
     if ($ride) {
@@ -1106,23 +1126,15 @@ function nycc_rides_join_ride($nid=null) {
 			drupal_goto("node/$nid");
     	}
 		
-		if(!nycc_rides_ride_is_upcoming($ride)){
-    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid has attempted to join a ride that has already taken place. Ride: %nid", array('%uid'=>$user_uid, '%nid'=>$nid), WATCHDOG_WARNING);
-    		drupal_set_message("Warning: You can not join this ride as it has already taken place. ", "error");
+		$ride_status = nycc_rides_ride_should_be_enabled($ride, $user);
+		
+		if($ride_status['value'] == false){
+    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid was prevented from joining ride %nid. Reason: %reason", array('%uid'=>$user_uid, '%nid'=>$nid, '%reason'=>$ride_status['reason']), WATCHDOG_WARNING);
+    		drupal_set_message("Warning: You can not join this ride. Reason: ". $ride_status['reason'] , "error");
 			drupal_goto("node/$nid");		
 		}
 
-		if(nycc_rides_is_rider($ride, $user)){
-    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid has already joined ride %nid", array('%uid'=>$user_uid, '%nid'=>$nid), WATCHDOG_WARNING);
-    		drupal_set_message("Warning: You are already signed up for this ride.", "error");
-			drupal_goto("node/$nid");		
-		}
 
-		if(nycc_rides_is_waiting($ride, $user)){
-    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid has already on waiting list for ride %nid", array('%uid'=>$user_uid, '%nid'=>$nid), WATCHDOG_WARNING);
-    		drupal_set_message("Warning: You are already on the waitlist for this ride.", "error");
-			drupal_goto("node/$nid");	
-		}		
 		$open_spots = nycc_rides_get_ride_spots($ride); //100 = no limit, -100 = no signup, 0= no spots, >0 = available spots
 		switch ($open_spots) {
 			case -100:
@@ -1224,7 +1236,8 @@ function nycc_rides_withdraw_from_ride($nid=null) {
   	global $user;
   	$user_uid = $user->uid;
   	$ride = node_load( $nid);
-	$was_joined = false;	
+	$was_joined = false;
+	
   	if ($ride) {   	
     	$current_riders = nycc_rides_field_get_value($ride->field_ride_current_riders);
     	if(!empty($current_riders)) {
@@ -1277,11 +1290,7 @@ function nycc_rides_withdraw_from_ride($nid=null) {
 		drupal_set_message("Warning: Unable to withdraw from ride. You're not currently signed up for this ride.", "error");
 	
   	drupal_goto("node/$nid");
-  	//print nycc_output_ride_buttons($nid);
 }
- 
-
-
 
 
 
@@ -1303,7 +1312,7 @@ function nycc_rides_approve_ride($ride = NULL) {
   }
 }
 
-function nycc_relist_ride($onode, $ride_status = "Submitted") {
+function nycc_rides_relist_ride($onode, $ride_status = "Submitted") {
 	global $user;
 	$node = clone $onode;
 	$title = $node->title;
@@ -1622,6 +1631,9 @@ function nycc_rides_get_user_ride_counts($timestamp, $acct = null) {
   	
 	if (is_object($acct))
     	$uid = $acct->uid;
+		
+	$start_time = $timestamp - 60 * 60 * 4;
+	$end_time = $timestamp + 60 * 60 * 4;
   	//$date = nycc_rides_get_date($date, "Y-m-d");
   	// removed from query:  AND R.field_ride_type_value = "Cue Sheet Ride"
   	// mss - 2014-08-14: added max on vid to ensure no matches against older revisions
@@ -1631,7 +1643,7 @@ function nycc_rides_get_user_ride_counts($timestamp, $acct = null) {
 				AND C.field_ride_current_riders_uid = $uid 
 				AND R.vid = (SELECT MAX(N.vid) FROM {node_revision} N WHERE N.nid = R.nid) 
 				AND	UNIX_TIMESTAMP(R.field_ride_timestamp_value)
-  				BETWEEN $timestamp - 60 * 60 * 4 AND $timestamp + 60 * 60 * 4;
+  				BETWEEN $start_time AND $end_time ;
 EOS;
 //  dsm($sql);
   $q = db_query($sql); //, $uid, $timestamp, $timestamp);
@@ -1651,18 +1663,19 @@ function nycc_rides_get_user_waitlist_counts($timestamp, $acct = null) {
   	
 	if (is_object($acct))
     	$uid = $acct->uid;
+		
+	$start_time = $timestamp - 60 * 60 * 4;
+	$end_time = $timestamp + 60 * 60 * 4;
   	//$date = nycc_rides_get_date($date, "Y-m-d");
   	// removed from query:  AND R.field_ride_type_value = "Cue Sheet Ride"
   	// mss - 2014-08-14: added max on vid to ensure no matches against older revisions
   	$sql =<<<EOS
 			SELECT COUNT(*) AS cnt FROM {content_field_ride_waitlist} C, {content_type_rides} R 
 			WHERE C.nid = R.nid AND C.vid = R.vid AND R.field_ride_status_value = 'Approved' 
-				AND C.field_ride_current_riders_uid = $uid 
+				AND C.content_field_ride_waitlist = $uid 
 				AND R.vid = (SELECT MAX(N.vid) FROM {node_revision} N WHERE N.nid = R.nid) 
-				AND	UNIX_TIMESTAMP(CONCAT(DATE_FORMAT(R.field_ride_timestamp_value, '%Y-%m-%d'), 'T',
-    				If(R.field_ride_start_time_select_value = 'AM', R.field_ride_start_time_hour_value, R.field_ride_start_time_hour_value+12),
-    				':', R.field_ride_start_time_min_value,	':00'))
-  				BETWEEN $timestamp - 60 * 60 * 4 AND $timestamp + 60 * 60 * 4;
+				AND	UNIX_TIMESTAMP(R.field_ride_timestamp_value)
+  				BETWEEN $start_time AND $end_time;
 EOS;
 //  dsm($sql);
   $q = db_query($sql); //, $uid, $timestamp, $timestamp);
@@ -1674,9 +1687,8 @@ EOS;
 
 
 function nycc_rides_ride_overlaps_user($uid, $ridetime){
-//TODO: FIX THIS - Where is this function?
+	//TODO: FIX THIS - Where is this function?
 	return false;
-	
 }
 
 //END RIDE USER RELATED FUNCTIONS
@@ -1850,7 +1862,11 @@ function nycc_rides_ride_allows_signups($node) {
 		
 	if($node && $node->type == 'rides'){
 		$ride_signups_value = nycc_rides_field_get_value($node->field_ride_signups) ;
-		return ($ride_signups_value[0]['value'] == "Signups with waiting list" ) ;
+		$ride_spots_value = nycc_rides_field_get_value($node->field_ride_spots) ;
+		
+		//confirm that signups are enabled and more than 0 spots are available
+		return (($ride_signups_value[0]['value'] == "Signups with waiting list" )
+				&& (intval($ride_spots_value[0]['value']) >0 ) ) ;
 	}
 	else	
 		return false;
@@ -2261,8 +2277,9 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 	if(nycc_rides_get_user_ride_counts($ride_time, $acct) > 0 && nycc_rides_get_ride_type($ride) != 'Club event')
 	   return array('value'=>false, 'reason'=>"Join Ride is disabled. Members may sign up for only one ride in a four hour period.");
 	
-	if(nycc_rides_get_user_waitlist_counts($ride_time, $acct) > 1 && nycc_rides_get_ride_type($ride) != 'Club event')
-	   return array('value'=>false, 'reason'=>"Join Waitlist is disabled. Members may sign up for 2 waitlists in the same four hour period.");
+//TODO: FIX THIS
+	//if(nycc_rides_get_user_waitlist_counts($ride_time, $acct) > 1 && nycc_rides_get_ride_type($ride) != 'Club event')
+	//   return array('value'=>false, 'reason'=>"Join Waitlist is disabled. Members may sign up for 2 waitlists in the same four hour period.");
 	
 	//check if signup should be closed until a certain date
 	$ride_enable_time = nycc_rides_ride_enable_time($ride);
@@ -2271,6 +2288,12 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 	
 	if(nycc_rides_is_leader($ride, $acct))
 		return array('value'=>false, 'reason'=> "Leaders can not join as participants.");
+
+	if(nycc_rides_is_rider($ride, $acct))
+		return array('value'=>false, 'reason'=> "Already joined ride");
+
+	if(nycc_rides_is_waiting($ride, $acct))
+		return array('value'=>false, 'reason'=> "Already joined waitlist");
 	
 	//if nothing else disqualified the ride, true should be returned
 	return array('value'=>true, 'reason'=>"");
