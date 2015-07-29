@@ -7,13 +7,14 @@ TODO List:
 3) Fix warning upon resubmission 
 6) add back Event Logging
 7) add back ride rosters
-8) add back ride reports
+8) RC fix approve ride view 
 10) fix nycc_relist_ride - need to figure out how to load the leader data
 11) Fix how to handle multiple dates
 12) Fix Ride Submission Warning in nycc_rides_form_alter()
 13) fix disable join button with javascript
 14) fix SQL queries to determine how many rides or waitlists a user has joined
 15) implement required Profile
+16) fix SQL queries that refer to old table names.
 */
 
 
@@ -2194,16 +2195,9 @@ function nycc_rides_get_ride_status($ride) {
   if (is_numeric($ride))
     $ride = node_load($ride);
     
-  //dpm($ride);  
-  if ($ride->field_ride_status && drupal_strlen($ride->field_ride_status['und'][0]['value']))
-    return $ride->field_ride_status['und'][0]['value'];
-  $sql = "SELECT field_ride_status_value FROM {content_type_rides} WHERE nid = :nid AND vid =:vid";
-  $q = db_query($sql, array(':nid'=>$ride->nid, ':vid'=>$ride->vid));
-  foreach ($q as $r)
-  {
-  	return $r->field_ride_status_value;
-  }
-
+  //dpm($ride);
+  $status = nycc_rides_field_get_value($ride->field_ride_status);
+  return $status[0]['value'];
 }
 
 function nycc_rides_ride_exists($title, $date) {
