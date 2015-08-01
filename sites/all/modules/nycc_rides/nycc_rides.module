@@ -3,22 +3,37 @@
 /*
 TODO List:
 1) Fix load last revision and also fix adding new revision on submisssion.
-2) Implement revisioning on ride edit page
-3) Fix warning upon resubmission
-4) Add field to control 10-day restriction and remove "Club Event" from ride type values.
+2) Implement revisioning on ride edit page in nycc_rides_form_alter()
+3) Fix warning upon resubmission 
 6) add back Event Logging
 7) add back ride rosters
-8) add back ride reports
+8) RC fix approve ride view 
 10) fix nycc_relist_ride - need to figure out how to load the leader data
 11) Fix how to handle multiple dates
-
+12) Fix Ride Submission Warning in nycc_rides_form_alter()
+13) fix disable join button with javascript
+14) fix SQL queries to determine how many rides or waitlists a user has joined
+15) implement required Profile
+16) fix SQL queries that refer to old table names.
 */
 
+
+/*TODO LIST WHEN DEPLOYING TO PROD
+ *1) add field to control 10-day waitlist (field_ride_open_signup_days)
+ *
+ *
+ *
+ *
+ */
+
+ 
+ 
+ 
 function nycc_rides_init() {
 	variable_set("nycc_rides_debug", true);
 }
 
-
+ 
 
 
 function nycc_rides_menu() {
@@ -163,6 +178,8 @@ $items['admin/settings/nycc_rides'] = array(
     'access arguments' => array('cancel', 1),
     'type' => MENU_CALLBACK,
   );
+  
+  //WORKING
   $items['node/%/join'] = array(
     'title' => 'Join Ride',
     'page callback' => 'nycc_rides_join_ride',
@@ -172,6 +189,7 @@ $items['admin/settings/nycc_rides'] = array(
     'type' => MENU_CALLBACK,
   );
   
+  //WORKING
   $items['node/%/approve'] = array(
     'title' => 'Join Ride',
     'page callback' => 'nycc_rides_approve_ride',
@@ -189,7 +207,9 @@ $items['admin/settings/nycc_rides'] = array(
     'access arguments' => array(2, 1),
     'page arguments' => array(1),    
     'type' => MENU_CALLBACK,
-  );    
+  );
+  
+  //WORKING
   $items['node/%/withdraw'] = array(
     'title' => 'Withdraw From Ride',
     'page callback' => 'nycc_rides_withdraw_from_ride',
@@ -197,7 +217,16 @@ $items['admin/settings/nycc_rides'] = array(
     'access arguments' => array(2, 1),
     'page arguments' => array(1),    
     'type' => MENU_CALLBACK,
-  );    
+  );
+  
+  $items['node/%/relist'] = array(
+    'title' => 'Withdraw From Ride',
+    'page callback' => 'nycc_rides_withdraw_from_ride',
+    'access callback' => 'nycc_rides_access',
+    'access arguments' => array(2, 1),
+    'page arguments' => array(1),    
+    'type' => MENU_CALLBACK,
+  );     
 
 //   $items['node/%/attend'] = array(
 //     'title' => 'Ride Attendance and Notes',
@@ -230,10 +259,12 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
 	$r_debug = 	variable_get("nycc_rides_debug", true);
   	global $user;
 
+	
+	//if(nycc_rides_ride_allows_signups($node))
+	//	dpm("Rides allow signup is true" );
+
 	if ($node->type == 'rides') {
-        
 		if ($view_mode == 'full') {
-			//drupal_set_message(token_replace('[node:nycc_ride_coordinator_email]',  array('node' => $node)));
 			$nid = $node->nid;
 			
 			$buttons = nycc_rides_output_ride_buttons($nid);
@@ -248,7 +279,14 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
 			  // '#theme' => 'function_name_without_theme',
 			);
 		}		
-		
+	    $node->content['field_ride_spots']['field']['#title'] = t("Remaining/Spots");
+		$node->content['field_ride_spots']['field']['items'][0]['#item']['value'] = nycc_rides_get_ride_spots_text($node);
+
+//TODO: FIX THIS - how to set the default value? I'd think we just just use a view to update all records missing a value
+        //if (!nycc_rides_field_has_value($node->field_ride_signups))
+        //  	$node->field_ride_signups['und'][0]['value'] == "Signups with waiting list";
+
+		//TODO: MOVE TO RULE
 		$uid = $user->uid;
 		$ridetime = strtotime(nycc_rides_get_ride_time_as_text($node));		
         // check if user has already joined a ride on this date +/- 4 hours
@@ -259,45 +297,22 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
           						To join $rtitle, you need drop the conflicting ride <a href='/user/$uid/myrides' target='blank'>see all your rides here</a>.");
           //drupal_goto("node/$nid");
         }
-        $node->content['field_ride_spots']['field']['#title'] = t("Remaining/Spots");
-		$node->content['field_ride_spots']['field']['items'][0]['#item']['value'] = nycc_rides_get_ride_spots_text($node);
 
-
-        // treat null rides signup as allowing waiting lists
-        // TODO: how can we look up the default value for this cck field?
-//TODO: FIX THIS - how to set the default value? I'd think we just just use a view to update all records missing a value
-        //if (!nycc_rides_field_has_value($node->field_ride_signups))
-        //  	$node->field_ride_signups['und'][0]['value'] == "Signups with waiting list";
-
-//		dpm($node);
+		//TODO: MOVE TO RULE
         if (!nycc_rides_ride_is_upcoming($node))
           	drupal_set_message("NOTE: This ride has already taken place.");
 
-        // disable rides until 10 days prior to event - part II
-      
-        $now = REQUEST_TIME;
-
-        // TODO: why does this message appear during manual cron run? 
-        // add user check for now in case it is happening during all cron runs
-
-        
-//        if ($user->uid && (($ridetime - $now) > 10 * 60 * 60 * 24)) {
-        if ($user->uid
-				&& (nycc_rides_field_has_value($node->field_ride_type))
-				&& ($node->field_ride_type['und'][0]['value'] != "Club Event")
-				&& (($ridetime - $now) > 10 * 60 * 60 * 24)) {
-          	drupal_set_message(check_plain("PLEASE NOTE: Ride signups are enabled 10 days before the event (". date('l, F jS, Y \@ h:i A', $ridetime - 10 * 60 * 60 * 24) .")."));
+		//TODO: move to rules
+		$ride_enable_time = nycc_rides_ride_enable_time($node);
+		if( $ride_enable_time > REQUEST_TIME) {
+          	drupal_set_message(check_plain("PLEASE NOTE: Ride signups will be enabled on: ". date('l, F jS, Y \@ h:i A', $ride_enable_time) ));
         }
+
         // check for more than two overlapping waitlists - part II
 //TODO: IF FIX THIS        
 //         if (nycc_rides_ride_overlaps_user($uid, $ridetime) > 0) {
 //           	drupal_set_message("PLEASE NOTE: Add Me To The Waiting List is disabled because you are already on two waiting lists for rides within 4 hours of this ride.  You can view your waitlist signups in your <a href='/user/$uid/mywaitlists'>profile</a>");
 //         }
-
-        /*
-        if ($user->uid == 1)
-          drupal_set_message("ridetime: ". nycc_rides_get_ride_time($node) .", upcoming: ". nycc_rides_ride_is_upcoming($node) .", current time:". REQUEST_TIME . ", ride: ". date("c", nycc_rides_get_ride_time($node)) .", tz: ". date_default_timezone_get());
-        */
 	}
 }
 
@@ -320,6 +335,8 @@ function nycc_rides_node_update($node) {
 // 			}
 // 			// TODO: clear additional dates field so that it is not copied?
 // 		}
+
+		//TODO: MOVE TO RULES
 		if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised'))){
 			drupal_set_message(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." ));
 		}
@@ -345,10 +362,13 @@ function nycc_rides_node_validate($node, $form = NULL, $form_state = NULL) {
 		if ($numspots > 0) {
 			if ($numspots < $numriders)
 				form_set_error('field_ride_spots', "The number of spots can not be less than the number of currently signed up riders (". $numriders .").");
-			if ($node->field_ride_signups['und'][0]['value'] == "No signups or waiting list")
+
+			if (!nycc_rides_ride_allows_signups($node))
 				form_set_error("field_ride_spots", "Max. Participants must be blank when Sign-ups is 'No signups or waiting list'");
-			if (($numwaiters > 0) && ($node->field_ride_signups['und'][0]['value'] != "Signups with waiting list"))
+				
+			if (($numwaiters > 0) && (!nycc_rides_ride_allows_signups($node)))
 				form_set_error("field_ride_signups", "There are people on the waiting list; please select 'Signups with waiting list' or increase the number of Max. Participants.");
+				
 		} else {
 			//if  ($numriders > 0)
 			// TODO: warn that this will delete rider and wait lists, plus send emails?
@@ -386,8 +406,8 @@ function nycc_rides_node_presave($node) {
 		//if ((arg(0) != "nycc" && arg(1) != "inbound") ||  (arg(0) != "node" && arg(2) != "approve") ) // if edit is not coming from inbound email processor
 		if (arg(2) != "approve") 
 		{
-	    	if (//!nycc_rides_can_approve() &&
-				//in_array($node->field_ride_status['und'][0]['value'] , array('Approved', 'Submitted', 'Pending')) &&
+	    	if (!nycc_rides_can_approve() &&
+				in_array($node->field_ride_status['und'][0]['value'] , array('Approved', 'Submitted', 'Pending')) &&
 				nycc_rides_ride_has_changed($node))
 	        {
 	        	if ($r_debug) watchdog("nycc_rides", "Presave: Setting ride status to Revised for ride %title", array( '%title' => $node->title), WATCHDOG_INFO);
@@ -402,10 +422,12 @@ function nycc_rides_node_presave($node) {
         $numriders = nycc_rides_count_riders($node);
         $numwaiters = nycc_rides_count_waiters($node);
         $numspots = $node->field_ride_spots['und'][0]['value'];
+
 		if (!($numspots > 0)){
 			$node->field_ride_signups['und'][0]['value'] = "No signups or waiting list";
 			if ($r_debug) watchdog("nycc_rides", "Presave: Spots is 0: Setting Ride Signups to No signups or waiting list for Ride: %title", array('%title' => $node->title), WATCHDOG_INFO);
 		}
+		
         if (nycc_rides_ride_allows_signups($node) && ($numspots > $numriders) && ($numwaiters > 0)) {
           	$numnewspots = min($numspots - $numriders, $numwaiters);
           	for ($i = 0; $i < $numnewspots; $i++) {
@@ -425,7 +447,7 @@ function nycc_rides_node_presave($node) {
 
 
 function nycc_rides_node_prepare($node) {
-	if ((arg(3) == "relist") && (arg(4) > 0)) {
+	if (arg(3) == "relist")  {
         $onode = node_load(arg(4));
 		if ($onode) {
 			$node->title = $onode->title;
@@ -444,6 +466,8 @@ function nycc_rides_node_prepare($node) {
 			$node->field_ride_cue_sheet = $onode->field_ride_cue_sheet;
 			$node->field_ride_status['und'][0]['value'] = "Submitted";
         }
+		
+		//TODO: MOVE THIS TO RULES
         drupal_set_message(check_plain("This is a re-listing of ". $node->title));
         drupal_set_message("You are set as the leader for this ride.");
         drupal_set_message("Please be sure to select a new date for the ride.");
@@ -458,6 +482,7 @@ function nycc_rides_node_prepare($node) {
 		//TODO: FIND BETTER WAY TO HANDLE MULDIPLE DATES
 		$node->field_ride_additional_dates['und'][0]['value'] = "";
 		
+		//TODO: MOVE THIS TO RULES
 		if (!nycc_rides_can_approve()) {
 				drupal_set_message("<b>Please Note:</b> If you modify key fields on this ride it will be taken offline until the Ride Coordinator has had a chance to review the changes.");
 				drupal_set_message("While we make every effort to approve it  a timely manner, It could take up to 48 hours for the change to be approved.");
@@ -466,46 +491,18 @@ function nycc_rides_node_prepare($node) {
 						 "-rides@nycc.org</a> to confirm that they can approve in a timely manner <b>before you make the changes</b>");
 		}
     } // ride edit
-
-//TODO: move to Groups Module
-//       if ($node->type == 'rides' && arg(0) == 'node' && arg(1) == 'add') {
-//         // preload group members if group ride and add riders checkbox is checked
-//         $gp = og_determine_context();
-//         if ($gp && $gp->field_group_add_riders['und'][0]['value'] != "false") {
-//           $sql = og_list_users_sql();
-//           $result = db_query($sql, $gp->nid);
-//           $cnt = 0;
-//           while ($row = db_fetch_object($result)) {
-//             $acct = user_load($row->uid);// check that user is active group member and not a captain/admin
-//             if ($acct && is_array($acct->og_groups[$gp->nid]) && $acct->og_groups[$gp->nid]['is_active']) {
-//               // check that user is not already in list if this gets moved to an edit/approval position
-//               if ($acct->og_groups[$gp->nid]['is_admin']) {
-//                 $cp = content_profile_load('profile', $acct->uid);
-//                 $node->field_ride_leaders[] = array("nid" => $cp->nid);
-//               } else {
-//                 $node->field_ride_current_riders[] = array("uid" => $row->uid);
-//                 $cnt++;
-//               }
-//             }
-//           } // while
-//            $node->field_ride_spots['und'][0]['value'] = $cnt;
-//         } // if group
-//         //dsm($node);
-//       } // ride add
 }
 
 
 function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
   	//TODO: Fix the cancel button & instrusctions
 	//global $user;
-
-
-		
 	if ($form_id == "rides_node_form") {
-		dpm($form);
+		//dpm($form);
     	$status = nycc_rides_get_ride_status($form['#node']);
     	$action = !nycc_rides_can_approve() && in_array($status, array('Approved','Pending','Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
 
+		//TODO: FIX THIS - how to make it visible?
     	$form['submit_instructions'] = array(
       		'#prefix' => "<div id='nycc-submit-ride'>",
       		'#value' => "Are you sure you want to $action this ride? Doing so will trigger emails to your ride coordinator, other ride leaders and any participants, in the case of re-submissions.",
@@ -516,6 +513,7 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
       		'#value' => "<a href='#' onclick='$(\"#nycc-submit-ride\").hide(); return false;' title='No, hide this box again.'>No</a>",
     	);
 
+		//TODO: FIX THIS - how to make it visible?
     	if ($status == 'Approved') {
 			$form['revision_information']['log']['#description'] = t("Ride Leaders: please provide an explanation of the additions or updates being made to help Ride Coordinators understand your changes.  Note that changing an approved ride will result in the ride being re-sumitted for approval and trigger email alerts to all riders. Revisions are optional for Ride Coordinators and Administers.");
 			$form['revision_information']['#collapsible'] = 'fieldset';
@@ -581,19 +579,17 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
 
 
 function nycc_rides_block_info() {
+	//TODO: IS THIS NEEDED?
 	$blocks[0]['info'] = t('NYCC Ride Participants');
     $blocks[0]['cache'] = 'BLOCK_NO_CACHE' ;
 	$blocks[1]['info'] = t('NYCC Ride Waiting List');
     $blocks[1]['cache'] = 'BLOCK_NO_CACHE' ;
-    $blocks[2]['info'] = t('Group Links');
+    $blocks[2]['info'] = t('Ride Coordinators Email');
     $blocks[2]['cache'] = 'BLOCK_CACHE_PER_PAGE';
-    $blocks[3]['info'] = t('Group Ride Withdrawals');
-    $blocks[3]['cache'] = 'BLOCK_CACHE_PER_PAGE';
-    $blocks[4]['info'] = t('Ride Coordinators Email');
-    $blocks[4]['cache'] = 'BLOCK_CACHE_PER_PAGE';
       
     return $blocks;
 }
+
 function nycc_rides_block_configure($delta = 0) {
 	return $form;
 }
@@ -602,6 +598,8 @@ function nycc_rides_block_save($delta = 0, $edit = array()) {
 }
 
 function nycc_rides_block_view($delta = 0) {
+	//TODO: IS THIS NEEDED?
+	
 	if ($delta == 0) {
 		$block['content'] = nycc_rides_output_ride_participants();
 		$block['subject'] = drupal_strlen($block['content']) ? t('Ride Participants') : "";
@@ -618,7 +616,7 @@ function nycc_rides_block_view($delta = 0) {
 //         $block['subject'] = t('Group Ride Withdrawals');
 //         $block['content'] = nycc_output_group_ride_withdrawals_block();
 //       }
-	if ($delta == 4) {
+	if ($delta == 2) {
 	    $block['subject'] = t('Ride Coordinators Email');
         $block['content'] = nycc_rides_output_ride_coordinators_email_block();
     }
@@ -690,7 +688,8 @@ function nycc_rides_output_ride_buttons($nid) {
 				$buttons[] = l(t('Withdraw From Waitlist'), "node/$nid/withdraw",
 							   array('attributes' => array('class' => array('btn', 'nycc-btn', 'btn-primary', 'nycc-xxx-btn'))));
 			}
-			if ((!$isLeader) && $rideIsUpcoming) {
+			$should_be_enabled = nycc_rides_ride_should_be_enabled($ride);
+			if ($should_be_enabled['value'] == true){
 				//TODO: Add 10-day signup limit
 				if (!$no_of_spots || ($available_spots > 0)) {
 					$buttons[] = l(t('Join'), "node/$nid/join",
@@ -699,6 +698,13 @@ function nycc_rides_output_ride_buttons($nid) {
 					$buttons[] = l(t('Add Me To The Waitlist'), "node/$nid/join",
 										   array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
 				}
+			} else {
+				//TODO: How to pass a disabled button?
+				$buttons[] = l(t('<s>Join Ride</s>'), "javascript:alert('" . $should_be_enabled['reason'] . ".')",
+										   array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-disabled-button', 'nycc-join-btn'))));
+				
+			}
+			
 			if ($canModify) {
 				$buttons[] = l(t('Roster & Waiver Form'), "/printpdf/nycc-riders-roster-pdf/$nid",
 							   array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
@@ -723,8 +729,7 @@ function nycc_rides_output_ride_buttons($nid) {
 		}
 		if (!arg(2)) {
 			//TODO: Is this the right IF condition?				
-			$buttons[] = l(t('Re-list This Ride'), "node/$nid/relist", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
-		}
+			$buttons[] = l(t('Re-list This Ride'), "node/add/rides/relist/$nid", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
 		}
 	} else {
 		watchdog("nycc_rides", "nycc_rides_output_ride_buttons could not load ride with nid: $nid");
@@ -780,12 +785,15 @@ function nycc_rides_output_ride_buttons($nid) {
 
 
 //RIDE ROSTER RELATED FUNCTIONS
-function nycc_rides_output_riders_roster_pdf($nid = null) {
-// used with printpdf
-// todo: allow pass of $node to avoid node_load
-  //global $theme_path;
+function nycc_rides_output_riders_roster_pdf($node = null) {
+	// used with printpdf
+	//global $theme_path;
+  if ($node && is_object($node))
+	$nid = $node->nid;
+	
   if (!$nid)
     $nid = ($_POST['nid'] > 0) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
+	
   if (is_numeric($nid) && ($nid > 0)) {
     $ride = node_load( $nid);
     if ($ride) {
@@ -1119,23 +1127,15 @@ function nycc_rides_join_ride($nid=null) {
 			drupal_goto("node/$nid");
     	}
 		
-		if(!nycc_rides_ride_is_upcoming($ride)){
-    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid has attempted to join a ride that has already taken place. Ride: %nid", array('%uid'=>$user_uid, '%nid'=>$nid), WATCHDOG_WARNING);
-    		drupal_set_message("Warning: You can not join this ride as it has already taken place. ", "error");
+		$ride_status = nycc_rides_ride_should_be_enabled($ride, $user);
+		
+		if($ride_status['value'] == false){
+    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid was prevented from joining ride %nid. Reason: %reason", array('%uid'=>$user_uid, '%nid'=>$nid, '%reason'=>$ride_status['reason']), WATCHDOG_WARNING);
+    		drupal_set_message("Warning: You can not join this ride. Reason: ". $ride_status['reason'] , "error");
 			drupal_goto("node/$nid");		
 		}
 
-		if(nycc_rides_is_rider($ride, $user)){
-    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid has already joined ride %nid", array('%uid'=>$user_uid, '%nid'=>$nid), WATCHDOG_WARNING);
-    		drupal_set_message("Warning: You are already signed up for this ride.", "error");
-			drupal_goto("node/$nid");		
-		}
 
-		if(nycc_rides_is_waiting($ride, $user)){
-    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid has already on waiting list for ride %nid", array('%uid'=>$user_uid, '%nid'=>$nid), WATCHDOG_WARNING);
-    		drupal_set_message("Warning: You are already on the waitlist for this ride.", "error");
-			drupal_goto("node/$nid");	
-		}		
 		$open_spots = nycc_rides_get_ride_spots($ride); //100 = no limit, -100 = no signup, 0= no spots, >0 = available spots
 		switch ($open_spots) {
 			case -100:
@@ -1237,7 +1237,8 @@ function nycc_rides_withdraw_from_ride($nid=null) {
   	global $user;
   	$user_uid = $user->uid;
   	$ride = node_load( $nid);
-	$was_joined = false;	
+	$was_joined = false;
+	
   	if ($ride) {   	
     	$current_riders = nycc_rides_field_get_value($ride->field_ride_current_riders);
     	if(!empty($current_riders)) {
@@ -1290,11 +1291,7 @@ function nycc_rides_withdraw_from_ride($nid=null) {
 		drupal_set_message("Warning: Unable to withdraw from ride. You're not currently signed up for this ride.", "error");
 	
   	drupal_goto("node/$nid");
-  	//print nycc_output_ride_buttons($nid);
 }
- 
-
-
 
 
 
@@ -1316,7 +1313,7 @@ function nycc_rides_approve_ride($ride = NULL) {
   }
 }
 
-function nycc_relist_ride($onode, $ride_status = "Submitted") {
+function nycc_rides_relist_ride($onode, $ride_status = "Submitted") {
 	global $user;
 	$node = clone $onode;
 	$title = $node->title;
@@ -1413,20 +1410,22 @@ function nycc_rides_field_get_value($field) {
 	 *	non-array value stored in either #value or #default_value -> return as array with value element
 	 */
 	if(nycc_rides_field_has_value($field)) {
+		if(is_string($field))
+		   return array(0=>array('value'=>$field));
+		
 		if(isset($field['und']))
 			return $field['und'];
 
 		if(isset($field['#value']))
-			return array('value' => $field['#value']);
+			return array( 0=>array('value'=>$field['#value']));
 		
 		if(isset($field['#default_value']))
-			return array('value' => $field['#default_value']);
+			return array( 0=>array('value'=>$field['#default_value']));
 		
-		return array('value' => '');
+		return array(0=>array('value'=>''));
 	
 	} else {
-		return array('value' => '');
-	
+		return array(0=>array('value'=>''));
 	}
 }
 
@@ -1438,13 +1437,13 @@ function nycc_rides_field_has_value($field) {
 	if (!$field)
 		return false;
 
-	if  (($field['#value'] || $field['#default_value'])) //if value isn't localized then no 'und'
+	if  ( is_string($field) || isset($field['#value']) || isset($field['#default_value'])) //if value isn't localized then no 'und'
 		return true;
 
 	if (is_object($field)) //if value is stored as object
 		return true;
 		
-	if (!$field['und'])
+	if (!isset($field['und']))
 		return false;
 	
 	if (!is_array($field['und']))
@@ -1474,7 +1473,7 @@ function nycc_rides_get_date($dstr, $fmt = "Y-m-d") {
 function nycc_rides_compare_values($v1, $v2) {
 	if (nycc_rides_field_has_value($v1) && nycc_rides_field_has_value($v2))
 	{
-		dpm("$v1 is being compared to $v2");
+		//dpm("$v1 is being compared to $v2");
 		return $v1==$v2;
 	}
 	if ( ( ! nycc_rides_field_has_value($v1)) && (! nycc_rides_field_has_value($v2)))
@@ -1633,17 +1632,11 @@ function nycc_rides_get_user_ride_counts($timestamp, $acct = null) {
   	
 	if (is_object($acct))
     	$uid = $acct->uid;
-  	//$date = nycc_rides_get_date($date, "Y-m-d");
-  	// removed from query:  AND R.field_ride_type_value = "Cue Sheet Ride"
-  	// mss - 2014-08-14: added max on vid to ensure no matches against older revisions
-  	/*$sql =<<<EOS
-			SELECT COUNT(*) AS cnt FROM {content_field_ride_current_riders} C, {content_type_rides} R 
-			WHERE C.nid = R.nid AND C.vid = R.vid AND R.field_ride_status_value = 'Approved' 
-				AND C.field_ride_current_riders_uid = $uid 
-				AND R.vid = (SELECT MAX(N.vid) FROM {node_revision} N WHERE N.nid = R.nid) 
-				AND	UNIX_TIMESTAMP(R.field_ride_timestamp_value)
-  				BETWEEN $timestamp - 60 * 60 * 4 AND $timestamp + 60 * 60 * 4;
-EOS;*/
+		
+	$start_time = $timestamp - 60 * 60 * 4;
+	$end_time = $timestamp + 60 * 60 * 4;
+
+  
   	$sql =<<<EOS
 SELECT COUNT(*) AS cnt FROM {field_data_field_ride_current_riders} C, {field_data_field_ride_status} S, {field_data_field_ride_timestamp} T  
 WHERE 
@@ -1674,18 +1667,19 @@ function nycc_rides_get_user_waitlist_counts($timestamp, $acct = null) {
   	
 	if (is_object($acct))
     	$uid = $acct->uid;
+		
+	$start_time = $timestamp - 60 * 60 * 4;
+	$end_time = $timestamp + 60 * 60 * 4;
   	//$date = nycc_rides_get_date($date, "Y-m-d");
   	// removed from query:  AND R.field_ride_type_value = "Cue Sheet Ride"
   	// mss - 2014-08-14: added max on vid to ensure no matches against older revisions
   	$sql =<<<EOS
 			SELECT COUNT(*) AS cnt FROM {content_field_ride_waitlist} C, {content_type_rides} R 
 			WHERE C.nid = R.nid AND C.vid = R.vid AND R.field_ride_status_value = 'Approved' 
-				AND C.field_ride_current_riders_uid = $uid 
+				AND C.content_field_ride_waitlist = $uid 
 				AND R.vid = (SELECT MAX(N.vid) FROM {node_revision} N WHERE N.nid = R.nid) 
-				AND	UNIX_TIMESTAMP(CONCAT(DATE_FORMAT(R.field_ride_timestamp_value, '%Y-%m-%d'), 'T',
-    				If(R.field_ride_start_time_select_value = 'AM', R.field_ride_start_time_hour_value, R.field_ride_start_time_hour_value+12),
-    				':', R.field_ride_start_time_min_value,	':00'))
-  				BETWEEN $timestamp - 60 * 60 * 4 AND $timestamp + 60 * 60 * 4;
+				AND	UNIX_TIMESTAMP(R.field_ride_timestamp_value)
+  				BETWEEN $start_time AND $end_time;
 EOS;
 //  dsm($sql);
   $q = db_query($sql); //, $uid, $timestamp, $timestamp);
@@ -1697,9 +1691,8 @@ EOS;
 
 
 function nycc_rides_ride_overlaps_user($uid, $ridetime){
-//TODO: FIX THIS - Where is this function?
+	//TODO: FIX THIS - Where is this function?
 	return false;
-	
 }
 
 //END RIDE USER RELATED FUNCTIONS
@@ -1730,10 +1723,9 @@ function nycc_rides_clean_up_participants($node) {
 	
 	if ($r_debug) watchdog("nycc_rides", "nycc_rides_clean_up_participants called for Ride: %title", array('%title' => $node->title), WATCHDOG_INFO);
 	
-	$leaders = nycc_rides_field_get_value($node->field_ride_leaders);
-	$current_riders = nycc_rides_field_get_value($node->field_ride_current_riders);
-	$waiters = nycc_rides_field_get_value($node->field_ride_waitlist);
-	
+	$leaders =  nycc_rides_count_leaders($node) ?  nycc_rides_field_get_value($node->field_ride_leaders): array();
+	$current_riders = nycc_rides_count_waiters($node) ? nycc_rides_field_get_value($node->field_ride_current_riders) : array();
+	$waiters = nycc_rides_count_waiters($node) ? nycc_rides_field_get_value($node->field_ride_waitlist): array();
 	$removed_riders = array(); //array to store riders that have been removed from waitlist so that they're not removed in each iteration.
 	foreach($leaders as $leader) {
 		$leader_was_removed_from_wait = 0;
@@ -1755,6 +1747,7 @@ function nycc_rides_clean_up_participants($node) {
 				//watchdog('test', "scanning waiters for rider ". $rider['uid']);
 				foreach($waiters as $ndx => $waiter) {
 					//watchdog('test', "scanning waiter[$ndx]: ". $waiter['uid']);
+					
 					if ($current_rider['uid'] == $waiter['uid'] && (!in_array($current_rider['uid'], $removed_riders ))) {
 						unset($node->field_ride_waitlist['und'][$ndx]);
 						drupal_set_message(check_plain("Rider: ". $current_rider['uid'] ." automatically removed from waitlist."));
@@ -1867,12 +1860,19 @@ function nycc_rides_get_ride_spots($node){
 	}
 }
 
+
 function nycc_rides_ride_allows_signups($node) {
 	if (is_numeric($node))
 		$node = node_load($node);
 		
-	if($node && $node->type == 'rides')
-		return (nycc_rides_field_get_value($node->field_ride_signups) == "Signups with waiting list" ) ;
+	if($node && $node->type == 'rides'){
+		$ride_signups_value = nycc_rides_field_get_value($node->field_ride_signups) ;
+		$ride_spots_value = nycc_rides_field_get_value($node->field_ride_spots) ;
+		
+		//confirm that signups are enabled and more than 0 spots are available
+		return (($ride_signups_value[0]['value'] == "Signups with waiting list" )
+				&& (intval($ride_spots_value[0]['value']) >0 ) ) ;
+	}
 	else	
 		return false;
 	
@@ -1966,8 +1966,11 @@ function nycc_rides_count_riders($data) {
 //   return $no_of_riders;
 }
 
+function nycc_rides_count_leaders($data) {
+	return nycc_rides_count_ref($data, "leaders");
+}
 function nycc_rides_count_waiters($data) {
-		return nycc_rides_count_ref($data, "waiters");
+	return nycc_rides_count_ref($data, "waiters");
 //   if (is_numeric($data)) {
 //     $node = node_load($data);
 //     $waiters = (!empty($data->field_ride_waitlist['und'])) ? $data->field_ride_waitlist['und'] : null;
@@ -2195,16 +2198,9 @@ function nycc_rides_get_ride_status($ride) {
   if (is_numeric($ride))
     $ride = node_load($ride);
     
-  //dpm($ride);  
-  if ($ride->field_ride_status && drupal_strlen($ride->field_ride_status['und'][0]['value']))
-    return $ride->field_ride_status['und'][0]['value'];
-  $sql = "SELECT field_ride_status_value FROM {content_type_rides} WHERE nid = :nid AND vid =:vid";
-  $q = db_query($sql, array(':nid'=>$ride->nid, ':vid'=>$ride->vid));
-  foreach ($q as $r)
-  {
-  	return $r->field_ride_status_value;
-  }
-
+  //dpm($ride);
+  $status = nycc_rides_field_get_value($ride->field_ride_status);
+  return $status[0]['value'];
 }
 
 function nycc_rides_ride_exists($title, $date) {
@@ -2259,7 +2255,7 @@ function nycc_rides_ride_has_attachments($data) {
 
 function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 	//returns array, first value is true/false (should be enabled), second value is message to be shown on js popup
-	$days_before_ride = variable_get('nycc_rides_days_before_ride', '10'); //how many days before a ride should signup be enabled
+	
 	global $user;
 	if(!$acct)
 		$acct= $user;
@@ -2273,24 +2269,57 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 	if(!nycc_rides_ride_is_upcoming($ride))
 		return array(false, "This ride has already taken place");
 	
+	//check if rider has joined to many rides/waitlists
 	$ride_time = strtotime(nycc_rides_get_ride_time_as_text($ride));
 	$waiter_count = nycc_rides_count_waiters($ride);
-	
 	if(nycc_rides_get_user_ride_counts($ride_time, $acct) > 0 && nycc_rides_get_ride_type($ride) != 'Club event')
-	   return aray(false, "Join Ride is disabled. Members may sign up for only one ride in a four hour period.");
+	   return array('value'=>false, 'reason'=>"Join Ride is disabled. Members may sign up for only one ride in a four hour period.");
 	
-	if(nycc_rides_get_user_waitlist_counts($ride_time, $acct) > 1 && nycc_rides_get_ride_type($ride) != 'Club event')
-	   return aray(false, "Join Waitlist is disabled. Members may sign up for 2 waitlists in the same four hour period.");
+//TODO: FIX THIS
+	//if(nycc_rides_get_user_waitlist_counts($ride_time, $acct) > 1 && nycc_rides_get_ride_type($ride) != 'Club event')
+	//   return array('value'=>false, 'reason'=>"Join Waitlist is disabled. Members may sign up for 2 waitlists in the same four hour period.");
 	
-	if(nycc_rides_get_ride_type($ride) == "Club Event")
-		return array(true,"");
+	//check if signup should be closed until a certain date
+	$ride_enable_time = nycc_rides_ride_enable_time($ride);
+	if ( $ride_enable_time > REQUEST_TIME )
+		return array('value'=>false, 'reason'=> "Join Ride is disabled until ".  date('l, F jS, Y \@ h:i A', $ride_enable_time));
 	
-	if ( (($ride_time - REQUEST_TIME) > ($days_before_ride * 60 * 60 * 24) ))
-		return aray(false, "Join Ride is disabled until $days_before_ride days before the ride");
+	if(nycc_rides_is_leader($ride, $acct))
+		return array('value'=>false, 'reason'=> "Leaders can not join as participants.");
 
-	return array(true,"");
+	if(nycc_rides_is_rider($ride, $acct))
+		return array('value'=>false, 'reason'=> "Already joined ride");
+
+	if(nycc_rides_is_waiting($ride, $acct))
+		return array('value'=>false, 'reason'=> "Already joined waitlist");
+	
+	//if nothing else disqualified the ride, true should be returned
+	return array('value'=>true, 'reason'=>"");
+	
 }
 
+function nycc_rides_ride_enable_time($ride){
+  	if (is_numeric($ride))
+    	$ride = node_load($ride);
+
+  	if (!is_object($ride))
+		return REQUEST_TIME; //if ride can't be loaded return current time to avoid errors caused by null values
+	
+
+	if(nycc_rides_field_has_value($ride->field_ride_open_signup_days)){
+		$ride_signup_days = nycc_rides_field_get_value($ride->field_ride_open_signup_days);
+		$days_before_ride = $ride_signup_days[0]['value'] ;
+	} else{
+		$days_before_ride = variable_get('nycc_rides_days_before_ride', '10'); //default set as variable.
+	}
+	
+	if($days_before_ride == 0) //if ride has no restriction
+		return REQUEST_TIME;
+	
+	$ride_time = strtotime(nycc_rides_get_ride_time_as_text($ride));
+	return $ride_time - ($days_before_ride * 60 * 60 * 24);
+	
+}
 
 
 function nycc_rides_ride_has_changed($ride) { 
@@ -2374,18 +2403,22 @@ function nycc_rides_get_ride_spots_text($node){
 		Scenario 4: field_ride_spots is not null and numwaiters == 0
 			 ($spots-riders) of $spots 
 		*/
+		$signup_value = nycc_rides_field_get_value($node->field_ride_signups);
+		$has_spots = nycc_rides_field_has_value($node->field_ride_spots);
+		$ride_spots_value = nycc_rides_field_get_value($node->field_ride_spots);
 		
-		if(nycc_rides_field_has_value($node->field_ride_spots)
-		   && nycc_rides_field_has_value($node->field_ride_signups)
-		   && ($node->field_ride_signups == "Signups with waiting list" )){
+		if($has_spots && $signup_value[0]['value'] == "Signups with waiting list" ){
 			return $numriders . t(" of Unlimited");
-		} else if (nycc_rides_field_has_value($node->field_ride_signups)
-				   && $node->field_ride_signups['und'][0]['value'] == "No signups or waiting list") {
+		
+		} else if ($signup_value[0]['value'] == "No signups or waiting list") {
 			return "Unlimited/No Sign-ups";
-		} else if(nycc_rides_field_has_value($node->field_ride_spots) && ($numwaiters > 0) ) {
-			return t("0 of ") . $node->field_ride_spots['und'][0]['value'] . "( " .  $numwaiters . t(" waiting)");
+		
+		} else if($has_spots && ($numwaiters > 0) ) {
+			return t("0 of ") . $ride_spots_value[0]['value'] . "( " .  $numwaiters . t(" waiting)");
+		
 		} else {
-			return $node->field_ride_spots['und'][0]['value'] - $numriders . t(" of ") . $node->field_ride_spots['und'][0]['value']  ;  	
+			
+			return $ride_spots_value[0]['value']  - $numriders . t(" of ") . $ride_spots_value[0]['value']   ;  	
 		}
 //         $node->content['field_ride_spots']['field']['items'][0]['#item']['value'] = 
 //         		($node->field_ride_spots['und'][0]['value'] ? $node->field_ride_spots['und'][0]['value'] - $numriders .t(" of "). 
