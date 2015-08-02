@@ -1689,16 +1689,19 @@ function nycc_rides_get_user_ride_counts($timestamp, $acct = null) {
 		
 	$start_time = $timestamp - 60 * 60 * 4;
 	$end_time = $timestamp + 60 * 60 * 4;
-  	//$date = nycc_rides_get_date($date, "Y-m-d");
-  	// removed from query:  AND R.field_ride_type_value = "Cue Sheet Ride"
-  	// mss - 2014-08-14: added max on vid to ensure no matches against older revisions
+
+  
   	$sql =<<<EOS
-			SELECT COUNT(*) AS cnt FROM {content_field_ride_current_riders} C, {content_type_rides} R 
-			WHERE C.nid = R.nid AND C.vid = R.vid AND R.field_ride_status_value = 'Approved' 
-				AND C.field_ride_current_riders_uid = $uid 
-				AND R.vid = (SELECT MAX(N.vid) FROM {node_revision} N WHERE N.nid = R.nid) 
-				AND	UNIX_TIMESTAMP(R.field_ride_timestamp_value)
-  				BETWEEN $start_time AND $end_time ;
+SELECT COUNT(*) AS cnt FROM {field_data_field_ride_current_riders} C, {field_data_field_ride_status} S, {field_data_field_ride_timestamp} T  
+WHERE 
+field_ride_current_riders_uid = $uid AND 
+C.entity_type = 'node' AND C.bundle = 'rides' AND C.deleted = 0 AND 
+S.entity_type = 'node' AND S.bundle = 'rides' AND S.deleted = 0 AND 
+T.entity_type = 'node' AND T.bundle = 'rides' AND T.deleted = 0 AND 
+S.entity_id = C.entity_id AND S.revision_id = C.revision_id AND 
+T.entity_id = C.entity_id AND T.revision_id = T.revision_id AND 
+C.revision_id = (SELECT MAX(N.revision_id) FROM {field_data_field_ride_current_riders} N WHERE N.entity_id = C.entity_id) AND 
+UNIX_TIMESTAMP(T.field_ride_timestamp_value) BETWEEN $timestamp - 60 * 60 * 4 AND $timestamp + 60 * 60 * 4;
 EOS;
 //  dsm($sql);
   $q = db_query($sql); //, $uid, $timestamp, $timestamp);
