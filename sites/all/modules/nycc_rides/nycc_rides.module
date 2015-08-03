@@ -12,10 +12,13 @@ TODO List:
 11) Fix how to handle multiple dates
 12) Fix Ride Submission Warning in nycc_rides_form_alter()
 13) fix disable join button with javascript
-14) fix SQL queries to determine how many rides or waitlists a user has joined
 15) implement required Profile
 16) Implement Submit a Ride
 17) Fix buttons join/approve/withdraw for cancelled rides.
+18) fix SQL in nycc_rides_ride_roster_email
+19) fix nycc_rides_get_ride_coordinator_emails (profile loads)
+20) fix nycc_rides_get_ride_coordinator_names (profile loads)
+21 ) nycc_rides_get_all_leader_names and nycc_rides_get_all_leader_emails (profile loads)
 */
 
 
@@ -713,10 +716,11 @@ function nycc_rides_output_ride_buttons($nid) {
 			//			),
 			//			'external'=>true)
 			//		);
+
 					$buttons[] = l(t('<s>Join Ride</s>'),
 								   "javascript:alert('" . $should_be_enabled['reason'] . ".')",
 										   array('attributes' =>
-												 array('class' => array('btn', 'btn-primary', 'nycc-disabled-button', 'nycc-join-btn'))));
+												 array('class' => array('btn', 'btn-primary', 'nycc-disabled-button', 'nycc-join-btn')), 'external'=>true));
 					
 				}
 			}
@@ -839,6 +843,7 @@ function nycc_rides_output_riders_roster_pdf($node = null) {
 
 
 function nycc_rides_ride_roster_email($timestamp, $hrs) {
+	//TODO FIX THIS SQL. Using Old Table Names
 //This function accepts a timestamp (generally REQUEST_TIME) and an hours interval and generates an email to the leaders of rides starting between those intervals
 //NOTE: It has a hard coded action ID
 
@@ -1701,7 +1706,7 @@ T.entity_type = 'node' AND T.bundle = 'rides' AND T.deleted = 0 AND
 S.entity_id = C.entity_id AND S.revision_id = C.revision_id AND 
 T.entity_id = C.entity_id AND T.revision_id = T.revision_id AND 
 C.revision_id = (SELECT MAX(N.revision_id) FROM {field_data_field_ride_current_riders} N WHERE N.entity_id = C.entity_id) AND 
-UNIX_TIMESTAMP(T.field_ride_timestamp_value) BETWEEN $timestamp - 60 * 60 * 4 AND $timestamp + 60 * 60 * 4;
+UNIX_TIMESTAMP(T.field_ride_timestamp_value) BETWEEN $start_time AND $end_time ;
 EOS;
 //  dsm($sql);
   $q = db_query($sql); //, $uid, $timestamp, $timestamp);
@@ -1728,12 +1733,16 @@ function nycc_rides_get_user_waitlist_counts($timestamp, $acct = null) {
   	// removed from query:  AND R.field_ride_type_value = "Cue Sheet Ride"
   	// mss - 2014-08-14: added max on vid to ensure no matches against older revisions
   	$sql =<<<EOS
-			SELECT COUNT(*) AS cnt FROM {content_field_ride_waitlist} C, {content_type_rides} R 
-			WHERE C.nid = R.nid AND C.vid = R.vid AND R.field_ride_status_value = 'Approved' 
-				AND C.content_field_ride_waitlist = $uid 
-				AND R.vid = (SELECT MAX(N.vid) FROM {node_revision} N WHERE N.nid = R.nid) 
-				AND	UNIX_TIMESTAMP(R.field_ride_timestamp_value)
-  				BETWEEN $start_time AND $end_time;
+SELECT COUNT(*) AS cnt FROM {field_data_field_ride_waitlist} C, {field_data_field_ride_status} S, {field_data_field_ride_timestamp} T  
+WHERE 
+field_ride_current_riders_uid = $uid AND 
+C.entity_type = 'node' AND C.bundle = 'rides' AND C.deleted = 0 AND 
+S.entity_type = 'node' AND S.bundle = 'rides' AND S.deleted = 0 AND 
+T.entity_type = 'node' AND T.bundle = 'rides' AND T.deleted = 0 AND 
+S.entity_id = C.entity_id AND S.revision_id = C.revision_id AND 
+T.entity_id = C.entity_id AND T.revision_id = T.revision_id AND 
+C.revision_id = (SELECT MAX(N.revision_id) FROM {field_data_field_ride_waitlist} N WHERE N.entity_id = C.entity_id) AND 
+UNIX_TIMESTAMP(T.field_ride_timestamp_value) BETWEEN  $start_time AND $end_time ;
 EOS;
 //  dsm($sql);
   $q = db_query($sql); //, $uid, $timestamp, $timestamp);
@@ -1864,7 +1873,7 @@ function nycc_rides_get_ride_location($ride) {
 	if (!$ride || $ride->type != 'rides')
     	return "";
 	
- 	if(nycc_rides_has_field_value($ride->field_ride_from)) {
+ 	if(nycc_rides_field_has_value($ride->field_ride_from)) {
 		return $ride->field_ride_from['und'][0]['value'];		
   	} else {
 		return $ride->field_ride_from_select['und'][0]['value'];
@@ -1878,7 +1887,7 @@ function nycc_rides_get_ride_type($ride) {
   	if (!is_object($ride))
     	return "";
 	
- 	if(nycc_rides_has_field_value($ride->field_ride_type)) {
+ 	if(nycc_rides_field_has_value($ride->field_ride_type)) {
 		return $ride->field_ride_type['und'][0]['value'];		
   	} else {
 		return "";
