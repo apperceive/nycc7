@@ -2763,7 +2763,14 @@ function nycc_rides_output_existing_rides($ride_date) {
   $output = "<div class='existing-rides'>";
   $output .= "<h3>" .t("Rides planned for"). " $ride_date_ui ($ride_date_db)</h3>";
   $output .= "<ul>";
-  $q = db_query("SELECT r.nid, n.title, r.field_ride_select_level_value AS level FROM {content_type_rides} r, {node} n WHERE n.nid=r.nid AND n.vid=r.vid AND n.status <> 0 AND field_ride_timestamp_value LIKE ':s%'", 
+  $sql <<<EOS
+    SELECT n.nid, n.title, l.field_ride_select_level_value 
+    FROM {node} n, {field_data_field_ride_select_level} l, {field_data_field_ride_timestamp} t 
+    WHERE n.nid = l.entity_id AND n.vid = l.revision_id AND 
+    n.nid = t.entity_id AND n.vid = t.revision_id AND 
+    n.status <> 0 AND t.field_ride_timestamp_value LIKE ':s%'  
+EOS;
+  $q = db_query($sql, 
   				array(':s'=>$ride_date_db));
   foreach($q as $row) {
     $found = true;
