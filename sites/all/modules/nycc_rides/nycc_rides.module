@@ -2251,6 +2251,7 @@ function nycc_rides_get_ride_status($ride) {
 
 }
 
+/* obsolete, no longer called
 function nycc_rides_ride_exists($title, $date) {
 	$date = nycc_rides_get_date($date);
   	$sql = "SELECT n.nid FROM {node} n, {content_type_rides} r WHERE n.nid = r.nid AND n.vid = r.vid AND n.type = 'rides' AND n.title = ':title' AND r.field_ride_timestamp_value LIKE ':date%'";
@@ -2258,6 +2259,9 @@ function nycc_rides_ride_exists($title, $date) {
 
   	return $q->rowCount()==0 ? false : true;
 }
+*/
+
+
 function nycc_rides_ride_has_images($data) {
   	if (is_numeric($data)) {
 		$node = node_load($data);
