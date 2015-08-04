@@ -11,10 +11,8 @@ TODO List:
 10) fix nycc_relist_ride - need to figure out how to load the leader data
 11) Fix how to handle multiple dates
 12) Fix Ride Submission Warning in nycc_rides_form_alter()
-13) fix disable join button with javascript
 15) implement required Profile
 16) Implement Submit a Ride
-17) Fix buttons join/approve/withdraw for cancelled rides.
 18) fix SQL in nycc_rides_ride_roster_email
 19) fix nycc_rides_get_ride_coordinator_emails (profile loads)
 20) fix nycc_rides_get_ride_coordinator_names (profile loads)
@@ -698,30 +696,18 @@ function nycc_rides_output_ride_buttons($nid) {
 			if ($should_be_enabled['value'] == true){
 				//TODO: Add 10-day signup limit
 				if (!$no_of_spots || ($available_spots > 0)) {
-					$buttons[] = l(t('Join'), "node/$nid/join",
+					$buttons[] = l(t('Join Ride'), "node/$nid/join",
 										   array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
 				} else if ($no_of_spots && (!$available_spots) && (!$isRider) && (!$isWaiter)){
 					$buttons[] = l(t('Add Me To The Waitlist'), "node/$nid/join",
 										   array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
 				}
 			} else {
-				if($isApproved){
-					//TODO: How to pass a disabled button?
-					//$link_text = "previous page";
-			//$link_path = "javascript:history.back()";
-			//$d_link_previous_page_link =  l( t($link_text), $link_path,
-			//	   array('attributes' =>
-			//			array(
-			//				'title' => t('previous page'),
-			//			),
-			//			'external'=>true)
-			//		);
-
-					$buttons[] = l(t('<s>Join Ride</s>'),
+				if($isApproved && (!$isRider) && (!$isWaiter)){
+					$buttons[] = l(t('Join Ride (Disabled)'),
 								   "javascript:alert('" . $should_be_enabled['reason'] . ".')",
 										   array('attributes' =>
 												 array('class' => array('btn', 'btn-primary', 'nycc-disabled-button', 'nycc-join-btn')), 'external'=>true));
-					
 				}
 			}
 			
@@ -1708,7 +1694,7 @@ T.entity_id = C.entity_id AND T.revision_id = T.revision_id AND
 C.revision_id = (SELECT MAX(N.revision_id) FROM {field_data_field_ride_current_riders} N WHERE N.entity_id = C.entity_id) AND 
 UNIX_TIMESTAMP(T.field_ride_timestamp_value) BETWEEN $start_time AND $end_time ;
 EOS;
-//  dsm($sql);
+  //dpm($sql);
   $q = db_query($sql); //, $uid, $timestamp, $timestamp);
   foreach($q as $r) {
 	  return $r->cnt;
@@ -1735,7 +1721,7 @@ function nycc_rides_get_user_waitlist_counts($timestamp, $acct = null) {
   	$sql =<<<EOS
 SELECT COUNT(*) AS cnt FROM {field_data_field_ride_waitlist} C, {field_data_field_ride_status} S, {field_data_field_ride_timestamp} T  
 WHERE 
-field_ride_current_riders_uid = $uid AND 
+field_ride_waitlist_uid = $uid AND 
 C.entity_type = 'node' AND C.bundle = 'rides' AND C.deleted = 0 AND 
 S.entity_type = 'node' AND S.bundle = 'rides' AND S.deleted = 0 AND 
 T.entity_type = 'node' AND T.bundle = 'rides' AND T.deleted = 0 AND 
@@ -2340,17 +2326,7 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 	//check if rider has joined to many rides/waitlists
 	$ride_time = strtotime(nycc_rides_get_ride_time_as_text($ride));
 	$waiter_count = nycc_rides_count_waiters($ride);
-	if(nycc_rides_get_user_ride_counts($ride_time, $acct) > 0 && nycc_rides_get_ride_type($ride) != 'Club event')
-	   return array('value'=>false, 'reason'=>"Join Ride is disabled. Members may sign up for only one ride in a four hour period.");
 	
-//TODO: FIX THIS
-	//if(nycc_rides_get_user_waitlist_counts($ride_time, $acct) > 1 && nycc_rides_get_ride_type($ride) != 'Club event')
-	//   return array('value'=>false, 'reason'=>"Join Waitlist is disabled. Members may sign up for 2 waitlists in the same four hour period.");
-	
-	//check if signup should be closed until a certain date
-	$ride_enable_time = nycc_rides_ride_enable_time($ride);
-	if ( $ride_enable_time > REQUEST_TIME )
-		return array('value'=>false, 'reason'=> "Join Ride is disabled until ".  date('l, F jS, Y \@ h:i A', $ride_enable_time));
 	
 	if(nycc_rides_is_leader($ride, $acct))
 		return array('value'=>false, 'reason'=> "Leaders can not join as participants.");
@@ -2361,6 +2337,18 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 	if(nycc_rides_is_waiting($ride, $acct))
 		return array('value'=>false, 'reason'=> "Already joined waitlist");
 	
+	if(nycc_rides_get_user_ride_counts($ride_time, $acct) > 0 )
+	   return array('value'=>false, 'reason'=>"Join Ride is disabled. Members may sign up for only one ride in a four hour period.");
+	
+
+	if(nycc_rides_get_user_waitlist_counts($ride_time, $acct) > 1 )
+	   return array('value'=>false, 'reason'=>"Join Waitlist is disabled. Members may sign up for 2 waitlists in the same four hour period.");
+
+	//check if signup should be closed until a certain date
+	$ride_enable_time = nycc_rides_ride_enable_time($ride);
+	if ( $ride_enable_time > REQUEST_TIME )
+		return array('value'=>false, 'reason'=> "Join Ride is disabled until ".  date('l, F jS, Y \@ h:i A', $ride_enable_time));
+	   
 	//if nothing else disqualified the ride, true should be returned
 	return array('value'=>true, 'reason'=>"");
 	
