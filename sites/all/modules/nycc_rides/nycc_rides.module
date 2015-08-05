@@ -853,7 +853,7 @@ EOS;
 	$q = db_query($sql);
   	while ($row = db_fetch_object($q)) {    
       $ride = node_load($row->nid);
-      $acct = user_load($row->ui));
+      $acct = user_load($row->ui);
 
     	if ( ($ride) && ($acct) ) {
     		$ride_count++;
