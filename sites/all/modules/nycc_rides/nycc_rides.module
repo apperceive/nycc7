@@ -307,7 +307,7 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
         }
 
 		//TODO: MOVE TO RULE
-        if (!nycc_rides_ride_is_upcoming($node))
+        if (!nycc_rides_ride_is_upcoming($node) && (nycc_rides_get_ride_status($node) == ' Approved'))
           	drupal_set_message("NOTE: This ride has already taken place.");
 
 		//TODO: move to rules
@@ -1099,8 +1099,13 @@ function nycc_rides_join_ride($nid=null) {
 		$ride_status = nycc_rides_ride_should_be_enabled($ride, $user);
 		
 		if($ride_status['value'] == false){
-    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid was prevented from joining ride %nid. Reason: %reason", array('%uid'=>$user_uid, '%nid'=>$nid, '%reason'=>$ride_status['reason']), WATCHDOG_WARNING);
-    		drupal_set_message("Warning: You can not join this ride. Reason: ". $ride_status['reason'] , "error");
+    		watchdog("nycc_rides", "nycc_rides_join_ride - User %uid was prevented from joining ride %nid. Reason: %reason",
+					 array('%uid'=>$user_uid, '%nid'=>$nid, '%reason'=>$ride_status['reason']),
+					 WATCHDOG_WARNING);
+			
+			if($ride_status['display_msg'])
+				drupal_set_message("Warning: You can not join this ride. Reason: ". $ride_status['reason'] , "error");
+				
 			drupal_goto("node/$nid");		
 		}
 
@@ -2296,7 +2301,7 @@ function nycc_rides_ride_has_attachments($data) {
 
 
 function nycc_rides_ride_should_be_enabled($ride, $acct=null){
-	//returns array, first value is true/false (should be enabled), second value is message to be shown on js popup
+	//returns array, first value is true/false (should be enabled), second value is reason, the third value indicates if the reason should be displayed
 	
 	$return_value = array();
 	
@@ -2308,15 +2313,15 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
     	$ride = node_load($ride);
 
   	if (!is_object($ride)){
-		$return_value =  array('value'=>false, 'reason'=>"");
+		$return_value =  array('value'=>false, 'reason'=>"could not load ride", 'display_msg'=>false);
   	}
 	
-	if( empty($return_value) && ($ride->field_ride_status['und'][0]['value'] != 'Approved' )){
-		$return_value =  array('value'=>false, 'reason'=>"This ride is not Approved");
+	if( empty($return_value) && (nycc_rides_get_ride_status($ride) != 'Approved' )){
+		$return_value =  array('value'=>false, 'reason'=>"This ride is not Approved", 'display_msg'=>true);
 	}
 	
-	if(empty($return_value) && !nycc_rides_ride_is_upcoming($ride)){
-		$return_value = array('value'=>false, 'reason'=>"This ride has already taken place");
+	if(empty($return_value) && !nycc_rides_ride_is_upcoming($ride) ){
+		$return_value = array('value'=>false, 'reason'=>"This ride has already taken place", 'display_msg'=>true);
 	}
 	
 	//check if rider has joined to many rides/waitlists
@@ -2325,34 +2330,34 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 	
 	
 	if(empty($return_value) && nycc_rides_is_leader($ride, $acct)){
-		$return_value = array('value'=>false, 'reason'=>"Leaders can not join as participants.");
+		$return_value = array('value'=>false, 'reason'=>"Leaders can not join as participants.", 'display_msg'=>true);
 	}
 
 	if(empty($return_value) && nycc_rides_is_rider($ride, $acct)){
-		$return_value = array('value'=>false, 'reason'=>"You have already joined ride");
+		$return_value = array('value'=>false, 'reason'=>"You have already joined ride", 'display_msg'=>true);
 	}
 
 	if(empty($return_value) && nycc_rides_is_waiting($ride, $acct)){
-		$return_value = array('value'=>false, 'reason'=>"You have already joined waitlist");
+		$return_value = array('value'=>false, 'reason'=>"You have already joined waitlist", 'display_msg'=>true);
 	}
 	
 	if(empty($return_value) && nycc_rides_get_user_ride_counts($ride_time, $acct) > 0 ){
-	   $return_value = array('value'=>false, 'reason'=>"Join Ride is disabled. Members may sign up for only one ride in a four hour period.");
+	   $return_value = array('value'=>false, 'reason'=>"Join Ride is disabled. Members may sign up for only one ride in a four hour period.", 'display_msg'=>true);
 	}
 	
 
 	if(empty($return_value) && nycc_rides_get_user_waitlist_counts($ride_time, $acct) > 1 ) {
-	   $return_value = array('value'=>false, 'reason'=>"Join Waitlist is disabled. Members may sign up for 2 waitlists in the same four hour period.");
+	   $return_value = array('value'=>false, 'reason'=>"Join Waitlist is disabled. Members may sign up for 2 waitlists in the same four hour period.", 'display_msg'=>true);
 	}
 
 	//check if signup should be closed until a certain date
 	$ride_enable_time = nycc_rides_ride_enable_time($ride);
 	if ( empty($return_value) && $ride_enable_time > REQUEST_TIME ){
-		$return_value = array('value'=>false, 'reason'=> "Join Ride is disabled until ".  date('l, F jS, Y \@ h:i A', $ride_enable_time));
+		$return_value = array('value'=>false, 'reason'=> "Join Ride is disabled until ".  date('l, F jS, Y \@ h:i A', $ride_enable_time), 'display_msg'=>true);
 	}
 	if (empty($return_value)){
 		//if nothing else disqualified the ride, true should be returned
-		$return_value = array('value'=>true, 'reason'=>"");
+		$return_value = array('value'=>true, 'reason'=>"", 'display_msg'=>false);
 	}
 	
 	return $return_value;
