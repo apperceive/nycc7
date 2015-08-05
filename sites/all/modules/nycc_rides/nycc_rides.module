@@ -851,9 +851,10 @@ EOS;
 	if ($rr_debug ) watchdog("nycc-ride_roster", "SQL is " .  $sql, array(), WATCHDOG_NOTICE);        
 	$ride_count = 0;
 	$q = db_query($sql);
-  	while ($row = db_fetch_object($q)) {
-    	$ride = node_load(array('nid' => $row->nid));
-		$acct = user_load(array('uid' => $row->uid));
+  	while ($row = db_fetch_object($q)) {    
+      $ride = node_load($row->nid);
+      $acct = user_load($row->ui));
+
     	if ( ($ride) && ($acct) ) {
     		$ride_count++;
 			$cp = profile2_load_by_user($acct->uid);
@@ -912,7 +913,7 @@ function nycc_output_riders_roster_html($nid = null) {
 			$original_user = $user;
 			$old_state = session_save_session();
 			session_save_session(FALSE);
-			$user = user_load(array('uid' => 1));  		
+			$user = user_load(1);   // admin
 	  	
 	  		$view->hide_admin_links=TRUE;
   			
@@ -2616,6 +2617,9 @@ function nycc_rides_existing_rides_js() {
 function nycc_rides_ride_coordinators() {
   $coordinators = array();
   $sql = 'SELECT c.field_ride_coordinator_value AS level, n.title as name, p.field_phone_value as phone, u.mail, u.uid FROM {content_field_ride_coordinator} c, {content_type_profile} p, {node} n, {users} u WHERE n.nid=c.nid AND p.nid=n.nid AND u.uid=n.uid AND field_ride_coordinator_value IS NOT NULL ORDER BY 1';
+  //$sql =<<<EOS  
+    
+//EOS;
   $results = db_query($sql);
   foreach ($result as $coordinator) {
     $coordinator->level = strtoupper(substr($coordinator->level,0,1)); // lcfirst($coordinator->level);
