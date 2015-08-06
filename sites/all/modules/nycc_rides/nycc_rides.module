@@ -693,6 +693,7 @@ function nycc_rides_output_ride_buttons($nid) {
 							   array('attributes' => array('class' => array('btn', 'nycc-btn', 'btn-primary', 'nycc-xxx-btn'))));
 			}
 			$should_be_enabled = nycc_rides_ride_should_be_enabled($ride);
+			//TOOD: TEST GIT
 			
 			if ($should_be_enabled['value'] == true){
 				if (!$no_of_spots || ($available_spots > 0)) {
