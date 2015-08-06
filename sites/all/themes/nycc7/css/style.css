@@ -5,3 +5,12 @@
 div.navbar-header a.navbar-brand {
  display: none;
 }
+
+article.node-rides div.item-list ul  {
+  list-style-type: none;
+  padding: 0;
+}
+
+article.node-rides div.item-list ul li {
+  margin: 3px 0;
+}
