@@ -778,7 +778,7 @@ function nycc_rides_output_riders_roster_pdf($node = null) {
         $output .= $waiver->body;
       // display ride participants
 	  //TODO:CONFIRM THAT $leaders works! May need to wrap in nycc_rides_field_get_value()
-      $leaders = nycc_rides_refs2ids(nycc_rides_noderefs2userrefs($ride->field_ride_leaders));
+      $leaders = nycc_rides_refs2ids(nycc_rides_field_get_value($ride->field_ride_current_leaders));
       $riders = nycc_rides_refs2ids(nycc_rides_field_get_value($ride->field_ride_current_riders));
       $output .= views_embed_view('ride_participants', 'block_2', implode("+", array_merge($leaders, $riders)));
       $waiters = nycc_rides_refs2ids(nycc_rides_field_get_value($ride->field_ride_waitlist));
@@ -792,6 +792,8 @@ function nycc_rides_output_riders_roster_pdf($node = null) {
 
 function nycc_rides_ride_roster_email($timestamp, $hrs) {
 	//TODO FIX THIS SQL. Using Old Table Names
+	//TODO FIX THIS SQL. Assumes leader is Node Reference. New field is user reference
+	
 //This function accepts a timestamp (generally REQUEST_TIME) and an hours interval and generates an email to the leaders of rides starting between those intervals
 //NOTE: It has a hard coded action ID
 
@@ -802,7 +804,7 @@ function nycc_rides_ride_roster_email($timestamp, $hrs) {
 SELECT N.nid AS nid, U.uid AS uid 
 FROM node N  
 INNER JOIN content_type_rides R ON N.nid = R.nid  AND N.vid = R.vid
-Inner JOIN content_field_ride_leaders L ON N.vid = L.vid AND N.nid = L.nid
+Inner JOIN content_field_ride_current_leaders L ON N.vid = L.vid AND N.nid = L.nid
 INNER JOIN node NL ON L.field_ride_leaders_nid = NL.nid 
 INNER JOIN users U ON NL.uid = U.uid 
 WHERE  R.field_ride_status_value = 'Approved' 
@@ -859,7 +861,7 @@ function nycc_output_riders_roster_html($nid = null) {
      	$ride = node_load( $nid);
  	}
     if ($ride) {      
-      	$leaders = nycc_refs2ids(nycc_noderefs2userrefs($ride->field_ride_leaders));
+      	$leaders = nycc_refs2ids($ride->field_ride_current_leaders);
       	$riders = nycc_refs2ids($ride->field_ride_current_riders);
       	$waiters = nycc_refs2ids($ride->field_ride_waitlist);
       	$roster = array(implode("+", array_filter(array_merge($leaders, $riders, $waiters))));
@@ -1312,8 +1314,7 @@ function nycc_rides_relist_ride($onode, $ride_status = "Submitted") {
 	$node->field_ride_additional_dates = NULL;
 	$node->field_ride_current_riders = array();
 	
-	//TODO: IF FIX this. Not sure how to set value yet
-	$node->field_ride_leaders = array(array('uid' => $user->uid));
+	$node->field_ride_current_leaders = array(array('uid' => $user->uid));
 	$node->field_ride_waitlist = array();
 	//
 	node_save($node);
@@ -1551,22 +1552,12 @@ function nycc_rides_is_leader($ridenode, $account = null) {
     	$account = $user;
 		
 
-  	if ($ridenode && $ridenode->field_ride_leaders['und'] && is_array($ridenode->field_ride_leaders['und'])) {
-		if(is_numeric($account->uid))
-			$cp = profile2_load_by_user($account->uid, "profile");
-
-		//dpm($account );
-		//dpm($cp);
-		//dpm($ridenode);
-
-		if(is_object($cp)){
-			dpm($cp);
-
-			foreach($ridenode->field_ride_leaders['und'] as $leader) {
-				dpm($leader['nid']);
-				if ($cp->nid == $leader['nid'])
-					return true;
-			}
+  	if ($ridenode && nycc_rides_field_has_value($ridenode->field_ride_current_leaders) && is_numeric($account->uid)) {
+		foreach(nycc_rides_field_get_value($ridenode->field_ride_current_leaders) as $leader)
+		{
+			if ($leader['uid'] == $account->uid)
+				return true;
+			
 		}
   	}
   	return false;
@@ -1776,50 +1767,46 @@ function nycc_rides_clean_up_participants($node) {
 	
 	if ($r_debug) watchdog("nycc_rides", "nycc_rides_clean_up_participants called for Ride: %title", array('%title' => $node->title), WATCHDOG_INFO);
 	
-	$leaders =  nycc_rides_count_leaders($node) ?  nycc_rides_field_get_value($node->field_ride_leaders): array();
+	$leaders =  nycc_rides_count_leaders($node) ?  nycc_rides_field_get_value($node->field_ride_current_leaders): array();
 	$current_riders = nycc_rides_count_waiters($node) ? nycc_rides_field_get_value($node->field_ride_current_riders) : array();
 	$waiters = nycc_rides_count_waiters($node) ? nycc_rides_field_get_value($node->field_ride_waitlist): array();
 	$removed_riders = array(); //array to store riders that have been removed from waitlist so that they're not removed in each iteration.
-	foreach($leaders as $leader) {
+	foreach($leaders as $leader_uid) {
 		$leader_was_removed_from_wait = 0;
-		$leader_was_removed_from_ride = 0;		
-		$leader_node = node_load($leader['nid']);
-		if ($leader_node) {
-			$leader_uid = $leader_node->uid;
-			if ($r_debug) watchdog("nycc_rides", "nycc_rides_clean_up_participants Checking Leader: %uid for Ride: %title", array('%uid' => $leader_uid, '%title' => $node->title), WATCHDOG_INFO);			
+		$leader_was_removed_from_ride = 0;
 
-			foreach($current_riders as $ndx => $current_rider) {
-				if ($current_rider['uid'] == $leader_uid && (!$leader_was_removed_from_ride)) {
-					unset($node->field_ride_current_riders['und'][$ndx]);
-					drupal_set_message(check_plain("Leader ". $leader_node->field_first_name['und'][0]['value'] ." ". $leader_node->field_last_name['und'][0]['value'] ." automatically removed from participants list."));
-					if ($r_debug) watchdog("nycc_rides", "leader: %uid (%uname) removed from particpants list: %nid (%rname)", array('%uid'=> $current_rider['uid'], '%nid'=> $node->nid, '%rname' => $node->title), WATCHDOG_INFO);
+		if ($r_debug) watchdog("nycc_rides", "nycc_rides_clean_up_participants Checking Leader: %uid for Ride: %title", array('%uid' => $leader_uid, '%title' => $node->title), WATCHDOG_INFO);			
+
+		foreach($current_riders as $ndx => $current_rider) {
+			if ($current_rider['uid'] == $leader_uid && (!$leader_was_removed_from_ride)) {
+				unset($node->field_ride_current_riders['und'][$ndx]);
+				drupal_set_message(check_plain("Leader ". $leader_uid  ." automatically removed from participants list."));
+				
+				if ($r_debug) watchdog("nycc_rides", "leader: %uid removed from particpants list: %nid (%rname)", array('%uid'=> $leader_uid, '%nid'=> $node->nid, '%rname' => $node->title), WATCHDOG_INFO);
 					$leader_was_removed_from_ride = 1;
-				}  //if leader = rider
+			}  //if leader = rider
 				
-				//while iterating through riders, also check to see if that rider is on a waitlist and remove
-				//watchdog('test', "scanning waiters for rider ". $rider['uid']);
-				foreach($waiters as $ndx => $waiter) {
-					//watchdog('test', "scanning waiter[$ndx]: ". $waiter['uid']);
+			//while iterating through riders, also check to see if that rider is on a waitlist and remove
+			//watchdog('test', "scanning waiters for rider ". $rider['uid']);
+			foreach($waiters as $ndx => $waiter) {
+				//watchdog('test', "scanning waiter[$ndx]: ". $waiter['uid']);
 					
-					if ($current_rider['uid'] == $waiter['uid'] && (!in_array($current_rider['uid'], $removed_riders ))) {
-						unset($node->field_ride_waitlist['und'][$ndx]);
-						drupal_set_message(check_plain("Rider: ". $current_rider['uid'] ." automatically removed from waitlist."));
-						if ($r_debug)  watchdog("nycc_rides", "waiter: %uid removed from waitlist: %nid (%rname)", array('%uid'=> $waiter['uid'], '%nid'=> $node->nid, '%rname' => $node->title), WATCHDOG_INFO);
-						$removed_riders[] = $current_rider['uid'];
-					}  //if
+				if ($current_rider['uid'] == $waiter['uid'] && (!in_array($current_rider['uid'], $removed_riders ))) {
+					unset($node->field_ride_waitlist['und'][$ndx]);
+					drupal_set_message(check_plain("Rider: ". $current_rider['uid'] ." automatically removed from waitlist."));
+					if ($r_debug)  watchdog("nycc_rides", "waiter: %uid removed from waitlist: %nid (%rname)", array('%uid'=> $waiter['uid'], '%nid'=> $node->nid, '%rname' => $node->title), WATCHDOG_INFO);
+					$removed_riders[] = $current_rider['uid'];
+				}  //if
 				
-					//while iterating through waitlist check if the leader is on the waitlist
-					if ($waiter['uid'] == $leader_uid && (!$leader_was_removed_from_wait)) {
-						unset($node->field_ride_waitlist['und'][$ndx]);
-						drupal_set_message(check_plain("Leader ". $leader_node->field_first_name['und'][0]['value'] ." ". $leader_node->field_last_name['und'][0]['value'] ." automatically removed from waitlist."));
-						if ($r_debug) watchdog("nycc_rides", "leader: %uid (%uname) removed from waitist: %nid (%rname)", array('%uid'=> $current_rider['uid'], '%nid'=> $node->nid, '%rname' => $node->title), WATCHDOG_INFO);
-						$leader_was_removed_from_wait = 1;
-					}  //if
-				} // foreach waiter
-			} // foreach current_rider        	
-		} else { // if leader_profile_node
-			watchdog("nycc_rides", "Could not load profile for leader: %nid.", array('%nid'=> $leader['nid'], ), WATCHDOG_WARNING);
-		}
+				//while iterating through waitlist check if the leader is on the waitlist
+				if ($waiter['uid'] == $leader_uid && (!$leader_was_removed_from_wait)) {
+					unset($node->field_ride_waitlist['und'][$ndx]);
+					drupal_set_message(check_plain("Leader ". $leader_uid ." automatically removed from waitlist."));
+						if ($r_debug) watchdog("nycc_rides", "leader: %uid removed from waitist: %nid (%rname)", array('%uid'=> $leader_uid, '%nid'=> $node->nid, '%rname' => $node->title), WATCHDOG_INFO);
+					$leader_was_removed_from_wait = 1;
+				}  //if
+			} // foreach waiter
+		} // foreach current_rider        	
 // 	} else {
 // 		dpm($current_riders);
 // 		dpm ($leaders);
@@ -1974,8 +1961,8 @@ function nycc_rides_count_ref($data, $type = 'riders') {
 				$to_count_id = 'uid';
 				break;
 			case "leaders":
-				$to_count = (!empty($data->field_ride_leaders['und'])) ? $data->field_ride_leaders['und'] : null;
-				$to_count_id = 'nid';
+				$to_count = (!empty($data->field_ride_current_leaders['und'])) ? $data->field_ride_current_leaders['und'] : null;
+				$to_count_id = 'uid';
 				break;
 		} 
 		$no_to_return = 0;
@@ -2079,23 +2066,21 @@ function nycc_rides_get_rider_emails($riders, $separator = ", ") {
 }
 
 function nycc_rides_get_all_leader_emails($ride) {
-//TODO FIX THIS - HOW TO GET LEADER FROM NID
-
-return "";
-//	//if ($ride > 0)
-//  	//  $ride = node_load($ride);
-//  	if (!$ride || $ride->type != 'rides' || !$ride->field_ride_leaders || !is_array($ride->field_ride_leaders['und']))
-//    	return "";
-//	
-//	$mail = "";
-//  	foreach($ride->field_ride_leaders['und'] as $leader) {
-//    	if (drupal_strlen($mail))
-//      		$mail .= ",";
-//
-//    	$account = user_load($leader['target-id']);
-//    	$mail .= $account->mail;
-//  	}
-//  	return $mail;
+	if (!$ride || $ride->type != 'rides')
+		return "";
+	$mail = "";
+	if(nycc_rides_field_has_value($ride->field_ride_current_leaders)) {
+		foreach(nycc_rides_field_get_value($ride->field_ride_current_leaders) as $leader){
+			$account = user_load($leader['uid']);
+			if ($account) {
+				if (drupal_strlen($mail))
+		      		$mail .= ",";
+				
+				$mail .= $account->mail;
+			}
+		}
+  }
+  return $mail;	
 }
 function nycc_rides_get_ride_coordinator_emails($data) {
 	dpm($data);
@@ -2151,17 +2136,17 @@ function nycc_rides_get_ride_coordinator_names($data) {
 }
 
 function nycc_rides_get_all_leader_names($ride) {
-  if ( $ride->type != 'rides' || !$ride->field_ride_leaders || !is_array($ride->field_ride_leaders['und']))
-    return "";
+	if ( ($ride->type != 'rides') || (!nycc_rides_field_has_value($ride->field_ride_current_leaders)))
+		return "";
  
-  foreach($ride->field_ride_leaders as $leader) {
+	foreach(nycc_rides_field_get_value($ride->field_ride_current_leaders) as $leader) {
     
-//    watchdog("rides", " processing leader with nid: " . $leader_uid);
-    if (drupal_strlen($names))
+	//    watchdog("rides", " processing leader with uid: " . $leader_uid);
+	    if (drupal_strlen($names))
         $names .= ", ";
-    //TODO: IF fix this. Leaders is no longer a node reference.    
-   if (is_numeric($leader['nid']) && $leader['nid'] >0) {
-       $cp = node_load($leader['nid']);
+	
+   if (is_numeric($leader['uid']) && $leader['uid'] >0) {
+		$cp = profile2_load_by_user($leader['uid'], "profile");
        
        if(is_object($cp)) {
          $names .= $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
@@ -2722,8 +2707,8 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
 
   $output .= "<h3>" .t("Step 3. Select ride leaders:"). "</h3>";
   //$output .= "<small>(Start typing last name & wait a second for the system to query our database)</small>";
-  $form['field_ride_leaders']['field_ride_leaders_add_more']['#value'] = t("Add another ride leader");
-  $output .= drupal_render($form['field_ride_leaders']);
+  $form['field_ride_current_leaders']['field_ride_current_leaders_add_more']['#value'] = t("Add another ride leader");
+  $output .= drupal_render($form['field_ride_current_leaders']);
   if ($op == 'add') {
     unset($form['field_ride_current_riders']);
     unset($form['field_ride_waitlist']);
