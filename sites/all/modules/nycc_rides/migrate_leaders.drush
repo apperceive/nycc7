@@ -1,0 +1,44 @@
+<?php
+ 
+	$sql= "select distinct entity_id from iforst.field_data_field_ride_leaders";
+	$q = db_query($sql);
+    drush_print("retrieved ". $q->rowCount() . " rides from database");
+    $cnt = 0;
+    $leader_cnt = 0;
+    $leader_cp_cnt = 0;
+	foreach($q as $row) {
+      $cnt++;
+      if ($cnt % 25 == 0)
+          drush_print("processed ". $cnt  . " rides...");
+
+      $ride = node_load($row->entity_id);
+      if ($ride) {
+		foreach (nycc_rides_field_get_value($ride->field_ride_leaders)  as $ndx => $leader) {
+            $leader_cnt++;
+			$cp = node_load($leader['nid']);
+			if($cp) {
+              $leader_cp_cnt++;
+              if(! nycc_rides_is_leader($ride, $cp->uid)) {
+                if (nycc_rides_field_has_value($ride->field_ride_current_leaders)){
+        			$ride->field_ride_current_leaders['und'][]['uid'] = $cp->uid;
+                } else {
+                  $ride->field_ride_current_leaders['und'][0]['uid'] = $cp->uid;
+                }
+                unset($ride->field_ride_leaders['und'][$ndx]);
+                node_save($ride);					
+              } else {
+                drush_print("Info: Leader with NID: " . $leader['nid'] . "  on  ride: " . $row->entity_id . " is already a leader. skipping.");
+              }
+            } else {
+              drush_print("Warning: Could not load profile node for leader with NID: " . $leader['nid'] . "  on  ride: " . $row->entity_id );
+            }
+		}
+      } else {
+        drush_print("Warning: Could not load ride: " . $row->entity_id );
+      }
+    }
+    drush_print("script finished processing " . $cnt . " rides.");
+    drush_print($leader_cnt . " leader values were found.");
+    drush_print($leader_cp_cnt . " leader profiles were loaded.");
+    drush_print("Script complete.");
+?>
