@@ -18,7 +18,7 @@ TODO List:
 22) fix nycc_rides_ride_overlaps_user
 23) fix viewRideSignups
 24) figure how to override title and values for things like Ride Spots
-25) figure out how to migrate leaders to new field
+25) fix SQL in nycc_rides_get_ride_coordinator_names
 
 */
  
@@ -26,7 +26,7 @@ TODO List:
 /*TODO LIST WHEN DEPLOYING TO PROD
  *1) add field to control 10-day waitlist (field_ride_open_signup_days)
  *2) INSTALL WYSIWYG Module
- *3) create new leaders field (field_ride_current_leaders)
+ *3) create new leaders field (field_ride_current_leaders) & run migrate script
  *
  *
  */
@@ -343,6 +343,9 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
 			  // '#weight' => 100,
 			  // '#theme' => 'function_name_without_theme',
 			);
+			$node->content['field_ride_spots']['#title'] = t("Remaining/Spots");	
+
+			$node->content['field_ride_spots'][0]['#markup'] = nycc_rides_get_ride_spots_text($node);			
 		    $node->content['field_ride_spots']['field']['#title'] = t("Remaining/Spots");
 			$node->content['field_ride_spots']['field']['items'][0]['#item']['value'] = nycc_rides_get_ride_spots_text($node);
 
@@ -2068,57 +2071,6 @@ function nycc_rides_count_waiters($data) {
 //   return $no_of_waiters;
 }
 
-function nycc_rides_get_leader_emails($leaders, $separator = ", ") {
-  global $user;
-  foreach($leaders as $leader) {
-    if (drupal_strlen($output))
-      $output .=  $separator;
-    $cp = node_load($leader['nid']);
-    $account = user_load($cp->uid);
-    $title = $cp->title;
-    $mail = $account->mail;
-    if ($user->uid && in_array("paid-member", $user->roles))
-      $output .= "<a href='mailto:$mail'>$title</a>";
-    else
-      $output .= $title;
-  }
-  return $output;
-}
-
-
-
-
-
-function nycc_rides_get_rider_emails($riders, $separator = ", ") {
-  foreach($riders as $rider) {
-    if (drupal_strlen($output))
-      $output .=  $separator;
-    $account = user_load($rider['uid']);
-	$cp = profile2_load_by_user($account->uid, "profile");
-    $title = $cp->title;
-    $mail = $account->mail;
-    $output .= "<a href='mailto:$mail'>$title</a>";
-  }
-  return $output;
-}
-
-function nycc_rides_get_all_leader_emails($ride) {
-	if (!$ride || $ride->type != 'rides')
-		return "";
-	$mail = "";
-	if(nycc_rides_field_has_value($ride->field_ride_current_leaders)) {
-		foreach(nycc_rides_field_get_value($ride->field_ride_current_leaders) as $leader){
-			$account = user_load($leader['uid']);
-			if ($account) {
-				if (drupal_strlen($mail))
-		      		$mail .= ",";
-				
-				$mail .= $account->mail;
-			}
-		}
-  }
-  return $mail;	
-}
 function nycc_rides_get_ride_coordinator_emails($data) {
 	dpm($data);
   if (is_numeric($data)) {
@@ -2147,11 +2099,13 @@ function nycc_rides_get_ride_coordinator_emails($data) {
 
 
 function nycc_rides_get_ride_coordinator_names($data) {
-  if (is_numeric($data)) {
-    $ride = node_load($data);
+	//TODO FIX SQL
+	if (is_numeric($data)) {
+		$ride = node_load($data);
 	
-	if ($ride)
-      $level = $ride->field_ride_level_select['und'][0]['value'];
+		if ($ride)
+			$level = $ride->field_ride_level_select['und'][0]['value'];
+	
 	} else if (strlen($data) == 1 && in_array(strtolower($data), array('a', 'b', 'c'))) {
 		$level = $data;
 	}
@@ -2161,15 +2115,15 @@ function nycc_rides_get_ride_coordinator_names($data) {
 		return "";
 	}
 
-  $sql = "SELECT cp.title FROM {content_type_profile} cp, {node} np, {content_field_ride_coordinator} cfc WHERE np.nid = cp.nid AND np.vid = cp.vid AND cfc.nid = np.nid AND cfc.vid = np.vid AND cfc.field_ride_coordinator_value = ':level'";
+	$sql = "SELECT cp.title FROM {content_type_profile} cp, {node} np, {content_field_ride_coordinator} cfc WHERE np.nid = cp.nid AND np.vid = cp.vid AND cfc.nid = np.nid AND cfc.vid = np.vid AND cfc.field_ride_coordinator_value = ':level'";
 
-  $q = db_query($sql, array(':level'=>$level));
-  foreach($q as $r) {
-    if (drupal_strlen($names))
-      $names .= ", ";
-    $names .= $r->title;
-  }
-  return $names;
+	$q = db_query($sql, array(':level'=>$level));
+	foreach($q as $r) {
+		if (drupal_strlen($names))
+		$names .= ", ";
+		$names .= $r->title;
+	}
+	return $names;
 }
 
 function nycc_rides_get_all_leader_names($ride) {
@@ -2180,59 +2134,119 @@ function nycc_rides_get_all_leader_names($ride) {
     
 	//    watchdog("rides", " processing leader with uid: " . $leader_uid);
 	    if (drupal_strlen($names))
-        $names .= ", ";
+			$names .= ", ";
 	
-   if (is_numeric($leader['uid']) && $leader['uid'] >0) {
-		$cp = profile2_load_by_user($leader['uid'], "profile");
+		if (is_numeric($leader['uid']) && $leader['uid'] >0) {
+			$cp = profile2_load_by_user($leader['uid'], "profile");
        
-       if(is_object($cp)) {
-         $names .= $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
-//        	watchdog("rides", "nycc_get_all_leader_names: names is now: " . $names);
-//       } else {
-//            watchdog("rides", "nycc_get_all_leader_names: content profile is null");
-       }
-//    } else {
-//         watchdog("rides", "nycc_get_all_leader_names: leader->uid is null or 0 ");
-    }
-  }
-  return $names;
+			if(is_object($cp)) {
+				$names .= $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
+			}
+		}
+	}
+	return $names;
 }
 
 
 
+function nycc_rides_get_users_emails($node, $field_name) {
+	$emails = array();
+	
+	if (is_numeric($node))
+		$node = nycc_rides_get_ride_object($node);
+	
+	if ($node) {
+		if(nycc_rides_field_has_value($node->{$field_name})) {
+			foreach(nycc_rides_field_get_value($node->{$field_name}) as $ref) {
+				if(isset($ref['uid'])){
+					$account = user_load($ref['uid']);
+					if($account){
+						$emails[] = $account->mail;						
+					}
+				}
+			}
+		} else {
+			drupal_set_message("could not find values for field $field_name" );
+		}
+	}
+	return $emails;
+}
+
+
+
+
+
+
+
+
+
+
+function nycc_rides_get_all_leader_emails($ride) {
+	return implode(", ", nycc_rides_get_users_emails(nycc_rides_get_ride_object($ride), 'field_ride_current_leaders'));
+	
+//	if (!$ride || $ride->type != 'rides')
+//		return "";
+//	$mail = "";
+//	if(nycc_rides_field_has_value($ride->field_ride_current_leaders)) {
+//		foreach(nycc_rides_field_get_value($ride->field_ride_current_leaders) as $leader){
+//			$account = user_load($leader['uid']);
+//			if ($account) {
+//				if (drupal_strlen($mail))
+//		      		$mail .= ",";
+//				
+//				$mail .= $account->mail;
+//			}
+//		}
+//  }
+//  return $mail;	
+}
+
 function nycc_rides_get_all_rider_emails($ride, $include_leaders = true) {
-  //if ($ride > 0)
-  //  $ride = node_load($ride);
-  if (!$ride || $ride->type != 'rides')
-    return "";
-  $mail = $include_leaders ? nycc_rides_get_all_leader_emails($ride) : "";
-  if ($ride->field_ride_current_riders['und'] && is_array($ride->field_ride_current_riders['und'])) {
-    foreach($ride->field_ride_current_riders['und'] as $rider) {
-      if (drupal_strlen($mail))
-        $mail .= ",";
-		
-      $account = user_load($rider['uid']);
-      $mail .= $account->mail;
-    }
-  }
-  return $mail;
+	$ride = nycc_rides_get_ride_object($ride);
+	if ($include_leaders) {
+		return implode(", ", array_merge(
+										    nycc_rides_get_users_emails($ride, 'field_ride_current_riders'),
+											nycc_rides_get_users_emails($ride, 'field_ride_current_leaders')));
+	} else {
+		return implode(", ", nycc_rides_get_users_emails($ride, 'field_ride_current_riders'));
+	}
+	
+	//if (is_numeric($ride))
+	//	$ride = node_load($ride);
+	//	
+	//if (!$ride || $ride->type != 'rides')
+	//	return "";
+	//
+	//$mail = $include_leaders ? nycc_rides_get_all_leader_emails($ride) : "";
+	//if ($ride->field_ride_current_riders['und'] && is_array($ride->field_ride_current_riders['und'])) {
+	//	foreach($ride->field_ride_current_riders['und'] as $rider) {
+	//		if (drupal_strlen($mail))
+	//			$mail .= ",";
+	//	
+	//		$account = user_load($rider['uid']);
+	//		$mail .= $account->mail;
+	//	}
+	//}
+	//return $mail;
 }
 
 function nycc_rides_get_all_waitlist_emails($ride) {
+	return implode(", ", nycc_rides_get_users_emails(nycc_rides_get_ride_object($ride), 'field_ride_waitlist'));
+
   //if ($ride > 0)
   //  $ride = node_load($ride);
-  if (!$ride || $ride->type != 'rides')
-    return "";
-  $mail = "";
-  if ($ride->field_ride_waitlist['und'] && is_array($ride->field_ride_waitlist['und'])) {
-    foreach($ride->field_ride_waitlist['und'] as $waiter) {
-      if (drupal_strlen($mail))
-        $mail .= ",";
-      $account = user_load($waiter['uid']);
-      $mail .= $account->mail;
-    }
-  }
-  return $mail;
+  //if (!$ride || $ride->type != 'rides')
+  //  return "";
+  //$mail = "";
+  //if ($ride->field_ride_waitlist['und'] && is_array($ride->field_ride_waitlist['und'])) {
+  //  foreach($ride->field_ride_waitlist['und'] as $waiter) {
+  //    if (drupal_strlen($mail))
+  //      $mail .= ",";
+  //    $account = user_load($waiter['uid']);
+  //    $mail .= $account->mail;
+  //  }
+  //}
+  //return $mail;
 }
 
 function nycc_rides_speed2num($str) {
@@ -2947,6 +2961,7 @@ function nycc_rides_get_ride_object($nid=null){
 	else
 		return null;
 }
+
 function nycc_rides_output_list_of_users($ride = null, $field_name, $path = null ) {
 	$users = array();	  
 	if ($ride) {
@@ -3548,6 +3563,36 @@ function nycc_rides_ride_level_options() {
 //      if (!$cnt)
 //        $output = "<ul class='nycc-empty-ride-waitlist'><li></li></ul>";
 //    }
+//  }
+//  return $output;
+//}
+//
+//function nycc_rides_get_rider_emails($riders, $separator = ", ") {
+//  foreach($riders as $rider) {
+//    if (drupal_strlen($output))
+//      $output .=  $separator;
+//    $account = user_load($rider['uid']);
+//	$cp = profile2_load_by_user($account->uid, "profile");
+//    $title = $cp->title;
+//    $mail = $account->mail;
+//    $output .= "<a href='mailto:$mail'>$title</a>";
+//  }
+//  return $output;
+//}
+//
+//function nycc_rides_get_leader_emails($leaders, $separator = ", ") {
+//  global $user;
+//  foreach($leaders as $leader) {
+//    if (drupal_strlen($output))
+//      $output .=  $separator;
+//    $cp = node_load($leader['nid']);
+//    $account = user_load($cp->uid);
+//    $title = $cp->title;
+//    $mail = $account->mail;
+//    if ($user->uid && in_array("paid-member", $user->roles))
+//      $output .= "<a href='mailto:$mail'>$title</a>";
+//    else
+//      $output .= $title;
 //  }
 //  return $output;
 //}
