@@ -1,6 +1,6 @@
 <?php
  
-	$sql= "select distinct entity_id from iforst.field_data_field_ride_leaders";
+	$sql= "select distinct entity_id from field_data_field_ride_leaders";
 	$q = db_query($sql);
     drush_print("retrieved ". $q->rowCount() . " rides from database");
     $cnt = 0;
