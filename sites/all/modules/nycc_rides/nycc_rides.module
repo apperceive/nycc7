@@ -18,6 +18,7 @@ TODO List:
 22) fix nycc_rides_ride_overlaps_user
 23) fix viewRideSignups
 24) figure how to override title and values for things like Ride Spots
+25) figure out how to migrate leaders to new field
 
 */
  
@@ -25,11 +26,65 @@ TODO List:
 /*TODO LIST WHEN DEPLOYING TO PROD
  *1) add field to control 10-day waitlist (field_ride_open_signup_days)
  *2) INSTALL WYSIWYG Module
- *
+ *3) create new leaders field (field_ride_current_leaders)
  *
  *
  */
 
+//function nycc_rides_migrate_leaders() {
+//	/*1) get all nodes of type ride
+//	 *2) for each ride:
+//	 *	a)get leaders node reference
+//	 *	b) get uid from profile author
+//	 *	c) add uid to new leader field
+//	 *	d) remove node reference value
+//	 */
+//	$sql= "select distinct entity_id from iforst.field_data_field_ride_leaders limit 500";
+//	$q = db_query($sql);
+//	foreach($q as $row) {
+//      $ride = node_load($row->entity_id);
+//		foreach (nycc_rides_field_get_value($ride->field_ride_leaders)  as $ndx => $leader) {
+//			$cp = node_load($leader['nid']);
+//			if($cp) {
+//	  				if(! nycc_rides_is_leader($ride, $cp->uid)) {
+//					//dpm ("adding " . $cp->title . " as leader");
+//					if (nycc_rides_field_has_value($ride->field_ride_current_leaders)){
+//						$ride->field_ride_current_leaders['und'][]['uid'] = $cp->uid;
+//					}
+//					else {
+//						$ride->field_ride_current_leaders['und'][0]['uid'] = $cp->uid;
+//					}
+//					unset($ride->field_ride_leaders['und'][$ndx]);
+//					node_save($ride);					
+//				}
+//			}
+//		}
+//  }
+//
+//		
+//	//$rides = node_load_multiple(array(), array('type' => 'rides'));
+//	//dpm ("loaded " . count($rides) . " rides");
+//	//foreach($rides as $ride)
+//	//{
+//	//	foreach (nycc_rides_field_get_value($ride->field_ride_leaders)  as $ndx => $leader) {
+//	//		$cp = node_load($leader['nid']);
+//	//		if($cp) {
+//	//			if(! nycc_rides_is_leader($ride, $cp->uid)) {
+//	//				//dpm ("adding " . $cp->title . " as leader");
+//	//				if (nycc_rides_field_has_value($ride->field_ride_current_leaders)){
+//	//					$ride->field_ride_current_leaders['und'][]['uid'] = $cp->uid;
+//	//				}
+//	//				else {
+//	//					$ride->field_ride_current_leaders['und'][0]['uid'] = $cp->uid;
+//	//				}
+//	//				unset($ride->field_ride_leaders['und'][$ndx]);
+//	//				node_save($ride);					
+//	//			}
+//	//		}
+//	//		
+//	//	}
+//	//}
+// }
 
  
  
@@ -263,6 +318,8 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
 	
 	$r_debug = 	variable_get("nycc_rides_debug", true);
   	global $user;
+	
+	//nycc_rides_migrate_leaders();
 
 	
 	//if(nycc_rides_ride_allows_signups($node))
@@ -1526,14 +1583,17 @@ function nycc_rides_is_leader($ridenode, $account = null) {
   	global $user;
   	if (!$account)
     	$account = $user;
-		
+	
+	if(is_numeric($account))
+		$uid = $account;
+	else
+		$uid = $account->uid;	
 
-  	if ($ridenode && nycc_rides_field_has_value($ridenode->field_ride_current_leaders) && is_numeric($account->uid)) {
+  	if ($ridenode && nycc_rides_field_has_value($ridenode->field_ride_current_leaders) && is_numeric($uid)) {
 		foreach(nycc_rides_field_get_value($ridenode->field_ride_current_leaders) as $leader)
 		{
-			if ($leader['uid'] == $account->uid)
-				return true;
-			
+			if ($leader['uid'] == $uid)
+				return true;			
 		}
   	}
   	return false;
