@@ -2213,13 +2213,6 @@ function nycc_rides_get_ride_status($ride) {
   if (!$ride || !drupal_strlen($ride->title))
     return 'Pending';
 
-<<<<<<< HEAD
-=======
-  // test for unsaved $ride which has no ride status field yet
-  if (!$ride || !drupal_strlen($ride->title))
-    return 'Pending';
-
->>>>>>> d7test/d7sql
   if ($ride->field_ride_status && drupal_strlen($ride->field_ride_status['und'][0]['value']))
     return $ride->field_ride_status['und'][0]['value'];
   //$sql = "SELECT field_ride_status_value FROM {content_type_rides} WHERE nid = :nid AND vid =:vid";
