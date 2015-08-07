@@ -539,7 +539,7 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
         $form['revision_information']['revision']['#default_value'] = true;
         $form['revision_information']['log']['#required'] = true;
       }
-          dpm($form);
+          //dpm($form); 
     }
   //TODO: FIGURE OUT WHAT THIS DOES
 
@@ -2213,6 +2213,13 @@ function nycc_rides_get_ride_status($ride) {
   if (!$ride || !drupal_strlen($ride->title))
     return 'Pending';
 
+<<<<<<< HEAD
+=======
+  // test for unsaved $ride which has no ride status field yet
+  if (!$ride || !drupal_strlen($ride->title))
+    return 'Pending';
+
+>>>>>>> d7test/d7sql
   if ($ride->field_ride_status && drupal_strlen($ride->field_ride_status['und'][0]['value']))
     return $ride->field_ride_status['und'][0]['value'];
   //$sql = "SELECT field_ride_status_value FROM {content_type_rides} WHERE nid = :nid AND vid =:vid";
