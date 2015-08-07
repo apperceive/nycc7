@@ -539,7 +539,7 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
         $form['revision_information']['revision']['#default_value'] = true;
         $form['revision_information']['log']['#required'] = true;
       }
-          dpm($form);
+          //dpm($form); 
     }
   //TODO: FIGURE OUT WHAT THIS DOES
 
