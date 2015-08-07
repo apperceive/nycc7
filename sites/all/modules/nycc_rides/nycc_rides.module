@@ -269,9 +269,9 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
 	//	dpm("Rides allow signup is true" );
 
 	if ($node->type == 'rides') {
-		dpm(nycc_rides_output_ride_participants($node));
-		dpm(nycc_rides_output_ride_waiters());
-		dpm(nycc_rides_output_ride_leaders());
+		//dpm(nycc_rides_output_ride_participants($node));
+		//dpm(nycc_rides_output_ride_waiters());
+		//dpm(nycc_rides_output_ride_leaders());
 		if ($view_mode == 'full') {
 			$nid = $node->nid;
 			
@@ -2865,7 +2865,7 @@ function nycc_rides_output_ride_waiters($nid = null) {
 
 function nycc_rides_get_ride_object($nid=null){
 	if (! isset($nid))
-		$nid = ($_POST['nid'] > 0) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
+		$nid = ($_POST && ($_POST['nid']) && ($_POST['nid'] > 0)) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
 		
 	if (is_object($nid)) 
 		return $nid;
@@ -2897,46 +2897,6 @@ function nycc_rides_output_list_of_users($ride = null, $field_name, $path = null
 function nycc_rides_ride_waitlist_js($nid = null) {
   	print nycc_rides_output_ride_waitlist($nid);
 }
-
-function nycc_rides_output_ride_waitlist($nid = null) {
-  //global $theme_path;
-  if (is_object($nid)) {
-    $ride = $nid;
-    $nid = $ride->nid;
-  }
-  else if (!$nid)
-    $nid = ($_POST['nid'] > 0) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
-  if (is_numeric($nid) && ($nid > 0)) {
-    if (!$ride)
-      $ride = node_load( $nid);
-    if ($ride) {
-      if ($ride->field_ride_signups['und'][0]['value'] == "No signups or waiting list")
-        return "";
-      $current_waiters = $ride->field_ride_waitlist;
-      $cnt = 0;
-      if (is_array($current_waiters) && count($current_waiters)) {
-        $output = "<ul class='nycc-ride-waitlist'>";
-        foreach ($current_waiters as $val){
-          if (is_array($val)) {
-            foreach ($val as $current_waiter_uid){
-              if (is_numeric($current_waiter_uid)) {
-                $cnt++;
-				$cp = profile2_load_by_user($current_waiter_uid, "profile");
-                $output .= "<li>". $cp->field_first_name['und'][0]['value'] ." ". $cp->field_last_name['und'][0]['value'] ."</li>";
-              }
-            }
-          }
-        }
-        $output .= "</ul>";
-      }
-      if (!$cnt)
-        $output = "<ul class='nycc-empty-ride-waitlist'><li></li></ul>";
-    }
-  }
-  return $output;
-}
-
-
 
 
 
@@ -3481,5 +3441,42 @@ function nycc_rides_ride_level_options() {
 //	$nid = $node->nid;
 //	drupal_set_message("Please enter a new date before saving.");
 //	drupal_goto("node/". $nid . "/edit");
+//}
+//function nycc_rides_output_ride_waitlist($nid = null) {
+//  //global $theme_path;
+//  if (is_object($nid)) {
+//    $ride = $nid;
+//    $nid = $ride->nid;
+//  }
+//  else if (!$nid)
+//    $nid = ($_POST['nid'] > 0) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
+//  if (is_numeric($nid) && ($nid > 0)) {
+//    if (!$ride)
+//      $ride = node_load( $nid);
+//    if ($ride) {
+//      if ($ride->field_ride_signups['und'][0]['value'] == "No signups or waiting list")
+//        return "";
+//      $current_waiters = $ride->field_ride_waitlist;
+//      $cnt = 0;
+//      if (is_array($current_waiters) && count($current_waiters)) {
+//        $output = "<ul class='nycc-ride-waitlist'>";
+//        foreach ($current_waiters as $val){
+//          if (is_array($val)) {
+//            foreach ($val as $current_waiter_uid){
+//              if (is_numeric($current_waiter_uid)) {
+//                $cnt++;
+//				$cp = profile2_load_by_user($current_waiter_uid, "profile");
+//                $output .= "<li>". $cp->field_first_name['und'][0]['value'] ." ". $cp->field_last_name['und'][0]['value'] ."</li>";
+//              }
+//            }
+//          }
+//        }
+//        $output .= "</ul>";
+//      }
+//      if (!$cnt)
+//        $output = "<ul class='nycc-empty-ride-waitlist'><li></li></ul>";
+//    }
+//  }
+//  return $output;
 //}
 ?>
