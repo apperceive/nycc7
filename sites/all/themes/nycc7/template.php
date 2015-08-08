@@ -4,11 +4,15 @@
  * template.php
  */
  
+function nycc7_preprocess_block(&$vars) {
+  $vars['classes_array'][] = 'well';
+  $vars['classes_array'][] = 'well-lg';
+} // nycc7_preprocess_block
+ 
 function nycc7_preprocess_page(&$vars) {
   $search_form = drupal_get_form('search_form');
   $search_form_box = drupal_render($search_form);
   $vars['search_box'] = $search_form_box;
-  //dsm($vars);
   $vars['settings_box'] = drupal_render($vars['tabs']['#primary']);
   // unset effect of drupal_render for now
   $vars['tabs']['#primary']['#printed'] = FALSE;
