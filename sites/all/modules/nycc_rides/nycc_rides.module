@@ -14,7 +14,6 @@ TODO List:
 18) fix SQL in nycc_rides_ride_roster_email
 19) fix nycc_rides_get_ride_coordinator_emails (profile loads)
 20) fix nycc_rides_get_ride_coordinator_names (profile loads)
-21 ) nycc_rides_get_all_leader_names and nycc_rides_get_all_leader_emails (profile loads)
 22) fix nycc_rides_ride_overlaps_user
 23) fix viewRideSignups
 24) figure how to override title and values for things like Ride Spots
@@ -97,17 +96,18 @@ function nycc_rides_init() {
 
 function nycc_rides_menu() {
 	
-  $items = array();
-$items['admin/settings/nycc_rides'] = array(
-    'title' => 'NYCC Rides module settings',
-    'description' => 'Settings for NYCC Rides Module',
-    'page callback' => 'drupal_get_form',
-    'file' => 'nycc_rides_admin.inc',	
-    'access arguments' => array('administer nycc rides'),
-    'type' => MENU_LOCAL_TASK,
-	'access callback' => TRUE,
-    'page arguments' => array('nycc_rides_admin'),	
-   );
+	$items = array();
+
+	$items['admin/settings/nycc_rides'] = array(
+	    'title' => 'NYCC Rides module settings',
+	    'description' => 'Settings for NYCC Rides Module',
+	    'page callback' => 'drupal_get_form',
+	    'file' => 'nycc_rides_admin.inc',	
+	    'access arguments' => array('administer nycc rides'),
+	    'type' => MENU_LOCAL_TASK,
+		'access callback' => TRUE,
+	    'page arguments' => array('nycc_rides_admin'),	
+	);
 
 
   //$items['nycc-approve-ride/%'] = array(
@@ -117,19 +117,19 @@ $items['admin/settings/nycc_rides'] = array(
   //  'access callback' => TRUE,
   //);
 
-  $items['nycc-update-ride-status-js/%'] = array(
-    //'page arguments' => array(1),
-    'page callback' => 'nycc_rides_update_ride_status_js',
-    'type' => MENU_CALLBACK,
-    'access callback' => TRUE,
-  );
+	$items['nycc-update-ride-status-js/%'] = array(
+		//'page arguments' => array(1),
+		'page callback' => 'nycc_rides_update_ride_status_js',
+		'type' => MENU_CALLBACK,
+		'access callback' => TRUE,
+	);
 
-  $items['nycc-update-ride-type-js/%'] = array(
-    //'page arguments' => array(1),
-    'page callback' => 'nycc_rides_update_ride_type_js',
-    'type' => MENU_CALLBACK,
-    'access callback' => TRUE,
-  );
+	$items['nycc-update-ride-type-js/%'] = array(
+		//'page arguments' => array(1),
+		'page callback' => 'nycc_rides_update_ride_type_js',
+		'type' => MENU_CALLBACK,
+		'access callback' => TRUE,
+	);
 
   $items['nycc-join-ride'] = array(
     'page callback' => 'nycc_rides_join_ride',
@@ -518,27 +518,35 @@ function nycc_rides_node_presave($node) {
 function nycc_rides_node_prepare($node) {
 	if (arg(3) == "relist")  {
         $onode = node_load(arg(4));
-		if ($onode) {
-			$node->title = $onode->title;
-			$node->field_ride_select_level['und'][0]['value'] = $onode->field_ride_select_level['und'][0]['value'];
-			$node->field_ride_distance_in_miles['und'][0]['value'] = $onode->field_ride_distance_in_miles['und'][0]['value'];
-			$node->field_ride_timestamp['und'][0]['value'] = $onode->field_ride_timestamp['und'][0]['value'];
-			$node->field_ride_from['und'][0]['value'] = $onode->field_ride_from['und'][0]['value'];
-			$node->field_ride_from_select['und'][0]['value'] = $onode->field_ride_from_select['und'][0]['value'];
-			$node->field_ride_speed['und'][0]['value'] = $onode->field_ride_speed['und'][0]['value'];
-			$node->field_ride_description['und'][0]['value'] = $onode->field_ride_description['und'][0]['value'];
-			$node->field_ride_spots['und'][0]['value'] = $onode->field_ride_spots['und'][0]['value'];
-			$node->field_ride_type['und'][0]['value'] = $onode->field_ride_type['und'][0]['value'];
-			$node->field_ride_signups['und'][0]['value'] = $onode->field_ride_signups['und'][0]['value'];
-			$node->field_ride_attachments = $onode->field_ride_attachments;
-			$node->field_ride_image = $onode->field_ride_image;
-			$node->field_ride_cue_sheet = $onode->field_ride_cue_sheet;
+		if ($onode && $onode->type=='rides') {
+			$item = array($onode);
+			foreach ($item['0'] as $field => $value) {
+				if ((substr($field, 0, 5) == 'field') || ($field == 'title')) {
+					if(!in_array($field, array('field_ride_token',
+											   'field_ride_additional_dates',
+											   'field_ride_author_id',
+											   'field_ride_dow',
+											   'field_ride_timestamp',
+											   'field_ride_attendees',
+											   'field_ride_current_riders',
+											   'field_ride_current_leaders',
+											   'field_ride_waitlist',
+											   'field_ride_status')))
+					{	
+						if(nycc_rides_field_has_value($onode->{$field})) {
+							$node->{$field} = $onode->{$field};
+							//dpm($field);
+						}
+					}
+				}  
+			}
+			global $user;
+			$node->field_ride_current_leaders['und'][0]['uid'] = $user->uid;
 			$node->field_ride_status['und'][0]['value'] = "Submitted";
         }
 		
 		//TODO: MOVE THIS TO RULES
-        drupal_set_message(check_plain("This is a re-listing of ". $node->title));
-        drupal_set_message("You are set as the leader for this ride.");
+        drupal_set_message(check_plain("This is a re-listing of ". $node->title . ".  You are set as the leader for this ride."));
         drupal_set_message("Please be sure to select a new date for the ride.");
 	}
 
@@ -1077,7 +1085,11 @@ function nycc_rides_permission() {
 		'administer nycc rides' => array(
       		'title' => t('administer nycc rides'),
       		'description' => t('administer nycc rides'),
-    		)
+    		),
+		'Approve nycc rides' => array(
+      		'title' => t('approve nycc rides'),
+      		'description' => t('approve nycc rides'),
+    		)		
   	);
 }
 
@@ -1239,6 +1251,7 @@ function nycc_rides_join_ride($nid=null) {
 				else {
 					$ride->field_ride_current_riders['und'][0]['uid'] = $user_uid;
 				}
+				
 				$ride->field_ride_additional_dates['und'][0]['value'] = "";
 				node_save($ride);
 		
@@ -2878,7 +2891,7 @@ function nycc_rides_approve_rides() {
   global $user;
   $output = "Access denied";
   $title = "Approve Rides";
-  $profile_node = profile2_load_by_user($account->uid, "profile");
+  $profile_node = profile2_load_by_user($user->uid, "profile");
   
   if(isset($profile_node->field_ride_coordinator['und'][0]['value'])) {
     $level = substr($profile_node->field_ride_coordinator['und'][0]['value'], 0, 1);
