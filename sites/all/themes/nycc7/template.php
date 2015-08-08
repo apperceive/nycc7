@@ -5,8 +5,7 @@
  */
  
 function nycc7_preprocess_block(&$vars) {
-  //dsm($vars['block']);
-  if (array_key_exists('navigation', $vars['block']) && ($vars['block']['region'] != 'navigation')) {
+  if ($vars['block']->region != 'navigation') {
     $vars['classes_array'][] = 'well';
     $vars['classes_array'][] = 'well-lg';
   }
