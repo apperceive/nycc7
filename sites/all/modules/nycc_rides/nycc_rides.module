@@ -2075,7 +2075,7 @@ function nycc_rides_get_ride_coordinator_emails($data) {
     return "";
   }
 
-  $sql = "SELECT u.mail FROM {users} u, {content_type_profile} cp, {node} np, {content_field_ride_coordinator} cfc WHERE np.uid = u.uid AND np.nid = cp.nid AND np.vid = cp.vid AND cfc.nid = np.nid AND cfc.vid = np.vid AND cfc.field_ride_coordinator_value = ':level'";
+  $sql = "SELECT u.mail FROM {users} u, {node} n, {field_data_field_ride_coordinator} c WHERE n.uid = u.uid AND c.entity_id = n.nid AND c.revision_id = n.vid AND c.field_ride_coordinator_value = ':level'";
 
   $q = db_query($sql, array(':level'=>$level));
   foreach($q as $r) {
@@ -2102,7 +2102,7 @@ function nycc_rides_get_ride_coordinator_names($data) {
     return "";
   }
 
-  $sql = "SELECT cp.title FROM {content_type_profile} cp, {node} np, {content_field_ride_coordinator} cfc WHERE np.nid = cp.nid AND np.vid = cp.vid AND cfc.nid = np.nid AND cfc.vid = np.vid AND cfc.field_ride_coordinator_value = ':level'";
+  $sql = "SELECT n.title FROM  {node} n, {field_data_field_ride_coordinator} c WHERE c.entity_id = n.nid AND c.revision_id = n.vid AND c.field_ride_coordinator_value = ':level'";
 
   $q = db_query($sql, array(':level'=>$level));
   foreach($q as $r) {

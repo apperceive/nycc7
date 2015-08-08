@@ -46,5 +46,13 @@ function xxnycc7_menu_local_tasks(&$vars) {
   //return theme_menu_local_tasks($vars);
 } // nycc7_menu_local_tasks
 
-
+function nycc7_theme($existing, $type, $theme, $path) {
+  return array(
+    'rides_node_form' => array(
+        'arguments' => array('form' => NULL),
+        'template' => 'templates/node--rides--edit',
+        'render element' => 'form',
+        ),
+  );
+}
 
