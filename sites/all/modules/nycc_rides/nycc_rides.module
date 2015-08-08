@@ -2602,10 +2602,28 @@ function nycc_rides_existing_rides_js() {
 }
 function nycc_rides_ride_coordinators() {
   $coordinators = array();
-  $sql = 'SELECT c.field_ride_coordinator_value AS level, n.title as name, p.field_phone_value as phone, u.mail, u.uid FROM {content_field_ride_coordinator} c, {content_type_profile} p, {node} n, {users} u WHERE n.nid=c.nid AND p.nid=n.nid AND u.uid=n.uid AND field_ride_coordinator_value IS NOT NULL ORDER BY 1';
-  //$sql =<<<EOS
-
-//EOS;
+  //$sql = 'SELECT c.field_ride_coordinator_value AS level, n.title as name, p.field_phone_value as phone, u.mail, u.uid FROM {content_field_ride_coordinator} c, {content_type_profile} p, {node} n, {users} u WHERE n.nid=c.nid AND p.nid=n.nid AND u.uid=n.uid AND field_ride_coordinator_value IS NOT NULL ORDER BY 1';
+  $sql =<<<EOS
+  SELECT 
+  c.field_ride_coordinator_value AS level,
+  n.title AS name,
+  p.field_phone_value AS phone,
+  u.mail,
+  u.uid
+  FROM 
+  {node} n,
+  {users} u,
+  {field_data_field_phone} p,
+  {field_data_field_ride_coordinator} c
+  WHERE
+  u.uid = n.uid AND 
+  p.entity_id = n.nid AND
+  c.entity_id = n.nid AND
+  p.revision_id = n.vid AND
+  c.revision_id = n.vid AND
+  c.field_ride_coordinator_value IS NOT NULL 
+  ORDER BY 1;
+EOS;
   $results = db_query($sql);
   foreach ($result as $coordinator) {
     $coordinator->level = strtoupper(substr($coordinator->level,0,1)); // lcfirst($coordinator->level);
