@@ -498,83 +498,87 @@ function nycc_rides_node_prepare($node) {
 }
 
 function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
-    //TODO: Fix the cancel button & instrusctions
-  //global $user;
-  if ($form_id == "rides_node_form") {
-    //dpm($form);
-      $status = nycc_rides_get_ride_status($form['#node']);
-      $action = !nycc_rides_can_approve() && in_array($status, array('Approved','Pending','Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
+  // alter the rides add/edit form
+  if ($form_id == 'rides_node_form') {
+    // note: tpl calls nycc_rides_output_ride_node_form?
+    //TODO: Fix the cancel button 
+    
+    // dpm($form);
+    
+    $status = nycc_rides_get_ride_status($form['#node']);
+    
+    $action = !nycc_rides_can_approve() && in_array($status, array('Approved','Pending','Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
 
-    //TODO: FIX THIS - how to make it visible?
-      $form['submit_instructions'] = array(
-          '#prefix' => "<div id='nycc-submit-ride'>",
-          '#value' => "Are you sure you want to $action this ride? Doing so will trigger emails to your ride coordinator, other ride leaders and any participants, in the case of re-submissions.",
-      );
-      $form['actions']['submit']['#value'] = "Yes, $action this ride";
-      $form['submit_cancel'] = array(
-          '#suffix' => "</div>",
-          '#value' => "<a href='#' onclick='$(\"#nycc-submit-ride\").hide(); return false;' title='No, hide this box again.'>No</a>",
-      );
+    $form['submit_instructions'] = array(
+      '#prefix' => "<div id='nycc-submit-ride'>",
+      '#markup' => "Are you sure you want to $action this ride? Doing so will trigger emails to your ride coordinator, other ride leaders and any participants, in the case of re-submissions.",
+    );
 
-    //TODO: FIX THIS - how to make it visible?
-      if ($status == 'Approved') {
-      $form['revision_information']['log']['#description'] = t("Ride Leaders: please provide an explanation of the additions or updates being made to help Ride Coordinators understand your changes.  Note that changing an approved ride will result in the ride being re-sumitted for approval and trigger email alerts to all riders. Revisions are optional for Ride Coordinators and Administers.");
-      $form['revision_information']['#collapsible'] = 'fieldset';
-      $form['revision_information']['#collapsible'] = false;
-      $form['revision_information']['#collapsed'] = false;
-      $form['revision_information']['#title'] = t("This is an approved ride!");
-      $form['revision_information']['log']['#type'] = "textarea";
-      $form['revision_information']['log']['#title'] = t("Revision summary");
-      $form['revision_information']['log']['#attributes'] = array('placeholder' =>'e.g., start time change');
-      $form['revision_information']['log']['#rows'] = 3;
-      $form['revision_information']['revision']['#default_value'] = false;
-      if (!nycc_rides_can_approve()) {
-        $form['revision_information']['revision']['#default_value'] = true;
-        $form['revision_information']['log']['#required'] = true;
-      }
-          //dpm($form); 
-    }
-  //TODO: FIGURE OUT WHAT THIS DOES
+    $form['actions']['submit']['#value'] = "Yes, $action this ride";
+    $form['actions']['submit']['#attributes'] = array('class' => array('btn', 'btn-success'));
+        
+    $form['submit_cancel'] = array(
+      '#suffix' => "</div>",
+      '#markup' => "<a href='#' onclick='$(\"#nycc-submit-ride\").hide(); return false;' class='btn btn-danger' title='No, hide this box again.'>No</a>",
+    );
 
-/*
-       if (arg(1) == 'add')
-           $d = date("m/d/Y"); //date("m-d-Y");
-       else {
-        //SHOULD THIS BE['#node'] or just $form
-           $t = $form['#node']['field_ride_timestamp']['und'][0]['value'];
-           if (!drupal_strlen($t))
-             $t = $form['#node']['field_ride_timestamp']['und'][0]['#default_value']['value'];
+    if ($status == 'Approved') {
+        $form['revision_information']['log']['#description'] = t("Ride Leaders: please provide an explanation of the additions or updates being made to help Ride Coordinators understand your changes.  Note that changing an approved ride will result in the ride being re-sumitted for approval and trigger email alerts to all riders. Revisions are optional for Ride Coordinators and Administers.");
+        $form['revision_information']['#collapsible'] = 'fieldset';
+        $form['revision_information']['#collapsible'] = false;
+        $form['revision_information']['#collapsed'] = false;
+        $form['revision_information']['#title'] = t("This is an approved ride!");
+        $form['revision_information']['log']['#type'] = "textarea";
+        $form['revision_information']['log']['#title'] = t("Revision summary");
+        $form['revision_information']['log']['#attributes'] = array('placeholder' =>'e.g., start time change');
+        $form['revision_information']['log']['#rows'] = 3;
+        $form['revision_information']['revision']['#default_value'] = false;
+        if (!nycc_rides_can_approve()) {
+          $form['revision_information']['revision']['#default_value'] = true;
+          $form['revision_information']['log']['#required'] = true;
+        } 
+    } // approved
+    
+    
+    
+    //TODO: FIGURE OUT WHAT THIS DOES
 
-           $d = nycc_rides_get_date($t, "m/d/Y");
-       }
+  /*
+         if (arg(1) == 'add')
+             $d = date("m/d/Y"); //date("m-d-Y");
+         else {
+          //SHOULD THIS BE['#node'] or just $form
+             $t = $form['#node']['field_ride_timestamp']['und'][0]['value'];
+             if (!drupal_strlen($t))
+               $t = $form['#node']['field_ride_timestamp']['und'][0]['#default_value']['value'];
 
-    //TODO: Add Back
-       $form['existing_rides_wrapper'] = array(
-           '#type' => 'markup',
-           '#value' => nycc_rides_output_existing_rides(str_replace("-","/",$d)),
-       );
+             $d = nycc_rides_get_date($t, "m/d/Y");
+         }
 
-     //TODO: IF is this needed?
-       $form['nycc_rides_datepicker'] = array(
-           '#type' => 'hidden',
-           '#value' => $d,
-       );
+      //TODO: Add Back
+         $form['existing_rides_wrapper'] = array(
+             '#type' => 'markup',
+             '#value' => nycc_rides_output_existing_rides(str_replace("-","/",$d)),
+         );
 
-     $form['choose_calendar_target'] = array(
-           '#type' => 'checkboxes',
-           '#options' => array('yes' => t('Calendar clicks append recurring dates.')),
-           '#attributes' => array('class' => 'nycc-append-dates-control'),
-       );
+       //TODO: IF is this needed?
+         $form['nycc_rides_datepicker'] = array(
+             '#type' => 'hidden',
+             '#value' => $d,
+         );
 
-       //dsm($form['field_ride_additional_dates']);
-       $form['field_ride_additional_dates']['und'][0]['#default_value']['value'] = $d;
-       $form['field_ride_additional_dates']['und'][0]['#required'] = true;
- */
-    }
-}
+       $form['choose_calendar_target'] = array(
+             '#type' => 'checkboxes',
+             '#options' => array('yes' => t('Calendar clicks append recurring dates.')),
+             '#attributes' => array('class' => 'nycc-append-dates-control'),
+         );
 
-
-
+         //dsm($form['field_ride_additional_dates']);
+         $form['field_ride_additional_dates']['und'][0]['#default_value']['value'] = $d;
+         $form['field_ride_additional_dates']['und'][0]['#required'] = true;
+   */
+  }  // rides_node_form
+} // nycc_rides_form_alter
 
 function nycc_rides_block_info() {
   //TODO: IS THIS NEEDED?
@@ -788,16 +792,16 @@ function nycc_rides_ride_roster_email($timestamp, $hrs) {
   $actionID = 5;  // 5 is the tokenized email action for roster emails
 
   $sql =<<<EOS
-SELECT N.nid AS nid, U.uid AS uid
-FROM node N
-INNER JOIN content_type_rides R ON N.nid = R.nid  AND N.vid = R.vid
-Inner JOIN content_field_ride_current_leaders L ON N.vid = L.vid AND N.nid = L.nid
-INNER JOIN node NL ON L.field_ride_leaders_nid = NL.nid
-INNER JOIN users U ON NL.uid = U.uid
-WHERE  R.field_ride_status_value = 'Approved'
-AND N.type = 'rides'
-AND (R.field_ride_timestamp_value BETWEEN from_unixtime($timestamp) AND DATE_ADD(NOW(), INTERVAL $hrs HOUR))
-;
+  SELECT t.entity_id AS nid, u.uid
+  FROM
+  {users} u,
+  {field_data_field_ride_timestamp} t,
+  {node} n 
+  WHERE
+  n.nid = t.entity_id AND 
+  n.vid = t.revision_id AND
+  n.uid = u.uid AND 
+  (t.field_ride_timestamp_value BETWEEN from_unixtime($timestamp) AND DATE_ADD(NOW(), INTERVAL $hrs HOUR))
 EOS;
   if ($rr_debug ) watchdog("nycc-ride_roster", "SQL is " .  $sql, array(), WATCHDOG_NOTICE);
   $ride_count = 0;
@@ -1921,7 +1925,7 @@ function nycc_rides_get_ride_coordinator_emails($data) {
     return "";
   }
 
-  $sql = "SELECT u.mail FROM {users} u, {content_type_profile} cp, {node} np, {content_field_ride_coordinator} cfc WHERE np.uid = u.uid AND np.nid = cp.nid AND np.vid = cp.vid AND cfc.nid = np.nid AND cfc.vid = np.vid AND cfc.field_ride_coordinator_value = ':level'";
+  $sql = "SELECT u.mail FROM {users} u, {node} n, {field_data_field_ride_coordinator} c WHERE n.uid = u.uid AND c.entity_id = n.nid AND c.revision_id = n.vid AND c.field_ride_coordinator_value = ':level'";
 
   $q = db_query($sql, array(':level'=>$level));
   foreach($q as $r) {
@@ -1934,31 +1938,30 @@ function nycc_rides_get_ride_coordinator_emails($data) {
 
 function nycc_rides_get_ride_coordinator_names($data) {
 
-  //TODO FIX SQL
-  if (is_numeric($data)) {
-    $ride = node_load($data);
+	if (is_numeric($data)) {
+		$ride = node_load($data);
+	
+		if ($ride)
+			$level = $ride->field_ride_level_select['und'][0]['value'];
+	
+	} else if (strlen($data) == 1 && in_array(strtolower($data), array('a', 'b', 'c'))) {
+		$level = $data;
+	}
+	else if (is_object($data) && $data->type && ($data->type == 'rides')) {
+		$level = $data->field_ride_level_select['und'][0]['value'];
+	} else {
+		return "";
+	}
   
-    if ($ride)
-      $level = $ride->field_ride_level_select['und'][0]['value'];
-  
-  } else if (strlen($data) == 1 && in_array(strtolower($data), array('a', 'b', 'c'))) {
-    $level = $data;
-  }
-  else if (is_object($data) && $data->type && ($data->type == 'rides')) {
-    $level = $data->field_ride_level_select['und'][0]['value'];
-  } else {
-    return "";
-  }
+  $sql = "SELECT n.title FROM  {node} n, {field_data_field_ride_coordinator} c WHERE c.entity_id = n.nid AND c.revision_id = n.vid AND c.field_ride_coordinator_value = ':level'";
 
-  $sql = "SELECT cp.title FROM {content_type_profile} cp, {node} np, {content_field_ride_coordinator} cfc WHERE np.nid = cp.nid AND np.vid = cp.vid AND cfc.nid = np.nid AND cfc.vid = np.vid AND cfc.field_ride_coordinator_value = ':level'";
-
-  $q = db_query($sql, array(':level'=>$level));
-  foreach($q as $r) {
-    if (drupal_strlen($names))
-    $names .= ", ";
-    $names .= $r->title;
-  }
-  return $names;
+	$q = db_query($sql, array(':level'=>$level));
+	foreach($q as $r) {
+		if (drupal_strlen($names))
+		$names .= ", ";
+		$names .= $r->title;
+	}
+	return $names;
 }
 
 function nycc_rides_get_all_leader_names($ride) {
@@ -2432,10 +2435,28 @@ function nycc_rides_existing_rides_js() {
 }
 function nycc_rides_ride_coordinators() {
   $coordinators = array();
-  $sql = 'SELECT c.field_ride_coordinator_value AS level, n.title as name, p.field_phone_value as phone, u.mail, u.uid FROM {content_field_ride_coordinator} c, {content_type_profile} p, {node} n, {users} u WHERE n.nid=c.nid AND p.nid=n.nid AND u.uid=n.uid AND field_ride_coordinator_value IS NOT NULL ORDER BY 1';
-  //$sql =<<<EOS
-
-//EOS;
+  //$sql = 'SELECT c.field_ride_coordinator_value AS level, n.title as name, p.field_phone_value as phone, u.mail, u.uid FROM {content_field_ride_coordinator} c, {content_type_profile} p, {node} n, {users} u WHERE n.nid=c.nid AND p.nid=n.nid AND u.uid=n.uid AND field_ride_coordinator_value IS NOT NULL ORDER BY 1';
+  $sql =<<<EOS
+  SELECT 
+  c.field_ride_coordinator_value AS level,
+  n.title AS name,
+  p.field_phone_value AS phone,
+  u.mail,
+  u.uid
+  FROM 
+  {node} n,
+  {users} u,
+  {field_data_field_phone} p,
+  {field_data_field_ride_coordinator} c
+  WHERE
+  u.uid = n.uid AND 
+  p.entity_id = n.nid AND
+  c.entity_id = n.nid AND
+  p.revision_id = n.vid AND
+  c.revision_id = n.vid AND
+  c.field_ride_coordinator_value IS NOT NULL 
+  ORDER BY 1;
+EOS;
   $results = db_query($sql);
   foreach ($result as $coordinator) {
     $coordinator->level = strtoupper(substr($coordinator->level,0,1)); // lcfirst($coordinator->level);
@@ -2475,9 +2496,18 @@ function nycc_rides_output_ride_classification() {
 
 // called from theme override of theme_node_form
 function nycc_rides_output_ride_node_form($form, $op = 'add') {
+  
+  $output = "";
+  
+  // todo: output only here, move all customizations to nycc_rides_form_alter 
+  
+  // NOTE: called by node--rides--edit.tpl.php
+  // TODO: consider moving all render code to tpl
+  
   //dsm($form);
+  
+  
   $status = nycc_rides_get_ride_status($form['#node']);
-
   if ($op == 'edit' && ($status == 'Approved'))
     $output .= drupal_render($form['revision_information']);
 
@@ -2499,33 +2529,52 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
 
   $output .= "<h3>" .t("Step 2. Specify ride details:"). "</h3>";
 
+  // D7: do not allow change/view by leaders
   $output .= drupal_render($form['field_ride_status']);
+  // D7: not showing?
   $output .= drupal_render($form['field_ride_type']);
+   // D7: not showing?
   $output .= drupal_render($form['field_ride_select_level']);
+  
   $output .= drupal_render($form['title']);
+  
+  // D7: not showing? all of these
   $output .= drupal_render($form['field_ride_speed']);
   $output .= drupal_render($form['field_ride_distance_in_miles']);
   $output .= drupal_render($form['field_ride_signups']);
+  
+  // move to form alter?
   $form['field_ride_spots']['#title'] = 'Max. Participants';
   $form['field_ride_spots'][0]['#title'] = 'Max. Participants';
   $form['field_ride_spots']['und'][0]['value']['#title'] = 'Max. Participants';
+  
   $output .= drupal_render($form['field_ride_spots']);
   $output .= drupal_render($form['field_ride_start_time_hour']);
+  
   $form['field_ride_start_time_min']['#title'] = "";
   $form['field_ride_start_time_min']['value']['#title'] = "";
+  
   $output .= drupal_render($form['field_ride_start_time_min']);
+ 
   $form['field_ride_start_time_select']['#title'] = "";
   $form['field_ride_start_time_select']['value']['#title'] = "";
+  
   $output .= drupal_render($form['field_ride_start_time_select']);
   $output .= drupal_render($form['field_ride_from_select']);
   $output .= drupal_render($form['field_ride_from']);
+  
   $form['field_ride_description']['#cols'] = 50;
+  
   $output .= drupal_render($form['field_ride_description']);
 
   $output .= "<h3>" .t("Step 3. Select ride leaders:"). "</h3>";
+  
   //$output .= "<small>(Start typing last name & wait a second for the system to query our database)</small>";
+  
   $form['field_ride_current_leaders']['field_ride_current_leaders_add_more']['#value'] = t("Add another ride leader");
+ 
   $output .= drupal_render($form['field_ride_current_leaders']);
+  
   if ($op == 'add') {
     unset($form['field_ride_current_riders']);
     unset($form['field_ride_waitlist']);
@@ -2536,10 +2585,13 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
   }
 
   $output .= "<h3>" .t("Step 4. Upload some images or file attachments (optional):"). "</h3>";
+  
   $form['field_ride_image']['field_ride_image_add_more']['#value'] = t('Add another image');
+  
   $output .= drupal_render($form['field_ride_image']);
 
   $form['field_ride_attachments']['field_ride_attachments_add_more']['#value'] = t('Attach another file');
+  
   $output .= drupal_render($form['field_ride_attachments']);
 
   $output .= "<h3>" .t("Step 5. Reference a ride library cue-sheet (optional):"). "</h3>";
@@ -2551,7 +2603,7 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
   //if ($op == 'add')
     //$output .= nycc_rides_output_button("$action This Ride", "#", "nycc-ride-save nycc-ride-save-bottom", 'nycc_show_ride_submit_click(); return false;', "");
   //else
-    $output .= nycc_rides_output_button("$action This Ride", "#submit-top", "nycc-ride-save nycc-ride-save-bottom", 'nycc_rides_show_ride_submit_confirm();', "");
+    $output .= nycc_rides_output_button("$action This Ride", "#submit-top", "nycc-ride-save nycc-ride-save-bottom btn btn-success", 'nycc_rides_show_ride_submit_confirm();', "");
 
   $output .= "<a name='submit-top'></a>";
 
@@ -2564,14 +2616,18 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
 
   $buttons = drupal_render($form['buttons']);
 
-  // hide the rest for now
-  $output .= "<div class='hide'>";
-  $output .= drupal_render($form);
+  // old: hide the rest for now
+  $output .= "<div class='xxxhide'>";
+  // d7:
+  //$output .= drupal_render($form);
+  $output .= drupal_render_children($form);
   $output .= $buttons;
   $output .= "</div>";
-
+ 
   return $output;
-}
+} // nycc_rides_output_ride_node_form
+
+
 
 function nycc_rides_output_existing_rides($ride_date) {
   $found = false;

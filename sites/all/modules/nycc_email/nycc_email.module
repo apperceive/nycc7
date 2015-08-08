@@ -173,7 +173,7 @@ function nycc_email_get_ride_from_token($token='') {
 	dpm($r);
 	if (is_numeric($r->nid)) {
 		if ($email_debug ) watchdog('nycc_email', 'Token: ' . $token . " returned node: " . $r->nid, array(), WATCHDOG_NOTICE) ;	
-		return node_load(array('nid' => $r->nid));
+		return node_load($r->nid);
 	} else {
 		if ($email_debug ) watchdog('nycc_email', 'Ride could not be found for Token: ' . $token, array(), WATCHDOG_NOTICE) ;	
 	}
@@ -181,7 +181,7 @@ function nycc_email_get_ride_from_token($token='') {
 
 
 function nycc_email_nycc_email_alter(&$args) {
-  // Cleanup message bellow.
+  // Cleanup message bellow. 
 
   // Delete signature.
   $text = explode('--', $args['text']['value']);
