@@ -597,13 +597,6 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
 } // nycc_rides_form_alter
 
 
-
-
-
-
-
-
-
 function nycc_rides_block_info() {
   //TODO: IS THIS NEEDED?
   $blocks[0]['info'] = t('NYCC Ride Participants');
@@ -2732,8 +2725,7 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
   $output .= "</div>";
  
   return $output;
-}
-
+} // nycc_rides_output_ride_node_form
 
 
 function nycc_rides_output_existing_rides($ride_date) {
