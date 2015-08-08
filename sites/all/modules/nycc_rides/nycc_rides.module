@@ -513,88 +513,88 @@ function nycc_rides_node_prepare($node) {
 }
 
 
-function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
-    //TODO: Fix the cancel button & instrusctions
-  //global $user;
-  if ($form_id == "rides_node_form") {
-    //dpm($form);
-      $status = nycc_rides_get_ride_status($form['#node']);
-      $action = !nycc_rides_can_approve() && in_array($status, array('Approved','Pending','Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
+nycc_rides_form_alter(&$form, &$form_state, $form_id) {
+  // alter the rides add/edit form
+  if ($form_id == 'rides_node_form') {
+    // note: tpl calls nycc_rides_output_ride_node_form?
+    //TODO: Fix the cancel button 
+    
+    // dpm($form);
+    
+    $status = nycc_rides_get_ride_status($form['#node']);
+    
+    $action = !nycc_rides_can_approve() && in_array($status, array('Approved','Pending','Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
 
-    //TODO: FIX THIS - how to make it visible?
-      $form['submit_instructions'] = array(
-          '#prefix' => "<div id='nycc-submit-ride'>",
-          '#value' => "Are you sure you want to $action this ride? Doing so will trigger emails to your ride coordinator, other ride leaders and any participants, in the case of re-submissions.",
-      );
-      $form['actions']['submit']['#value'] = "Yes, $action this ride";
-      $form['submit_cancel'] = array(
-          '#suffix' => "</div>",
-          '#value' => "<a href='#' onclick='$(\"#nycc-submit-ride\").hide(); return false;' title='No, hide this box again.'>No</a>",
-      );
+    $form['submit_instructions'] = array(
+      '#prefix' => "<div id='nycc-submit-ride'>",
+      '#markup' => "Are you sure you want to $action this ride? Doing so will trigger emails to your ride coordinator, other ride leaders and any participants, in the case of re-submissions.",
+    );
 
-    //TODO: FIX THIS - how to make it visible?
-      if ($status == 'Approved') {
-      $form['revision_information']['log']['#description'] = t("Ride Leaders: please provide an explanation of the additions or updates being made to help Ride Coordinators understand your changes.  Note that changing an approved ride will result in the ride being re-sumitted for approval and trigger email alerts to all riders. Revisions are optional for Ride Coordinators and Administers.");
-      $form['revision_information']['#collapsible'] = 'fieldset';
-      $form['revision_information']['#collapsible'] = false;
-      $form['revision_information']['#collapsed'] = false;
-      $form['revision_information']['#title'] = t("This is an approved ride!");
-      $form['revision_information']['log']['#type'] = "textarea";
-      $form['revision_information']['log']['#title'] = t("Revision summary");
-      $form['revision_information']['log']['#attributes'] = array('placeholder' =>'e.g., start time change');
-      $form['revision_information']['log']['#rows'] = 3;
-      $form['revision_information']['revision']['#default_value'] = false;
-      if (!nycc_rides_can_approve()) {
-        $form['revision_information']['revision']['#default_value'] = true;
-        $form['revision_information']['log']['#required'] = true;
-      }
-          //dpm($form); 
-    }
-  //TODO: FIGURE OUT WHAT THIS DOES
+    $form['actions']['submit']['#value'] = "Yes, $action this ride";
+    $form['actions']['submit']['#attributes'] = array('class' => array('btn', 'btn-success'));
+        
+    $form['submit_cancel'] = array(
+      '#suffix' => "</div>",
+      '#markup' => "<a href='#' onclick='$(\"#nycc-submit-ride\").hide(); return false;' class='btn btn-danger' title='No, hide this box again.'>No</a>",
+    );
 
-/*
-       if (arg(1) == 'add')
-           $d = date("m/d/Y"); //date("m-d-Y");
-       else {
-        //SHOULD THIS BE['#node'] or just $form
-           $t = $form['#node']['field_ride_timestamp']['und'][0]['value'];
-           if (!drupal_strlen($t))
-             $t = $form['#node']['field_ride_timestamp']['und'][0]['#default_value']['value'];
+    if ($status == 'Approved') {
+        $form['revision_information']['log']['#description'] = t("Ride Leaders: please provide an explanation of the additions or updates being made to help Ride Coordinators understand your changes.  Note that changing an approved ride will result in the ride being re-sumitted for approval and trigger email alerts to all riders. Revisions are optional for Ride Coordinators and Administers.");
+        $form['revision_information']['#collapsible'] = 'fieldset';
+        $form['revision_information']['#collapsible'] = false;
+        $form['revision_information']['#collapsed'] = false;
+        $form['revision_information']['#title'] = t("This is an approved ride!");
+        $form['revision_information']['log']['#type'] = "textarea";
+        $form['revision_information']['log']['#title'] = t("Revision summary");
+        $form['revision_information']['log']['#attributes'] = array('placeholder' =>'e.g., start time change');
+        $form['revision_information']['log']['#rows'] = 3;
+        $form['revision_information']['revision']['#default_value'] = false;
+        if (!nycc_rides_can_approve()) {
+          $form['revision_information']['revision']['#default_value'] = true;
+          $form['revision_information']['log']['#required'] = true;
+        } 
+    } // approved
+    
+    
+    
+    //TODO: FIGURE OUT WHAT THIS DOES
 
-           $d = nycc_rides_get_date($t, "m/d/Y");
-       }
+  /*
+         if (arg(1) == 'add')
+             $d = date("m/d/Y"); //date("m-d-Y");
+         else {
+          //SHOULD THIS BE['#node'] or just $form
+             $t = $form['#node']['field_ride_timestamp']['und'][0]['value'];
+             if (!drupal_strlen($t))
+               $t = $form['#node']['field_ride_timestamp']['und'][0]['#default_value']['value'];
 
-    //TODO: Add Back
-       $form['existing_rides_wrapper'] = array(
-           '#type' => 'markup',
-           '#value' => nycc_rides_output_existing_rides(str_replace("-","/",$d)),
-       );
+             $d = nycc_rides_get_date($t, "m/d/Y");
+         }
 
-     //TODO: IF is this needed?
-       $form['nycc_rides_datepicker'] = array(
-           '#type' => 'hidden',
-           '#value' => $d,
-       );
+      //TODO: Add Back
+         $form['existing_rides_wrapper'] = array(
+             '#type' => 'markup',
+             '#value' => nycc_rides_output_existing_rides(str_replace("-","/",$d)),
+         );
 
-     $form['choose_calendar_target'] = array(
-           '#type' => 'checkboxes',
-           '#options' => array('yes' => t('Calendar clicks append recurring dates.')),
-           '#attributes' => array('class' => 'nycc-append-dates-control'),
-       );
+       //TODO: IF is this needed?
+         $form['nycc_rides_datepicker'] = array(
+             '#type' => 'hidden',
+             '#value' => $d,
+         );
 
-       //dsm($form['field_ride_additional_dates']);
-       $form['field_ride_additional_dates']['und'][0]['#default_value']['value'] = $d;
-       $form['field_ride_additional_dates']['und'][0]['#required'] = true;
- */
-    }
-}
+       $form['choose_calendar_target'] = array(
+             '#type' => 'checkboxes',
+             '#options' => array('yes' => t('Calendar clicks append recurring dates.')),
+             '#attributes' => array('class' => 'nycc-append-dates-control'),
+         );
 
-
-
-
-
-
-
+         //dsm($form['field_ride_additional_dates']);
+         $form['field_ride_additional_dates']['und'][0]['#default_value']['value'] = $d;
+         $form['field_ride_additional_dates']['und'][0]['#required'] = true;
+   */
+  }  // rides_node_form
+} // nycc_rides_form_alter
 
 
 function nycc_rides_block_info() {
