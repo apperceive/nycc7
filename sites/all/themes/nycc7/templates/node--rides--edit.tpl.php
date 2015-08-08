@@ -8,14 +8,21 @@
  
  // dpm(array_keys(get_defined_vars()));
   
+  // note: customizations in nycc_rides module's 
+  // nycc_rides_output_ride_node_form
+  // and
+  // nycc_rides_form_alter
   
   // use print render($form['field_artists']);
-
   // also, use hide and show
+  //hide($form['title']);
+  // output remaining with print drupal_render_children($form);
   
+  // todo: use a variable instead?  $output?
+  $output = nycc_rides_output_ride_node_form($form, arg(1));
   
 ?>
 
 
-<?php print drupal_render_children($form);  ?>
+<?php print $output;  ?>
 
