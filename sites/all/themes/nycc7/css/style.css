@@ -14,3 +14,52 @@ article.node-rides div.item-list ul  {
 article.node-rides div.item-list ul li {
   margin: 3px 0;
 }
+
+
+article.node-rides div.stats,
+article.node-rides div.content ,
+article.node-rides div.actions {
+
+}
+
+article.node-rides div.content {
+  overflow: auto;
+}
+
+article.node-rides div.item-list ul li {
+  margin: 3px 0;
+}
+
+header#navbar div.search {
+  /*max-width: 25%;*/
+}
+
+header#navbar ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+header#navbar ul li.top-item a {
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+header#navbar button.navbar-toggle {
+  display: block;
+  color: white;
+}
+
+
+header#navbar div.navbar-header {
+  width: 100%;
+}
+
+header#navbar .menu-collapse ul {
+  padding: 0 5px;
+}
+
+body {
+  margin-bottom: 50px;
+  padding-bottom: 25px;
+}
+

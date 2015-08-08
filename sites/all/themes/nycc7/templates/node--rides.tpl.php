@@ -115,21 +115,29 @@
   <?php endif; ?>
 
   <div class='row'>
-    <div class='col-sm-2'>
-      <?php print render($content['field_ride_status']); ?>      
-      <?php print render($content['field_ride_select_level']); ?>
-      <?php print render($content['field_ride_speed']); ?>
-      <?php print render($content['field_ride_spots']); ?>
-      <?php print render($content['field_ride_distance_in_miles']); ?>
-      <?php print render($content['field_ride_type']); ?>
+    <div class='col-md-2'>
+      <div class='stats well'>
+        <?php print render($content['field_ride_status']); ?>      
+        <?php print render($content['field_ride_select_level']); ?>
+        <?php print render($content['field_ride_speed']); ?>
+        <?php print render($content['field_ride_spots']); ?>
+        <?php print render($content['field_ride_distance_in_miles']); ?>
+        <?php print render($content['field_ride_type']); ?>
+      </div>
     </div>
-    <div class='col-sm-8'>
-      <?php print print render($content); ?>
+    <div class='col-md-7'>
+      <div class='content well'>
+        <?php print print render($content); ?>
+      </div>
     </div>
-    <div class='col-sm-2'>
-      <?php print render($content['nycc_buttons']); ?>
-      <?php print render($content['field_ride_current_riders']); ?>
-      <?php print render($content['field_ride_waitlist']); ?>
+    <div class='col-md-3'>
+      <div class='actions well'>
+        <div class="btn-group-vertical" role="group">
+          <?php print render($content['nycc_buttons']); ?>
+        </div>      
+        <?php print render($content['field_ride_current_riders']); ?>
+        <?php print render($content['field_ride_waitlist']); ?>
+      </div>
     </div>
   </div>
   
