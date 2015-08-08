@@ -513,7 +513,7 @@ function nycc_rides_node_prepare($node) {
 }
 
 
-nycc_rides_form_alter(&$form, &$form_state, $form_id) {
+function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
   // alter the rides add/edit form
   if ($form_id == 'rides_node_form') {
     // note: tpl calls nycc_rides_output_ride_node_form?
