@@ -805,16 +805,16 @@ function nycc_rides_ride_roster_email($timestamp, $hrs) {
   $actionID = 5;  // 5 is the tokenized email action for roster emails
 
   $sql =<<<EOS
-SELECT N.nid AS nid, U.uid AS uid
-FROM node N
-INNER JOIN content_type_rides R ON N.nid = R.nid  AND N.vid = R.vid
-Inner JOIN content_field_ride_current_leaders L ON N.vid = L.vid AND N.nid = L.nid
-INNER JOIN node NL ON L.field_ride_leaders_nid = NL.nid
-INNER JOIN users U ON NL.uid = U.uid
-WHERE  R.field_ride_status_value = 'Approved'
-AND N.type = 'rides'
-AND (R.field_ride_timestamp_value BETWEEN from_unixtime($timestamp) AND DATE_ADD(NOW(), INTERVAL $hrs HOUR))
-;
+  SELECT t.entity_id AS nid, u.uid
+  FROM
+  {users} u,
+  {field_data_field_ride_timestamp} t,
+  {node} n 
+  WHERE
+  n.nid = t.entity_id AND 
+  n.vid = t.revision_id AND
+  n.uid = u.uid AND 
+  (t.field_ride_timestamp_value BETWEEN from_unixtime($timestamp) AND DATE_ADD(NOW(), INTERVAL $hrs HOUR))
 EOS;
   if ($rr_debug ) watchdog("nycc-ride_roster", "SQL is " .  $sql, array(), WATCHDOG_NOTICE);
   $ride_count = 0;
