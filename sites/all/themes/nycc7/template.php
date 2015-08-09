@@ -8,6 +8,8 @@ function nycc7_preprocess_block(&$variables) {
   if ($variables['block']->region != 'navigation') {
     $variables['classes_array'][] = 'well';
     $variables['classes_array'][] = 'well-lg';
+  } else {
+    $variables['content'] = str_replace('Login</a>', '<button type="button" class="navbar-toggle" title="Sign In"><span class="glyphicon glyphicon-user"></span></button></a>', $variables['content']);   
   }
 } // nycc7_preprocess_block
  

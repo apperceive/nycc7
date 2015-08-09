@@ -81,11 +81,12 @@
           <img src="<?php print $logo; ?>" alt="<?php print t('Home'); ?>" />
       </a>
       
-      <?php if (!empty($page['navigation'])): ?>
-        <?php print render($page['navigation']); ?>
-      <?php endif; ?>      
- 
       <div class="btn-group" role="group">
+      
+        <?php if (!empty($page['navigation'])): ?>
+          <?php print render($page['navigation']); ?>
+        <?php endif; ?>      
+   
         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".menu-collapse" title='Menu'>
           <span class="sr-only"><?php print t('Toggle navigation'); ?></span>
           <span class="glyphicon glyphicon-menu-hamburger"></span>
@@ -101,9 +102,10 @@
         </button>
         
         <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-          <li><a href="#">Action</a></li>
-          <li><a href="#">Another action</a></li>
-          <li><a href="#">Something else here</a></li>
+          <li><a href="#">Sign In</a></li>
+          <li><a href="#">Request new password</a></li>
+          <li><a href="#">Become a member</a></li>
+          <li><a href="#">Create an account</a></li>
           <li role="separator" class="divider"></li>
           <?php print $settings_box; ?>
         </ul>
