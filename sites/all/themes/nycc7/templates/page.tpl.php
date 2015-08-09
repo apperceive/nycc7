@@ -142,23 +142,28 @@
   </header> <!-- /#page-header -->
   
   <div class="row">
-    <?php print $messages; ?>
+     <div class='col-xs-12'>
+      <?php print $messages; ?>
+    </div>
   </div>
   
   <div class="row">
-    <?php if (!empty($page['help'])): ?>
-      <?php print render($page['help']); ?>
-    <?php endif; ?>
+     <div class='col-xs-12'>
+     <?php if (!empty($page['help'])): ?>
+        <?php print render($page['help']); ?>
+      <?php endif; ?>
+    </div>
   </div>
 
   <div class="row">
-    <?php if (!empty($page['highlighted'])): ?>
-      <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
-    <?php endif; ?>
+    <div class='col-xs-12'>
+      <?php if (!empty($page['highlighted'])): ?>
+        <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
+      <?php endif; ?>
+    </div>
   </div>
 
   <div class="row">
-
     <?php if (!empty($page['sidebar_first'])): ?>
       <aside class="col-sm-3 col-md-2" role="complementary">
         <?php print render($page['sidebar_first']); ?>
