@@ -85,7 +85,7 @@
   if (!$user->uid) {
     // temp hide content from anon 
     // todo: use new access function from iforst in nycc_rides
-   drupal_set_message('You must be logged in to view ride details.');
+   //drupal_set_message('You must be logged in to view ride details.');
    hide($content);
    print "You must be logged in to view ride details.";
   } else {
