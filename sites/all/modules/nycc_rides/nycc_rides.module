@@ -25,8 +25,8 @@ TODO List:
  *1) add field to control 10-day waitlist (field_ride_open_signup_days)
  *2) INSTALL WYSIWYG Module
  *3) create new leaders field (field_ride_current_leaders) & run migrate script
- *
- *
+ *3a) change rides content type ->old leader's field is not required
+ *4) script to set 10-days signup limit
  */
 
 
@@ -1031,6 +1031,8 @@ function nycc_rides_access($op, $node, $account = null) {
     global $user;
     if (!$account)
       $account = $user;
+      
+      dpm($account);
 
     $ride = node_load($node);
     if (!is_object($ride))
@@ -1051,6 +1053,7 @@ function nycc_rides_access($op, $node, $account = null) {
     return nycc_rides_can_approve($account) ;
   }
 }
+
 
 //RIDE RELATED FUNCTIONS
 function nycc_rides_join_ride($nid=null) {
@@ -1122,6 +1125,10 @@ function nycc_rides_join_ride($nid=null) {
 
           $ride->field_ride_additional_dates['und'][0]['value'] = "";
           node_save($ride);
+          
+          //fire the rules
+          rules_invoke_event('nycc_rides_member_joins_ride', $user, $ride);
+
 
         //TODO: Add back when everything is working
         //adding event logging
@@ -1543,6 +1550,8 @@ function nycc_rides_can_modify_ride($ride, $account = null) {
 }
 
 function nycc_rides_can_approve($account = null) {
+  
+  dpm($account);
   global $user;
 
   if (!$account)
@@ -1554,6 +1563,7 @@ function nycc_rides_can_approve($account = null) {
   if (!is_object($account))
     return false;
 
+    
   $roles = array_values($account->roles);
   if (!is_array($roles))
     return false;
@@ -2511,22 +2521,25 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
   if ($op == 'edit' && ($status == 'Approved'))
     $output .= drupal_render($form['revision_information']);
 
-  $output .= "<h3>Step 1. Schedule ride dates:</h3>";
+  $output .= "<h3>Step 1. Schedule ride date:</h3>";
 
   //$output .= drupal_render($form['dp-normal-1']);
 
   //$output .= drupal_render($form['field_date_ride_first']);
-
-  $output .= drupal_render($form['field_ride_additional_dates']);
-  $output .= drupal_render($form['choose_calendar_target']);
-  $output .= drupal_render($form['nycc_rides_datepicker']);
-  $output .= drupal_render($form['existing_rides_wrapper']);
+  $output .= drupal_render($form['field_ride_timestamp']);
+  //$output .= drupal_render($form['field_ride_additional_dates']);
+  //$output .= drupal_render($form['choose_calendar_target']);
+  //$output .= drupal_render($form['nycc_rides_datepicker']);
+  //$output .= drupal_render($form['existing_rides_wrapper']);
 
   //$output .= "<input id='ride-add-recurring' type='button'value='Clone This Ride ▼'/>";
   //$output .= "<div id='ride-add-recurring-fields'>";
   //$output .= drupal_render($form['additional_dates']);
   //$output .= "</div>";
-
+  if(nycc_rides_can_approve())
+    $output .= drupal_render($form['field_ride_open_signup_days']);
+  
+  
   $output .= "<h3>" .t("Step 2. Specify ride details:"). "</h3>";
 
   // D7: do not allow change/view by leaders
@@ -2549,17 +2562,19 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
   $form['field_ride_spots']['und'][0]['value']['#title'] = 'Max. Participants';
   
   $output .= drupal_render($form['field_ride_spots']);
-  $output .= drupal_render($form['field_ride_start_time_hour']);
-  
-  $form['field_ride_start_time_min']['#title'] = "";
-  $form['field_ride_start_time_min']['value']['#title'] = "";
-  
-  $output .= drupal_render($form['field_ride_start_time_min']);
- 
-  $form['field_ride_start_time_select']['#title'] = "";
-  $form['field_ride_start_time_select']['value']['#title'] = "";
-  
-  $output .= drupal_render($form['field_ride_start_time_select']);
+
+  //$output .= drupal_render($form['field_ride_start_time_hour']);
+  //
+  //$form['field_ride_start_time_min']['#title'] = "";
+  //$form['field_ride_start_time_min']['value']['#title'] = "";
+  //
+  //$output .= drupal_render($form['field_ride_start_time_min']);
+  //
+  //$form['field_ride_start_time_select']['#title'] = "";
+  //$form['field_ride_start_time_select']['value']['#title'] = "";
+  //
+  //$output .= drupal_render($form['field_ride_start_time_select']);
+
   $output .= drupal_render($form['field_ride_from_select']);
   $output .= drupal_render($form['field_ride_from']);
   
@@ -2574,14 +2589,17 @@ function nycc_rides_output_ride_node_form($form, $op = 'add') {
   $form['field_ride_current_leaders']['field_ride_current_leaders_add_more']['#value'] = t("Add another ride leader");
  
   $output .= drupal_render($form['field_ride_current_leaders']);
+  unset($form['field_ride_leaders']);
   
   if ($op == 'add') {
     unset($form['field_ride_current_riders']);
     unset($form['field_ride_waitlist']);
   } else {
     $form['field_ride_current_riders']['field_ride_current_riders_add_more']['#value'] = t('Add another rider');
-    $output .= drupal_render($form['field_ride_current_riders']);
-    $output .= drupal_render($form['field_ride_waitlist']);
+    if(nycc_rides_can_approve()) {
+      $output .= drupal_render($form['field_ride_current_riders']);
+      $output .= drupal_render($form['field_ride_waitlist']);
+    }
   }
 
   $output .= "<h3>" .t("Step 4. Upload some images or file attachments (optional):"). "</h3>";
