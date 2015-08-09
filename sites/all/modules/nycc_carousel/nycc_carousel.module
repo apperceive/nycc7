@@ -1,13 +1,50 @@
 <?php
-// theme function theme_carousel()
-// use template for all bootstrap - nycc-carousel.tpl.php
-// preprocessor?
+
 // new sql
-// block?
+
 // use fontawesome?
 // ensure css and js required is loaded
 // dependecies on bootstrap and jquery (version?)
+// rely on image cache
 
+
+function nycc_carousel_theme($existing, $type, $theme, $path) {
+  return array(
+    'nycc_carousel_template' => array(
+        'arguments' => array(),
+        'template' => 'nycc-carousel',
+        'variables' => array('slides'),
+        ),
+  );
+}
+
+function nycc_carousel_nycc_carousel($variables) {
+  return theme('nycc_carousel_template');
+}
+
+function nycc_carousel_block_info() {
+  $blocks['nycc_carousel'] = array(
+    'info' => t('NYCC Carousel'),
+  );
+  return $blocks;
+}
+
+function nycc_carousel_block_view($delta = '') {
+  $block = array();
+
+  switch ($delta) {
+    case 'nycc_carousel':
+      $block['subject'] = t('NYCC Carousel');
+      $block['content'] = theme('nycc_carousel_template');
+      break;
+  }
+  return $block;
+}
+
+function nycc_carousel_preprocess_block(&$variables) {
+  // todo: use query similar to old one here
+  $variables['slides'] = array('src'=>'src', 'caption' => 'caption');
+}
 
 function nycc_carousel_old() {
   //$sql = "SELECT n.nid, n.title, d.field_date_value, f.filename, nr.body FROM node n, node_revisions nr, content_field_date d, content_field_image_cache i, files f WHERE n.nid = d.nid AND n.vid = d.vid AND n.nid = nr.nid AND n.vid = nr.vid AND n.nid = i.nid AND n.vid = i.vid AND f.fid = i.field_image_cache_fid AND ((n.promote=1) AND ((n.type='event') OR (n.type='page')) AND (n.status <> 0)) ORDER BY field_date_value ASC LIMIT 4 ";
