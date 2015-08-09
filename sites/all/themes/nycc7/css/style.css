@@ -66,4 +66,6 @@ header#navbar .menu-collapse ul {
   margin: 0;
 }
 
-
+.navbar-nav > li > a {
+  padding: 0;
+}
