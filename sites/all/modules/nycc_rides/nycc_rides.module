@@ -338,11 +338,11 @@ function nycc_rides_node_update($node) {
 
     //TODO: MOVE TO RULES
     if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised'))){
-      drupal_set_message(filter_xxs(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
+      drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
     }
 
     if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')) && !nycc_rides_can_approve())
-      drupal_set_message(filter_xxs(t("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).")));
+      drupal_set_message(filter_xss(t("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).")));
   }
 }
 
@@ -488,9 +488,9 @@ function nycc_rides_node_prepare($node) {
 
     //TODO: MOVE THIS TO RULES
     if (!nycc_rides_can_approve()) {
-        drupal_set_message(filter_xxs("<b>Please Note:</b> If you modify key fields on this ride it will be taken offline until the Ride Coordinator has had a chance to review the changes."));
-        drupal_set_message(filter_xxs("While we make every effort to approve it  a timely manner, It could take up to 48 hours for the change to be approved."));
-        drupal_set_message(filter_xxs("If you must make changes to the ride within 48 hours of the ride start, we'd suggest that your reach out to <a href='mailto:" .
+        drupal_set_message(filter_xss("<b>Please Note:</b> If you modify key fields on this ride it will be taken offline until the Ride Coordinator has had a chance to review the changes."));
+        drupal_set_message(filter_xss("While we make every effort to approve it  a timely manner, It could take up to 48 hours for the change to be approved."));
+        drupal_set_message(filter_xss("If you must make changes to the ride within 48 hours of the ride start, we'd suggest that your reach out to <a href='mailto:" .
              $node->field_ride_select_level['und'][0]['value'] . "-rides@nycc.org?subject=Urgent: I need to make changes to a ride!'>" .  $node->field_ride_select_level['und'][0]['value'] .
              "-rides@nycc.org</a> to confirm that they can approve in a timely manner <b>before you make the changes</b>"));
     }
