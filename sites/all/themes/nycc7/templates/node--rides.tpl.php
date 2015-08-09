@@ -80,7 +80,16 @@
  */
  
   //dpm(get_defined_vars());
-  
+ 
+  global $user;
+  if (!$user->uid) {
+    // temp hide content from anon 
+    // todo: use new access function from iforst in nycc_rides
+   //drupal_set_message('You must be logged in to view ride details.');
+   hide($content);
+   print "You must be logged in to view ride details.";
+  } else {
+
   // Hide comments, tags, and links now so that we can render them later.
   hide($content['comments']);
   hide($content['links']);
@@ -127,7 +136,7 @@
     </div>
     <div class='col-md-7'>
       <div class='content well'>
-        <?php print print render($content); ?>
+        <?php print render($content); ?>
       </div>
     </div>
     <div class='col-md-3'>
@@ -151,5 +160,7 @@
   <?php print render($content['comments']); ?>
    
 </article>
+
+<?php } ?>
 
 

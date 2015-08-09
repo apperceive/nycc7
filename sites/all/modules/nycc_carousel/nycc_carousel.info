@@ -1,0 +1,6 @@
+name = NYCC Carousel Module
+description = Display images in a carousel
+package = NYCC
+core = 7.x 
+files[]=nycc_carousel.module
+

@@ -2,6 +2,11 @@
  * Styles for the nycc7 theme.
  */
 
+body {
+  margin-bottom: 50px;
+  padding-bottom: 25px;
+}
+
 div.navbar-header a.navbar-brand {
  display: none;
 }
@@ -14,7 +19,6 @@ article.node-rides div.item-list ul  {
 article.node-rides div.item-list ul li {
   margin: 3px 0;
 }
-
 
 article.node-rides div.stats,
 article.node-rides div.content ,
@@ -31,7 +35,6 @@ article.node-rides div.item-list ul li {
 }
 
 header#navbar div.search {
-  /*max-width: 25%;*/
 }
 
 header#navbar ul {
@@ -49,7 +52,6 @@ header#navbar button.navbar-toggle {
   color: white;
 }
 
-
 header#navbar div.navbar-header {
   width: 100%;
 }
@@ -58,15 +60,12 @@ header#navbar .menu-collapse ul {
   padding: 0 5px;
 }
 
-body {
-  margin-bottom: 50px;
-  padding-bottom: 25px;
-}
-
 .region-navigation {
   display: inline-block;
   padding: 0;
   margin: 0;
 }
 
-
+.navbar-nav > li > a {
+  padding: 0;
+}

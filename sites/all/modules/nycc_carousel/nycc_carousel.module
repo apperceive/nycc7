@@ -1,0 +1,102 @@
+<?php
+
+// new sql
+
+// use fontawesome?
+// ensure css and js required is loaded
+// dependecies on bootstrap and jquery (version?)
+// rely on image cache
+
+
+function nycc_carousel_theme($existing, $type, $theme, $path) {
+  return array(
+    'nycc_carousel_template' => array(
+        'arguments' => array(),
+        'template' => 'nycc-carousel',
+        'variables' => array('slides'),
+        ),
+  );
+}
+
+function nycc_carousel_nycc_carousel($variables) {
+  return theme('nycc_carousel_template');
+}
+
+function nycc_carousel_block_info() {
+  $blocks['nycc_carousel'] = array(
+    'info' => t('NYCC Carousel'),
+  );
+  return $blocks;
+}
+
+function nycc_carousel_block_view($delta = '') {
+  $block = array();
+
+  switch ($delta) {
+    case 'nycc_carousel':
+      $block['subject'] = t('NYCC Carousel');
+      $block['content'] = theme('nycc_carousel_template');
+      break;
+  }
+  return $block;
+}
+
+function nycc_carousel_preprocess_block(&$variables) {
+  // todo: use query similar to old one here
+  $variables['slides'] = array('src'=>'src', 'caption' => 'caption');
+}
+
+function nycc_carousel_old() {
+  //$sql = "SELECT n.nid, n.title, d.field_date_value, f.filename, nr.body FROM node n, node_revisions nr, content_field_date d, content_field_image_cache i, files f WHERE n.nid = d.nid AND n.vid = d.vid AND n.nid = nr.nid AND n.vid = nr.vid AND n.nid = i.nid AND n.vid = i.vid AND f.fid = i.field_image_cache_fid AND ((n.promote=1) AND ((n.type='event') OR (n.type='page')) AND (n.status <> 0)) ORDER BY field_date_value ASC LIMIT 4 ";
+
+  $sql = "SELECT n.nid, n.title, d.field_date_value, f.filename, nr.body FROM node n, node_revisions nr, content_field_date d, content_field_image_cache i, files f, content_field_carousel_order co WHERE co.nid = n.nid AND co.vid = n.vid AND n.nid = d.nid AND n.vid = d.vid AND n.nid = nr.nid AND n.vid = nr.vid AND n.nid = i.nid AND n.vid = i.vid AND f.fid = i.field_image_cache_fid AND ((n.promote=1) AND ((n.type='event') OR (n.type='page')) AND (n.status <> 0)) ORDER BY field_carousel_order_value ASC, field_date_value ASC LIMIT 4 ";
+
+  $items = array();
+  $results = db_query($sql);
+
+  $output .= "
+  <div class='custom-top'>
+    <div class='custom-indent'>
+      <div id='gallery' class='content-gallery'>
+        <div class='slideshow-container'>
+          <div id='slideshow' class='slideshow'></div>
+          <div id='caption' class='caption-container'></div>
+        </div>
+      </div>
+
+      <div id='thumbs' class='navigation'>
+        <ul class='thumbs noscript'>";
+
+  while ( $data = db_fetch_object($results) ) {
+    $body = strip_tags($data->body);
+    if (strlen($body) >= 90)
+      $body = substr($body,0,87) .'...';
+    $imgpath = file_directory_path() ."/imagecache/home_page_top_banner/". $data->filename;
+    $thumbpath = file_directory_path() ."/imagecache/home_page_top_thumbnail/". $data->filename;
+    $nodepath = "/node/". $data->nid;
+    $date = $data->field_date_value;
+    $title = $data->title;
+    $output .= "
+          <li style='z-index:0'>
+            <a class='thumb' name='leaf' href='$imgpath' title='$title'>
+              <div class='thumb-content'>
+                <p class='fleft'><img alt='thumbnail' src='$thumbpath' /></p>
+                <div class='thumb-date'>$date</div>
+                <p>$body</p>
+              </div>
+            </a>
+            <div class='caption'>
+              <h1>$title</h1>
+              <a class='more' href='$nodepath'>Read More <span>&gt;&gt;</span></a>
+              <p>$body</p>
+            </div>
+          </li>";
+  }
+  $output .= "
+        </ul>
+      </div>
+    </div>
+  </div>";
+  return $output;
+} // nycc_carousel_old
+
