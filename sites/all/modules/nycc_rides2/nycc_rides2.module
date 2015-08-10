@@ -47,7 +47,6 @@
 //  } // rides
 //} // hook_node_view
 
-
 // alternative method, use template vars
 // can be overridden in theme (nycc7_preprocess_node)
 // code would be similar to above
@@ -60,5 +59,132 @@ function nycc_rides2_preprocess_node(&$variables) {
   
 } //nycc_rides2_preprocess_node
 
-// todo: use hook_node_prepare to customize ride node form
 
+
+
+// todo: plan better place for this and how things like this are handled
+// called by http://markus.test.nycc.org/admin/structure/block/manage/block/21/configure
+// function to replace block code
+// make this simpler 
+// iterate over and array of nids ?
+// note that $node->type may not exist (e.g. on view pages)
+
+function nycc_rides2_renew_button_pages() {
+
+  if (drupal_is_front_page()) {
+    return TRUE;
+  }
+
+  if(arg(0) == "node" && arg(1) == 2  && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "45511" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "27725" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "13902" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "45415" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "4" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "45416" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "45421" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "6" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) == "5" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) =="add" && arg(2) == "rides"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) =="45457" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) =="45475" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) =="45512" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) =="45517" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) =="45519" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) =="45520" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "node" && arg(1) =="45521" && arg(2) != "edit"){
+    return true;
+  }
+
+  if(arg(0) == "upcoming-events"){
+    return true;
+  }
+
+  $node = node_load(arg(1));
+  if (!$node)
+      return false;
+  $node_type = $node->type;
+  
+  if($node_type == "rides"){
+    if(arg(0)  != "current-riders"){
+      return true;
+    }
+  }
+
+  if($node_type == "region"){
+    if(arg(2) != "edit"){
+      return true;
+    }
+  }
+  if($node_type == "cue_sheet"){
+    if(arg(2) != "edit"){
+      return true;
+    }
+  }
+
+  if($node_type == "product"){
+    if(arg(2) != "edit"){
+      if(arg(1) != 27756){
+        return true;
+      }
+    }
+  }
+
+  if($node_type == "message_board"){
+    if(arg(2) != "edit"){
+      return true;
+    }
+  }
+
+} // nycc_rides2_renew_button_pages
