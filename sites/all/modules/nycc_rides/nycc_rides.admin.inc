@@ -28,6 +28,3 @@ function nycc_rides_admin_validate($form, $form_state) {
 		}	
 	}
 }
-
-
-?>
