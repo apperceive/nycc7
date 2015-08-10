@@ -9,6 +9,9 @@
 
 //dpm(get_defined_vars());
 
+// Variables:
+// $slides - array of slide arrays with keys: title, date, body, imgpath, thumbpath, nodepath,
+
 ?>
 <div id="nycc-carousel" class="carousel slide" data-ride="carousel">
   <!-- Indicators -->
@@ -22,8 +25,8 @@
   <div class="carousel-inner" role="listbox">
   <?php foreach($slides as $ndx => $slide) { ?>
     <div class="item <?php ($ndx == 0) ? print ' active' : print '';?> ">
-      <img src="<?php print $slide['src']; ?>">
-      <div class="carousel-caption"><h2><?php print $slide['title']; ?></h2><?php print $slide['caption']; ?></div>
+      <img src="<?php print $slide['imgpath']; ?>">
+      <div class="carousel-caption"><h2><?php print $slide['title']; ?></h2><?php print $slide['body']; ?></div>
     </div>
   <?php }  ?>
   </div>

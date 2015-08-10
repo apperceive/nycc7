@@ -1,7 +1,7 @@
 <?php
 
 // new sql
-// rely on image cache
+// rely on image cache?
 
 function nycc_carousel_theme($existing, $type, $theme, $path) {
   return array(
@@ -42,6 +42,31 @@ function nycc_carousel_process_nycc_carousel(&$variables) {
 function _nycc_carousel_get_slides() {
   $slides = array();
   
+  $filesdir = variable_get('file_public_path', conf_path() . '/files');
+  
+  $sql =<<<EOS
+    SELECT n.nid, n.title, d.field_date_value, f.filename, b.body_value AS body
+    FROM {node} n, {field_data_body} b, {field_data_field_date} d, {field_data_field_image_cache} i, {files} f, {field_data_field_carousel_order} co 
+    WHERE co.entity_id = n.nid AND co.revision_id = n.vid AND n.nid = d.entity_id AND n.vid = d.revision_id AND n.nid = b.entity_id AND n.vid = b.revision_id AND n.nid = i.entity_id AND n.vid = i.revision_id AND f.fid = i.field_image_cache_fid AND ((n.promote=1) AND ((n.type='event') OR (n.type='page')) AND (n.status <> 0)) 
+    ORDER BY field_carousel_order_value ASC, field_date_value ASC 
+    LIMIT 4
+EOS;
+  
+  $results = db_query($sql);
+  foreach ($results as $r) {
+    $body = strip_tags($r->body);
+    if (strlen($body) >= 90)
+      $body = substr($body,0,87) .'...';
+    $imgpath = $filesdir . "/imagecache/home_page_top_banner/". $r->filename;
+    $thumbpath = $filesdir ."/imagecache/home_page_top_thumbnail/". $r->filename;
+    $nodepath = "/node/". $r->nid;
+    $date = $r->field_date_value;
+    $title = $r->title;
+    
+    $slides[] = array('body' => $body, 'imgpath' => $imgpath, 'thumbpath' => $thumbpath, 'nodepath' => $nodepath, 'title' => $title, 'date' => $date, );
+  } // for
+
+  /*
   $slides[] = array('title' => 'xxxxAll-Class Ride 2015', 'src' => 'http://nycc.org/sites/default/files/imagecache/home_page_top_banner/071815-allClassRide.jpg', 'caption' => 'The NYCC 2015 All-Class Ride - Join us for the ride of the year!');
   
   $slides[] = array('title' => 'Escape New York 2015', 'src' => 'http://nycc.org/sites/default/files/imagecache/home_page_top_banner/ENY-Logo2015-2.png', 'caption' => 'This fall classic offers four scenic, well marked routes  -   25, 50, 65 or 100 miles – all beginning and ending at Sakura Park in Manhattan.   All offer picture-postcard views of the Hudson River and Palisades as you cross the George Washington Bridge and ride the serene roads of Bergen and Rockland Counties.');
@@ -49,63 +74,8 @@ function _nycc_carousel_get_slides() {
   $slides[] = array('title' => 'Cycling Skills Active Workshop', 'src' => 'http://nycc.org/sites/default/files/imagecache/home_page_top_banner/nycc-manuel-bikes-banner.jpg', 'caption' => "Calling ALL NYCC cyclists! Come one, come all... A riders, B riders, C riders! Join us for a totally \"classless\" skills session. Improve your handing skills... practice navigating the GWB hairpin turn... have a go at \"bunny hopping\"... take part in flat changing clinic... join a \"race\" where the slowest rider wins... and much, much more! It will be a fun and informative morning. Bring everything you'd normally bring on a ride, tubes, inflation device, fluids, etc. ");
   
   $slides[] = array('title' => 'NYCC 2015 Ice Cream Social', 'src' => 'http://nycc.org/sites/default/files/imagecache/home_page_top_banner/060515-iceCreamSocial.png', 'caption' => 'Please join us for ice cream as we take in the beautiful NYC skyline with front row seats from Pier 1 at Brooklyn Bridge Park.  You bring the talk, The Brooklyn Ice Cream Factory will bring the ice cream and the city will bring the views!!  (and yes, I’ve already asked Mother Nature to bring the weather – the pleasant kind.  She’s thinking about it). ');
-  
+  */
   return $slides;
 }
 
-// need array(s) of image/src, description/caption, alt (optional), link, index/counter?
-
-function nycc_carousel_old_get_slides() {
-  //$sql = "SELECT n.nid, n.title, d.field_date_value, f.filename, nr.body FROM node n, node_revisions nr, content_field_date d, content_field_image_cache i, files f WHERE n.nid = d.nid AND n.vid = d.vid AND n.nid = nr.nid AND n.vid = nr.vid AND n.nid = i.nid AND n.vid = i.vid AND f.fid = i.field_image_cache_fid AND ((n.promote=1) AND ((n.type='event') OR (n.type='page')) AND (n.status <> 0)) ORDER BY field_date_value ASC LIMIT 4 ";
-
-  $sql = "SELECT n.nid, n.title, d.field_date_value, f.filename, nr.body FROM node n, node_revisions nr, content_field_date d, content_field_image_cache i, files f, content_field_carousel_order co WHERE co.nid = n.nid AND co.vid = n.vid AND n.nid = d.nid AND n.vid = d.vid AND n.nid = nr.nid AND n.vid = nr.vid AND n.nid = i.nid AND n.vid = i.vid AND f.fid = i.field_image_cache_fid AND ((n.promote=1) AND ((n.type='event') OR (n.type='page')) AND (n.status <> 0)) ORDER BY field_carousel_order_value ASC, field_date_value ASC LIMIT 4 ";
-
-  $items = array();
-  $results = db_query($sql);
-
-  $output .= "
-  <div class='custom-top'>
-    <div class='custom-indent'>
-      <div id='gallery' class='content-gallery'>
-        <div class='slideshow-container'>
-          <div id='slideshow' class='slideshow'></div>
-          <div id='caption' class='caption-container'></div>
-        </div>
-      </div>
-
-      <div id='thumbs' class='navigation'>
-        <ul class='thumbs noscript'>";
-
-  while ( $data = db_fetch_object($results) ) {
-    $body = strip_tags($data->body);
-    if (strlen($body) >= 90)
-      $body = substr($body,0,87) .'...';
-    $imgpath = file_directory_path() ."/imagecache/home_page_top_banner/". $data->filename;
-    $thumbpath = file_directory_path() ."/imagecache/home_page_top_thumbnail/". $data->filename;
-    $nodepath = "/node/". $data->nid;
-    $date = $data->field_date_value;
-    $title = $data->title;
-    $output .= "
-          <li style='z-index:0'>
-            <a class='thumb' name='leaf' href='$imgpath' title='$title'>
-              <div class='thumb-content'>
-                <p class='fleft'><img alt='thumbnail' src='$thumbpath' /></p>
-                <div class='thumb-date'>$date</div>
-                <p>$body</p>
-              </div>
-            </a>
-            <div class='caption'>
-              <h1>$title</h1>
-              <a class='more' href='$nodepath'>Read More <span>&gt;&gt;</span></a>
-              <p>$body</p>
-            </div>
-          </li>";
-  }
-  $output .= "
-        </ul>
-      </div>
-    </div>
-  </div>";
-  return $output;
-} // nycc_carousel_old
 
