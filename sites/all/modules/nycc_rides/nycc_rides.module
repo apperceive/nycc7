@@ -173,21 +173,27 @@ function nycc_rides_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('nycc_rides_ride_cancel_confirm', 1),
     'access callback' => 'nycc_rides_access',
-  'access arguments' => array(2, 1),
     'access arguments' => array(2, 1),
     'type' => MENU_CALLBACK,
   );
 
   //WORKING
+  //$items['node/%/join'] = array(
+  //  'title' => 'Join Ride',
+  //  'page callback' => 'nycc_rides_join_ride',
+  //  'access callback' => 'nycc_rides_access',
+  //  'access arguments' => array(2, 1),
+  //  'page arguments' => array(1),
+  //  'type' => MENU_CALLBACK,
+  //);
+
   $items['node/%/join'] = array(
     'title' => 'Join Ride',
     'page callback' => 'nycc_rides_join_ride',
-    'access callback' => 'nycc_rides_access',
-    'access arguments' => array(2, 1),
+    'access callback' => TRUE,
     'page arguments' => array(1),
-    'type' => MENU_CALLBACK,
+    //'type' => MENU_NORMAL_ITEM,
   );
-
   //WORKING
   $items['node/%/approve'] = array(
     'title' => 'Join Ride',
@@ -315,6 +321,9 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
 //         if (nycc_rides_ride_overlaps_user($uid, $ridetime) > 0) {
 //             drupal_set_message("PLEASE NOTE: Add Me To The Waiting List is disabled because you are already on two waiting lists for rides within 4 hours of this ride.  You can view your waitlist signups in your <a href='/user/$uid/mywaitlists'>profile</a>");
 //         }
+
+  rules_invoke_event('nycc_rides_ride_is_viewed', $user, $node);
+
   }
 }
 
@@ -336,8 +345,29 @@ function nycc_rides_node_update($node) {
 //       // TODO: clear additional dates field so that it is not copied?
 //     }
 
-    //TODO: MOVE TO RULES
+
+    global $user;
+    switch (nycc_rides_get_ride_status($node))
+    {
+      case 'Revised':
+        rules_invoke_event('nycc_rides_ride_is_revised', $user, $node);
+        break;
+      
+      case 'Submitted':
+        rules_invoke_event('nycc_rides_ride_is_submitted', $user, $node);
+        break;
+      
+      case 'Cancelled':
+        rules_invoke_event('nycc_rides_ride_is_cancelled', $user, $node);
+        break;
+      
+      case 'Approved':
+        rules_invoke_event('nycc_rides_ride_is_approved', $user, $node);
+        break;      
+    }
+
     if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised'))){
+      
       drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
     }
 
@@ -1055,6 +1085,8 @@ function nycc_rides_access($op, $node, $account = null) {
 }
 
 
+
+
 //RIDE RELATED FUNCTIONS
 function nycc_rides_join_ride($nid=null) {
 //TODO: WHY IS THIS GETTING CALLED TWICE???
@@ -1126,8 +1158,6 @@ function nycc_rides_join_ride($nid=null) {
           $ride->field_ride_additional_dates['und'][0]['value'] = "";
           node_save($ride);
           
-          //fire the rules
-          rules_invoke_event('nycc_rides_member_joins_ride', $user, $ride);
 
 
         //TODO: Add back when everything is working
@@ -1143,6 +1173,9 @@ function nycc_rides_join_ride($nid=null) {
 //         }
           drupal_set_message(check_plain("You have joined this ride's waitlist."));
           watchdog("rides", "user: %uid (%uname) joined waitlist: %nid (%rname)", array('%uid'=> $user->uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title), WATCHDOG_INFO);
+          
+          //fire rules
+          rules_invoke_event('nycc_rides_member_joins_waitlist', $user, $ride);
           break;
 
           default:
@@ -1165,7 +1198,10 @@ function nycc_rides_join_ride($nid=null) {
         
           $ride->field_ride_additional_dates['und'][0]['value'] = "";
           node_save($ride);
-    
+              
+          //fire the rules
+          rules_invoke_event('nycc_rides_member_joins_ride', $user, $ride);
+
         //TODO: Add back when everything is working
         //adding event logging
         //nycc_log_action($ride, $user_uid, "Join A Ride");        
@@ -1221,6 +1257,10 @@ function nycc_rides_withdraw_from_ride($nid=null) {
           //nycc_log_action($ride, $user_uid, "Withdraw From Ride");
 
           node_save($ride);
+          
+          //fire rules
+          rules_invoke_event('nycc_rides_member_withdraws_from_ride', $user, $ride);
+
           drupal_goto("node/$nid");
           return;
         }
@@ -1238,6 +1278,8 @@ function nycc_rides_withdraw_from_ride($nid=null) {
           $ride->field_ride_additional_dates['und'][0]['value'] = "";
           node_save($ride);
 
+          //fire rules
+          rules_invoke_event('nycc_rides_member_withdraws_from_waitlist', $user, $ride);
           //adding event logging
           //nycc_log_action($ride, $user_uid, "Withdraw From Waitlist");
 
@@ -1262,10 +1304,12 @@ function nycc_rides_approve_ride($ride = NULL) {
   if (is_numeric($ride))
     $ride = node_load($ride);
 
-  if (is_object($ride) && nycc_rides_can_approve()) {
+  global $user;
+  if (is_object($ride) && nycc_rides_can_approve($user)) {
     $ride->field_ride_status['und'][0]['value'] = "Approved";
     $ride->field_ride_additional_dates['und'][0]['value'] = "";
     node_save($ride);
+    
     drupal_set_message(check_plain('Ride Approved.'));
     drupal_goto("node/" . $ride->nid);
   } else {
@@ -1298,6 +1342,11 @@ function nycc_rides_clone_ride($onode, $date, $ride_status = "Submitted") {
   $node->field_ride_current_riders = array();
   $node->field_ride_waitlist = array();
   node_save($node);
+  
+  //fire rules
+  global $user;
+  rules_invoke_event('nycc_rides_ride_submitted', $user, $ride);
+  
   $nid = $node->nid;
   // note: messaging will not work as expected if called via ajax
   drupal_set_message(check_markup("Recurring ride for <a href='/node/$nid' title='View recurring ride in another tab or window...' target='_blank'>$title</a> created with date $date", 'filtered_html', '', FALSE));
@@ -1330,6 +1379,7 @@ function nycc_rides_ride_cancel_confirm_submit($form, &$form_state) {
   if ($form_state['values']['confirm']) {
     $ride = node_load($form_state['values']['nid']);
     nycc_rides_update_ride_status($ride, 'Cancelled');
+    
     drupal_set_message(check_plain('Ride '. $ride->title .' cancelled'));
   }
   $form_state['redirect'] = 'node/'. $form_state['values']['nid'];

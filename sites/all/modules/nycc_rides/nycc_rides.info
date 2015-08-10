@@ -1,8 +1,9 @@
 name = NYCC Rides Module 
-description = Handle all rides functionality
+description = Handle all NYCC rides functionality
 package = NYCC
 core = 7.x 
 files[] = nycc_rides.reports.inc
-files[] = nycc_rides_rules.inc
-configure = admin/nycc/rides
+files[] = nycc_rides.rules.inc
+configure = admin/config/nycc/rides
+
 
