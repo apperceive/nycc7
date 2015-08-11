@@ -4,6 +4,7 @@ package = NYCC
 core = 7.x 
 files[] = nycc_rides.reports.inc
 files[] = nycc_rides.rules.inc
+files[] = nycc_rides.tokens.inc
 configure = admin/config/nycc/rides
 
 

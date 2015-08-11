@@ -264,7 +264,6 @@ function nycc_rides_cron() {
 }
 
 function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
-
   $r_debug =   variable_get("nycc_rides_debug", TRUE);
     global $user;
 
@@ -292,7 +291,6 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
       );
       
       $node->content['field_ride_spots']['#title'] = t("Remaining/Spots");
-
       $node->content['field_ride_spots'][0]['#markup'] = nycc_rides_get_ride_spots_text($node);
     }
 
@@ -938,73 +936,77 @@ function nycc_output_riders_roster_html($nid = NULL) {
 //TODO: IF Add Back once everyone else is working
 //This function is used to log members ride joins & withdrawals
 function nycc_rides_log_action($node, $uid, $action_type){
-  $action_debug = FALSE;
-
-    if ($action_debug ) watchdog('nycc_log_action', 'Checking if is object', array(), WATCHDOG_NOTICE) ;
-  if(is_object($node))
-  {
-      if ($action_debug ) watchdog('nycc_log_action', 'Checking if is ride', array(), WATCHDOG_NOTICE) ;
-    if($node->type == 'rides')
-    {
-      if ($action_debug ) watchdog('nycc_log_action', 'Checking action type', array(), WATCHDOG_NOTICE) ;
-      switch($action_type) {
-        case "Join A Ride":
-          if ($action_debug ) watchdog('nycc_log_action', 'Action type is Join A Ride', array(), WATCHDOG_NOTICE) ;
-
-          if (($node->field_ride_spots['und'][0]['value'] == 0) || ($node->field_ride_spots['und'][0]['value'] ==""))
-            $available_spots = 9999999;
-          else
-            $available_spots = $node->field_ride_spots['und'][0]['value'] - nycc_rides_count_riders($node);
-
-          break;
-
-        case "Join A Waitlist":
-          if ($action_debug ) watchdog('nycc_log_action', 'Action type is Join A Waitlist', array(), WATCHDOG_NOTICE) ;
-          $available_spots = nycc_rides_count_waiters($node) * -1;
-          break;
-
-        case "Auto-Join From Waitlist":
-          if ($action_debug ) watchdog('nycc_log_action', 'Action type is Auto-Join From Waitlist', array(), WATCHDOG_NOTICE) ;
-          $available_spots = 0;
-          break;
-
-        case "Withdraw From Ride":
-          if ($action_debug ) watchdog('nycc_log_action', 'Action type is Withdraw From Ride', array(), WATCHDOG_NOTICE) ;
-
-          if (($node->field_ride_spots['und'][0]['value'] == 0) || ($node->field_ride_spots['und'][0]['value'] ==""))
-            $available_spots = 9999999;
-          else
-            $available_spots = $node->field_ride_spots['und'][0]['value'] - nycc_rides_count_riders($node);
-          break;
-
-        case "Withdraw From Waitlist":
-          if ($action_debug ) watchdog('nycc', 'nycc_log_action - action type is Withdraw From Waitlist', array(), WATCHDOG_NOTICE) ;
-          $available_spots = nycc_rides_count_waiters($node) * -1;
-          break;
-          default:
-            watchdog('nycc_log_action', 'Unknown action type: ' . $action_type, array(), WATCHDOG_ERROR) ;
-            break;
-
-      }
-      //watchdog("nycc_log_action", "Logging: " . $action_type . " " . $user_uid . " " .  $node->nid . " " .  REQUEST_TIME . " " . strtotime(nycc_rides_get_ride_time_as_text($node)) . " " .  $available_spots , array(), WATCHDOG_NOTICE) ;
-
-      if($action_type=="Withdraw From Ride" || $action_type=="Withdraw From Waitlist")
-      {
-            $sql = "INSERT INTO {nycc_action_log} (`uid`, `node_id`, `action_time`, `action`, `event_type`, `event_start_time`, `avail_at_action_time`, `parent_aid`) VALUES (%d, %d, %d, '%s', '%s', %d, %d, (select a.aid from {nycc_action_log} a where a.uid=%d and a.node_id=%d and (a.action='%s' OR a.action='%s') ORDER by a.aid DESC LIMIT 1 ) )";
-        $q = db_query($sql, $uid, $node->nid, REQUEST_TIME, $action_type, "Ride", strtotime(nycc_rides_get_ride_time_as_text($node)), $available_spots, $uid, $node->nid, "Join A Ride", "Join A Waitlist");
-
-      } else {
-            $sql = "INSERT INTO {nycc_action_log} (`uid`, `node_id`, `action_time`, `action`, `event_type`, `event_start_time`, `avail_at_action_time`) VALUES (%d, %d, %d, '%s', '%s', %d, %d)";
-        $q = db_query($sql, $uid, $node->nid, REQUEST_TIME, $action_type, "Ride", strtotime(nycc_rides_get_ride_time_as_text($node)), $available_spots);
-
-      }
-
-    } else {
-      watchdog('nycc_log_action', 'Unknown node type: ' . $node->type, array(), WATCHDOG_ERROR) ;
-    }
-  } else {
-    watchdog('nycc_log_action', 'Node is not object', array(), WATCHDOG_ERROR) ;
-  }
+  
+  //TODO: REMOVE THIS ONCE ITS WORKING
+  return true;
+  
+  //$action_debug = FALSE;
+  //
+  //  if ($action_debug ) watchdog('nycc_log_action', 'Checking if is object', array(), WATCHDOG_NOTICE) ;
+  //if(is_object($node))
+  //{
+  //    if ($action_debug ) watchdog('nycc_log_action', 'Checking if is ride', array(), WATCHDOG_NOTICE) ;
+  //  if($node->type == 'rides')
+  //  {
+  //    if ($action_debug ) watchdog('nycc_log_action', 'Checking action type', array(), WATCHDOG_NOTICE) ;
+  //    switch($action_type) {
+  //      case "Join A Ride":
+  //        if ($action_debug ) watchdog('nycc_log_action', 'Action type is Join A Ride', array(), WATCHDOG_NOTICE) ;
+  //
+  //        if (($node->field_ride_spots['und'][0]['value'] == 0) || ($node->field_ride_spots['und'][0]['value'] ==""))
+  //          $available_spots = 9999999;
+  //        else
+  //          $available_spots = $node->field_ride_spots['und'][0]['value'] - nycc_rides_count_riders($node);
+  //
+  //        break;
+  //
+  //      case "Join A Waitlist":
+  //        if ($action_debug ) watchdog('nycc_log_action', 'Action type is Join A Waitlist', array(), WATCHDOG_NOTICE) ;
+  //        $available_spots = nycc_rides_count_waiters($node) * -1;
+  //        break;
+  //
+  //      case "Auto-Join From Waitlist":
+  //        if ($action_debug ) watchdog('nycc_log_action', 'Action type is Auto-Join From Waitlist', array(), WATCHDOG_NOTICE) ;
+  //        $available_spots = 0;
+  //        break;
+  //
+  //      case "Withdraw From Ride":
+  //        if ($action_debug ) watchdog('nycc_log_action', 'Action type is Withdraw From Ride', array(), WATCHDOG_NOTICE) ;
+  //
+  //        if (($node->field_ride_spots['und'][0]['value'] == 0) || ($node->field_ride_spots['und'][0]['value'] ==""))
+  //          $available_spots = 9999999;
+  //        else
+  //          $available_spots = $node->field_ride_spots['und'][0]['value'] - nycc_rides_count_riders($node);
+  //        break;
+  //
+  //      case "Withdraw From Waitlist":
+  //        if ($action_debug ) watchdog('nycc', 'nycc_log_action - action type is Withdraw From Waitlist', array(), WATCHDOG_NOTICE) ;
+  //        $available_spots = nycc_rides_count_waiters($node) * -1;
+  //        break;
+  //        default:
+  //          watchdog('nycc_log_action', 'Unknown action type: ' . $action_type, array(), WATCHDOG_ERROR) ;
+  //          break;
+  //
+  //    }
+  //    //watchdog("nycc_log_action", "Logging: " . $action_type . " " . $user_uid . " " .  $node->nid . " " .  REQUEST_TIME . " " . strtotime(nycc_rides_get_ride_time_as_text($node)) . " " .  $available_spots , array(), WATCHDOG_NOTICE) ;
+  //
+  //    if($action_type=="Withdraw From Ride" || $action_type=="Withdraw From Waitlist")
+  //    {
+  //          $sql = "INSERT INTO {nycc_action_log} (`uid`, `node_id`, `action_time`, `action`, `event_type`, `event_start_time`, `avail_at_action_time`, `parent_aid`) VALUES (%d, %d, %d, '%s', '%s', %d, %d, (select a.aid from {nycc_action_log} a where a.uid=%d and a.node_id=%d and (a.action='%s' OR a.action='%s') ORDER by a.aid DESC LIMIT 1 ) )";
+  //      $q = db_query($sql, $uid, $node->nid, REQUEST_TIME, $action_type, "Ride", strtotime(nycc_rides_get_ride_time_as_text($node)), $available_spots, $uid, $node->nid, "Join A Ride", "Join A Waitlist");
+  //
+  //    } else {
+  //          $sql = "INSERT INTO {nycc_action_log} (`uid`, `node_id`, `action_time`, `action`, `event_type`, `event_start_time`, `avail_at_action_time`) VALUES (%d, %d, %d, '%s', '%s', %d, %d)";
+  //      $q = db_query($sql, $uid, $node->nid, REQUEST_TIME, $action_type, "Ride", strtotime(nycc_rides_get_ride_time_as_text($node)), $available_spots);
+  //
+  //    }
+  //
+  //  } else {
+  //    watchdog('nycc_log_action', 'Unknown node type: ' . $node->type, array(), WATCHDOG_ERROR) ;
+  //  }
+  //} else {
+  //  watchdog('nycc_log_action', 'Node is not object', array(), WATCHDOG_ERROR) ;
+  //}
 }
 
 
@@ -1081,8 +1083,6 @@ function nycc_rides_access($op, $node, $account = NULL) {
     if (!$account)
       $account = $user;
       
-      dpm($account);
-
     $ride = node_load($node);
     if (!is_object($ride))
       return FALSE;
@@ -1214,12 +1214,15 @@ function nycc_rides_join_ride($nid) {
               
       //fire the rules
       rules_invoke_event('nycc_rides_member_joins_ride', $user, $ride);
-
+      
+      //MOVED TO RULE
+      //drupal_set_message(check_plain("You have joined this ride."));
+      
       //TODO: Add back when everything is working
       //adding event logging
       //nycc_log_action($ride, $user_uid, "Join A Ride");        
 
-      drupal_set_message(check_plain("You have joined this ride."));
+      
       watchdog("rides", "user: %uid (%uname) joined ride: %nid (%rname)",
                  array('%uid'=> $user->uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
                  WATCHDOG_INFO);
@@ -1240,66 +1243,70 @@ function nycc_rides_withdraw_from_ride($nid=null) {
     return;
   }
 
-    global $user;
-    $user_uid = $user->uid;
-    $ride = node_load( $nid);
+  global $user;
+  $user_uid = $user->uid;
+  $ride = node_load( $nid);
+  if (! $ride) {
+    watchdog("nycc_rides", "nycc_rides_withdraw_from_ride - Could not load Ride with ID $nid.", array(), WATCHDOG_WARNING);
+    drupal_set_message(check_plain("Warning: This operation could not be completed. Could not load Ride with ID $nid.", "error"));
+    drupal_goto("<front>");    
+  }
+
   $was_joined = FALSE;
+  $current_riders = nycc_rides_field_get_value($ride->field_ride_current_riders);
+  if(!empty($current_riders)) {
+    foreach($current_riders as $ndx => $val) {
+      if ($val['uid'] == $user_uid) {
+        unset($ride->field_ride_current_riders['und'][$ndx]);
 
-    if ($ride) {
-      $current_riders = nycc_rides_field_get_value($ride->field_ride_current_riders);
-      if(!empty($current_riders)) {
-      foreach($current_riders as $ndx => $val) {
-        if ($val['uid'] == $user_uid) {
-          unset($ride->field_ride_current_riders['und'][$ndx]);
-          drupal_set_message(check_plain("You have withdrawn from this ride's participant list."));
-          watchdog("rides", "user: %uid (%uname) withdrew from ride: %nid (%rname)", array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title), WATCHDOG_INFO);
+        watchdog("rides", "user: %uid (%uname) withdrew from ride: %nid (%rname)",
+                 array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
+                 WATCHDOG_INFO);
 
-          $was_joined = TRUE;
-          //TODO: If WHy is this here?
-          $ride->field_ride_additional_dates['und'][0]['value'] = "";
+        $was_joined = TRUE;
+        $ride->field_ride_additional_dates['und'][0]['value'] = "";
+        node_save($ride);
 
-          //adding event logging
-          //TODO: IF Add back
-          //nycc_log_action($ride, $user_uid, "Withdraw From Ride");
-
-          node_save($ride);
+        nycc_rides_log_action($ride, $user_uid, "Withdraw From Ride");          
           
-          //fire rules
-          rules_invoke_event('nycc_rides_member_withdraws_from_ride', $user, $ride);
+        //fire rules
+        rules_invoke_event('nycc_rides_member_withdraws_from_ride', $user, $ride);
+        
+        //MOVED TO RULE
+        drupal_set_message(check_plain("You have withdrawn from this ride's participant list."));
 
-          drupal_goto("node/$nid");
-          return;
-        }
-      }
-      }
-
-      $current_waiters = nycc_rides_field_get_value($ride->field_ride_waitlist);
-      if (!empty($current_waiters)) {
-      foreach($current_waiters as $ndx => $val) {
-        if ($val['uid'] == $user_uid) {
-          unset($ride->field_ride_waitlist['und'][$ndx]);
-
-          $was_joined = TRUE;
-
-          $ride->field_ride_additional_dates['und'][0]['value'] = "";
-          node_save($ride);
-
-          //fire rules
-          rules_invoke_event('nycc_rides_member_withdraws_from_waitlist', $user, $ride);
-          //adding event logging
-          //nycc_log_action($ride, $user_uid, "Withdraw From Waitlist");
-
-          drupal_set_message(check_plain("You have withdrawn from this ride's waiting list."));
-          watchdog("rides", "user: %uid (%uname) withdrew from ride waitlist: %nid (%rname)", array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title), WATCHDOG_INFO);
-          drupal_goto("node/$nid");
-          return;
-        }
-      }
+        drupal_goto("node/$nid");
       }
     }
+  }
+
+  $current_waiters = nycc_rides_field_get_value($ride->field_ride_waitlist);
+  if (!empty($current_waiters)) {
+    foreach($current_waiters as $ndx => $val) {
+      if ($val['uid'] == $user_uid) {
+        unset($ride->field_ride_waitlist['und'][$ndx]);
+
+        $was_joined = TRUE;
+
+        $ride->field_ride_additional_dates['und'][0]['value'] = "";
+        node_save($ride);
+
+        //fire rules
+        rules_invoke_event('nycc_rides_member_withdraws_from_waitlist', $user, $ride);
+        nycc_rides_log_action($ride, $user_uid, "Withdraw From Waitlist");
+
+        drupal_set_message(check_plain("You have withdrawn from this ride's waiting list."));
+        watchdog("rides", "user: %uid (%uname) withdrew from ride waitlist: %nid (%rname)",
+                   array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
+                   WATCHDOG_INFO);
+        drupal_goto("node/$nid");
+        return;
+      }
+    }
+  }
+
   if(!$was_joined)
     drupal_set_message(check_plain("Warning: Unable to withdraw from ride. You're not currently signed up for this ride.", "error"));
-
     drupal_goto("node/$nid");
 }
 
@@ -1823,12 +1830,16 @@ function nycc_rides_get_ride_time($ride) {
     return strtotime(nycc_rides_get_ride_time_as_text($ride));
 }
 
+function nycc_rides_get_ride_time_formatted($ride) {
+  return date('l, F jS, Y \@ h:i A', nycc_rides_get_ride_time(nycc_rides_get_ride_object($ride)));
+}
+
 function nycc_rides_get_ride_time_as_text($ride) {
-    if (is_numeric($ride))
-      $ride = node_load($ride);
+    $ride = nycc_rides_get_ride_object($ride);
 
     if (!is_object($ride))
       return null;
+
   if(!nycc_rides_field_has_value($ride->field_ride_timestamp))
     return null;
 
@@ -2029,25 +2040,58 @@ function nycc_rides_get_ride_coordinator_names($data) {
 	return $names;
 }
 
-function nycc_rides_get_all_leader_names($ride) {
-  if ( ($ride->type != 'rides') || (!nycc_rides_field_has_value($ride->field_ride_current_leaders)))
-    return "";
- 
-  foreach(nycc_rides_field_get_value($ride->field_ride_current_leaders) as $leader) {
-    
-  //    watchdog("rides", " processing leader with uid: " . $leader_uid);
-      if (drupal_strlen($names))
-      $names .= ", ";
+function nycc_rides_get_all_leader_names_emails($ride) {
+  $names ="";
+  $ride = nycc_rides_get_ride_object($ride);
+  $leaders = nycc_rides_get_all_users($ride, 'field_ride_current_leaders');
+  if (empty($leaders))
+    return $names;
   
-    if (is_numeric($leader['uid']) && $leader['uid'] >0) {
-      $cp = profile2_load_by_user($leader['uid'], "profile");
+  foreach ($leaders as $leader) {
+    if (drupal_strlen($names))
+      $names .= ", ";
+      
+    $names .= "<a href='mailto:" . $leader['email'] . "'>". $leader['name'] . "</a>";
+  }
+  dpm ($names);
+  return $names;
+}
+function nycc_rides_get_all_leader_names($ride) {
+  $names ="";
+  $ride = nycc_rides_get_ride_object($ride);
+  $leaders = nycc_rides_get_all_users($ride, 'field_ride_current_leaders');
+  if (is_empty($leaders))
+    return $names;
+  
+  foreach ($leaders as $leader) {
+    if (drupal_strlen($names))
+      $names .= ", ";
+      
+    $names .= $leader['name'];
+  }
+  return $names;
+}
+
+function nycc_rides_get_all_users($ride,  $field_name) {
+  $users = array();
+  if ( ($ride->type != 'rides') || (!nycc_rides_field_has_value($ride->{$field_name})))
+    return  $users;
+ 
+  foreach(nycc_rides_field_get_value($ride->{$field_name}) as $user) {
+    if (is_numeric($user['uid']) && $user['uid'] >0) {
+      $cp = profile2_load_by_user($user['uid'], "profile");
+      $user_obj = user_load($user['uid']);
        
-      if(is_object($cp)) {
-        $names .= $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
+      if(is_object($cp) && is_object( $user_obj)) {
+        $user_name = $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
+        $users[] = array(
+                         'uid'=>$user['uid'],
+                         'name'=> $user_name,
+                         'email'=>$user_obj->mail);
       }
     }
   }
-  return $names;
+  return $users;
 }
 
 function nycc_rides_get_users_emails($node, $field_name) {
@@ -2788,7 +2832,7 @@ function nycc_rides_get_user_full_name($account = NULL) {
 
   $cp = profile2_load_by_user($uid, "profile");
   if($cp) {
-    return $cp->field_first_name['und'][0]['value'] ." ". $cp->field_last_name['und'][0]['value'];
+    return $cp->title;
   } else {
     //TODO: Add Watchdog.
     drupal_set_message(check_plain("Could not load profile for user: $uid"));
@@ -2829,11 +2873,14 @@ function nycc_rides_get_ride_object($nid=null){
   if (! isset($nid))
     $nid = ($_POST && ($_POST['nid']) && ($_POST['nid'] > 0)) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
 
-  if (is_object($nid))
+  if (is_object($nid) && $nid->type=='rides')
     return $nid;
 
-  if (is_numeric($nid) && ($nid > 0))
-    return node_load( $nid);
+  if (is_numeric($nid) && ($nid > 0)){
+    $ride =  node_load( $nid);
+    if(is_object($ride) && $ride->type='rides')
+      return $ride;
+  }
   else
     return null;
 }
@@ -2852,7 +2899,6 @@ function nycc_rides_output_list_of_users($ride = NULL, $field_name, $path = NULL
     }
   }
   return $users;
-
 }
 
 // print for ajax return
