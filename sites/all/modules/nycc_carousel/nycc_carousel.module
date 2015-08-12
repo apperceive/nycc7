@@ -66,15 +66,6 @@ EOS;
     $slides[] = array('body' => $body, 'imgpath' => $imgpath, 'thumbpath' => $thumbpath, 'nodepath' => $nodepath, 'title' => $title, 'date' => $date, );
   } // for
 
-  /*
-  $slides[] = array('title' => 'xxxxAll-Class Ride 2015', 'src' => 'http://nycc.org/sites/default/files/imagecache/home_page_top_banner/071815-allClassRide.jpg', 'caption' => 'The NYCC 2015 All-Class Ride - Join us for the ride of the year!');
-  
-  $slides[] = array('title' => 'Escape New York 2015', 'src' => 'http://nycc.org/sites/default/files/imagecache/home_page_top_banner/ENY-Logo2015-2.png', 'caption' => 'This fall classic offers four scenic, well marked routes  -   25, 50, 65 or 100 miles – all beginning and ending at Sakura Park in Manhattan.   All offer picture-postcard views of the Hudson River and Palisades as you cross the George Washington Bridge and ride the serene roads of Bergen and Rockland Counties.');
-  
-  $slides[] = array('title' => 'Cycling Skills Active Workshop', 'src' => 'http://nycc.org/sites/default/files/imagecache/home_page_top_banner/nycc-manuel-bikes-banner.jpg', 'caption' => "Calling ALL NYCC cyclists! Come one, come all... A riders, B riders, C riders! Join us for a totally \"classless\" skills session. Improve your handing skills... practice navigating the GWB hairpin turn... have a go at \"bunny hopping\"... take part in flat changing clinic... join a \"race\" where the slowest rider wins... and much, much more! It will be a fun and informative morning. Bring everything you'd normally bring on a ride, tubes, inflation device, fluids, etc. ");
-  
-  $slides[] = array('title' => 'NYCC 2015 Ice Cream Social', 'src' => 'http://nycc.org/sites/default/files/imagecache/home_page_top_banner/060515-iceCreamSocial.png', 'caption' => 'Please join us for ice cream as we take in the beautiful NYC skyline with front row seats from Pier 1 at Brooklyn Bridge Park.  You bring the talk, The Brooklyn Ice Cream Factory will bring the ice cream and the city will bring the views!!  (and yes, I’ve already asked Mother Nature to bring the weather – the pleasant kind.  She’s thinking about it). ');
-  */
   return $slides;
 }
 

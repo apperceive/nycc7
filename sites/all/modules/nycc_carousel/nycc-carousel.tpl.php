@@ -15,7 +15,7 @@
 ?>
 <div id="nycc-carousel" class="carousel slide" data-ride="carousel">
   <!-- Indicators -->
-  <ol class="carousel-indicators">
+  <ol class="carousel-indicators row">
   <?php foreach($slides as $ndx => $slide) { ?>
     <li data-target="#nycc-carousel" data-slide-to="<?php print $ndx; ?>" <?php ($ndx == 0) ? print 'class="active"' : print ''; ?> ></li>
   <?php }  ?>
