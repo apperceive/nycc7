@@ -76,3 +76,16 @@ function nycc7_theme($existing, $type, $theme, $path) {
   );
 }
 
+/*
+function nycc7_preprocess_image_style(&$variables) {
+  $variables['attributes']['class'][] = 'img-responsive'; // http://getbootstrap.com/css/#overview-responsive-images
+}
+
+function nycc7_preprocess_field(&$variables) {
+  if($variables['element']['#field_name'] == 'field_photo'){
+    foreach($variables['items'] as $key => $item){
+      $variables['items'][ $key ]['#item']['attributes']['class'][] = 'img-responsive'; // http://getbootstrap.com/css/#overview-responsive-images
+      }
+  }
+}
+*/

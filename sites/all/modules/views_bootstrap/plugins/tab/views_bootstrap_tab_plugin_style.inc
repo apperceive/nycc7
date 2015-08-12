@@ -15,7 +15,6 @@ class ViewsBootstrapTabPluginStyle extends views_plugin_style {
     $options = parent::option_definition();
     $options['tab_field'] = array('default' => NULL);
     $options['tab_type'] = array('default' => 'tabs');
-    $options['justified'] = array('default' => FALSE);
     return $options;
   }
 
@@ -32,6 +31,9 @@ class ViewsBootstrapTabPluginStyle extends views_plugin_style {
           $options = array_merge($options, $form['grouping'][$key]['field']['#options']);
         }
       }
+
+      // Delete grouping.
+      unset($form['grouping']);
 
       $form['tab_field'] = array(
         '#type' => 'select',
@@ -52,13 +54,6 @@ class ViewsBootstrapTabPluginStyle extends views_plugin_style {
         ),
         '#required' => TRUE,
         '#default_value' => $this->options['tab_type'],
-      );
-
-      $form['justified'] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Justified'),
-        '#default_value' => $this->options['justified'],
-        '#description' => t('Make tabs equal widths of their parent'),
       );
     }
   }
