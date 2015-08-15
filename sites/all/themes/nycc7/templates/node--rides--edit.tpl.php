@@ -19,7 +19,8 @@
   // output remaining with print drupal_render_children($form);
   
   // todo: use a variable instead?  $output?
-  $output = nycc_rides_output_ride_node_form($form, arg(1));
+  // note: arg(1) is 'add' or 'edit'
+  $output = nycc_rides2_output_ride_node_form($form, arg(1));
   
 ?>
 
