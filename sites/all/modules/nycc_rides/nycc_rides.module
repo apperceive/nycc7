@@ -16,6 +16,7 @@ TODO List:
 23) fix viewRideSignups
 26) show/hide 10-day limit based on can_approve()
 27) fix nycc_rides_approve_rides and add javascript inline editing & ensure event is fired upon status change
+28) Combine Revise Ride and Resubmit into a single action for cancelled rides
 
 */
 
@@ -361,13 +362,13 @@ function nycc_rides_node_update($node) {
 //       }
 //       // TODO: clear additional dates field so that it is not copied?
 //     }           
-
-    if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised'))){
-      drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
-    }
-
-    if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')) && !nycc_rides_can_approve())
-      drupal_set_message(filter_xss(t("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).")));
+    //
+    //if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised'))){
+    //  drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
+    //}
+    //
+    //if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')) && !nycc_rides_can_approve())
+    //  drupal_set_message(filter_xss(t("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).")));
   }
 }
 
@@ -415,7 +416,7 @@ function nycc_rides_node_validate($node, $form = NULL, $form_state = NULL) {
 }
 
 function nycc_rides_node_presave($node) {
-  dpm($node);
+  //dpm($node);
   $r_debug =   variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
     // set dow and timestamp
@@ -435,7 +436,7 @@ function nycc_rides_node_presave($node) {
         
           if ($r_debug) watchdog("nycc_rides", "Presave: Setting ride status to Revised for ride %title", array( '%title' => $node->title), WATCHDOG_INFO);
           $node->field_ride_status['und'][0]['value'] = 'Revised';
-          rules_invoke_event('nycc_rides_ride_is_revised', $user, $node);
+          rules_invoke_event('nycc_rides_ride_is_revised', $user, $node, nycc_rides_last_approved_revision($node));
           drupal_set_message(check_plain("Setting ride status to Revised"));
       }
     }
@@ -1318,9 +1319,6 @@ function nycc_rides_approve_ride($ride = NULL) {
   global $user;
   if (is_object($ride) && nycc_rides_can_approve($user)) {
     nycc_rides_update_ride_status($ride, 'Approved');    
-    drupal_set_message(check_plain('Ride Approved.'));
-
-
 
     drupal_goto("node/" . $ride->nid);
   } else {
@@ -1356,7 +1354,7 @@ function nycc_rides_clone_ride($onode, $date, $ride_status = "Submitted") {
   
   //fire rules
   global $user;
-  rules_invoke_event('nycc_rides_ride_submitted', $user, $ride);
+  rules_invoke_event('nycc_rides_ride_is_submitted', $user, $ride);
   
   $nid = $node->nid;
   // note: messaging will not work as expected if called via ajax
@@ -1390,8 +1388,6 @@ function nycc_rides_ride_cancel_confirm_submit($form, &$form_state) {
   if ($form_state['values']['confirm']) {
     $ride = nycc_rides_get_ride_object($form_state['values']['nid']);
     nycc_rides_update_ride_status($ride, 'Cancelled');
-    
-    drupal_set_message(check_plain('Ride '. $ride->title .' cancelled'));
   }
   $form_state['redirect'] = 'node/'. $form_state['values']['nid'];
 }
@@ -1426,7 +1422,7 @@ function nycc_rides_ride_resubmit_confirm_submit($form, &$form_state) {
     $ride = nycc_rides_get_ride_object($form_state['values']['nid']);
     if($ride){
       nycc_rides_update_ride_status($ride, 'Submitted');
-      drupal_set_message(check_plain('Ride '. $ride->title .' resubmitted for approval'));
+      //drupal_set_message(filter_xss('<i>'. $ride->title .'</i> resubmitted for approval'));
     } else {
       drupal_set_message(check_plain('nycc_rides_ride_resubmit_confirm_submit: Could not load Ride '. $ride), "error");
     }
@@ -2522,67 +2518,102 @@ function nycc_rides_type_select_form($node, $ride_type) {
 }
 
 function nycc_rides_update_ride_status($ride, $ride_status) {
-    if (is_numeric($ride))
-      $ride = node_load($ride);
+  nycc_rides_get_ride_object($ride);
 
-    if ($ride && in_array($ride_status, nycc_rides_ride_status_options())) {
-      //$old_status = nycc_rides_get_ride_status($node);
-      $ride->field_ride_status['und'][0]['value'] = $ride_status;
-      $ride->field_ride_additional_dates['und'][0]['value'] = "";
-      node_save($ride);
+  if ($ride && in_array($ride_status, nycc_rides_ride_status_options())) {
+    //$old_status = nycc_rides_get_ride_status($node);
+    $ride->field_ride_status['und'][0]['value'] = $ride_status;
+    $ride->field_ride_additional_dates['und'][0]['value'] = "";
+    node_save($ride);
+    
+    global $user;
+    switch ($ride_status){
+      case 'Cancelled':
+        //drupal_set_message("firing event: nycc_rides_ride_is_cancelled");
+        rules_invoke_event('nycc_rides_ride_is_cancelled', $user, $ride);
+        break;
       
+    case 'Revised':
+      //drupal_set_message("firing event: nycc_rides_ride_is_revised");
+      rules_invoke_event('nycc_rides_ride_is_revised', $user, $ride, nycc_rides_last_approved_revision($ride));
+      break;
+    
+    case 'Approved':
+      //drupal_set_message("firing event: nycc_rides_ride_is_approved");
+      rules_invoke_event('nycc_rides_ride_is_approved', $user, $ride);
+      break;
+    
+    case 'Submitted':
+      //drupal_set_message("firing event: nycc_rides_ride_is_submitted");
+      rules_invoke_event('nycc_rides_ride_is_submitted', $user, $ride);
+      break;
+    }      
 
-    } else {
-      drupal_set_message(check_plain('update failed: invalid node or ride status'));
-    }
+  } else {
+    drupal_set_message(check_plain('update failed: invalid node or ride status'));
+  }
 }
 
 
 function nycc_rides_update_ride_status_js() {
-    $nid = arg(1);
-    $ride_status = $_POST["ride-status"];
-    $ride = node_load( $nid);
-    
-    if ($ride) {
-      if (in_array($ride_status, nycc_rides_ride_status_options())) {
-          $ride->field_ride_status['und'][0]['value'] = $ride_status;
-          $ride->field_ride_additional_dates['und'][0]['value'] = "";
-          node_save($ride);
-          
-          if ($ride_status=='Cancelled'){
+  $nid = arg(1);
+  $ride_status = $_POST["ride-status"];
+  $ride = nycc_rides_get_ride_object($nid );
+  
+  if ($ride) {
+    if (in_array($ride_status, nycc_rides_ride_status_options())) {
+        $ride->field_ride_status['und'][0]['value'] = $ride_status;
+        $ride->field_ride_additional_dates['und'][0]['value'] = "";
+        node_save($ride);
+        
+        global $user;
+        switch ($ride_status){
+          case 'Cancelled':
+            //drupal_set_message("firing event: nycc_rides_ride_is_cancelled");
             rules_invoke_event('nycc_rides_ride_is_cancelled', $user, $ride);
-          } elseif($ride_status=='Revised') {
-            rules_invoke_event('nycc_rides_ride_is_revised', $user, $ride);
-          } elseif($ride_status=='Approved') {
-            rules_invoke_event('nycc_rides_ride_is_approved', $user, $node);
-          }
+            break;
           
-          $output_html = nycc_rides_ride_status_select_ahah($ride, $ride_status);
-      } else {
-          $output_html = "invalid ride status: $ride_status";
-        }
+        case 'Revised':
+          //drupal_set_message("firing event: nycc_rides_ride_is_revised");
+          rules_invoke_event('nycc_rides_ride_is_revised', $user, $ride, nycc_rides_last_approved_revision($ride));
+          break;
+        
+        case 'Approved':
+          //drupal_set_message("firing event: nycc_rides_ride_is_approved");
+          rules_invoke_event('nycc_rides_ride_is_approved', $user, $ride);
+          break;
+        
+        case 'Submitted':
+          //drupal_set_message("firing event: nycc_rides_ride_is_submitted");
+          rules_invoke_event('nycc_rides_ride_is_submitted', $user, $ride);
+          break;
+        } 
+        $output_html = nycc_rides_ride_status_select_ahah($ride, $ride_status);
     } else {
-      $output_html = "invalid ride node id: $nid";
-    }
-    drupal_json(array('status' => TRUE, 'data' => $output_html));
+        $output_html = "invalid ride status: $ride_status";
+      }
+  } else {
+    $output_html = "invalid ride node id: $nid";
+  }
+  drupal_json(array('status' => TRUE, 'data' => $output_html));
 }
 
 function nycc_rides_update_ride_type_js() {
-    $nid = arg(1);
-    $ride_type = $_POST["ride-type"];
-    $node = node_load( $nid);
-    if ($node) {
-      if (in_array($ride_type, nycc_rides_ride_type_options())) {
-          $node->field_ride_type['und'][0]['value'] = $ride_type;
-          node_save($node);
-          $output_html = nycc_rides_type_select_ahah($node, $ride_type);
-      } else {
-          $output_html = "invalid ride type: $ride_type";
-        }
+  $nid = arg(1);
+  $ride_type = $_POST["ride-type"];
+  $node = node_load( $nid);
+  if ($node) {
+    if (in_array($ride_type, nycc_rides_ride_type_options())) {
+        $node->field_ride_type['und'][0]['value'] = $ride_type;
+        node_save($node);
+        $output_html = nycc_rides_type_select_ahah($node, $ride_type);
     } else {
-      $output_html = "invalid ride node id: $nid";
-    }
-    drupal_json(array('status' => TRUE, 'data' => $output_html));
+        $output_html = "invalid ride type: $ride_type";
+      }
+  } else {
+    $output_html = "invalid ride node id: $nid";
+  }
+  drupal_json(array('status' => TRUE, 'data' => $output_html));
 }
 
 
@@ -2628,13 +2659,22 @@ function nycc_rides_output_ride_coordinators() {
   $coordinators = nycc_rides_ride_coordinators();
   foreach ($coordinators as $coordinator) {
     if (strtoupper($coordinator->level) == "A")
-      $output .= "<div class='coordinator-a-rides'>A-rides: <a href='/user/" . $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" . $coordinator->name . "</a>,<br/>" . $coordinator->phone . ",<br/><a title='Send email...' href=mailto:a-rides@nycc.org>a-rides@nycc.org</a></br></br></div>";
+      $output .= "<div class='coordinator-a-rides'>A-rides: <a href='/user/" .
+      $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" .
+      $coordinator->name . "</a>,<br/>" .
+      $coordinator->phone . ",<br/><a title='Send email...' href=mailto:a-rides@nycc.org>a-rides@nycc.org</a></br></br></div>";
 
     if (strtoupper($coordinator->level) == "B")
-      $output .= "<div class='coordinator-b-rides'>B-rides: <a href='/user/" . $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" . $coordinator->name . "</a>,<br/>" . $coordinator->phone . ",<br/><a title='Send email...' href=mailto:b-rides@nycc.org>b-rides@nycc.org</a></br></br></div>";
+      $output .= "<div class='coordinator-b-rides'>B-rides: <a href='/user/" .
+      $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" .
+      $coordinator->name . "</a>,<br/>" .
+      $coordinator->phone . ",<br/><a title='Send email...' href=mailto:b-rides@nycc.org>b-rides@nycc.org</a></br></br></div>";
 
     if (strtoupper($coordinator->level) == "C")
-      $output .= "<div class='coordinator-c-rides'>C-rides: <a href='/user/" . $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" . $coordinator->name . "</a>,<br/>" . $coordinator->phone . ",<br/><a title='Send email...' href=mailto:c-rides@nycc.org>c-rides@nycc.org</a></div>";
+      $output .= "<div class='coordinator-c-rides'>C-rides: <a href='/user/" .
+      $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" .
+      $coordinator->name . "</a>,<br/>" .
+      $coordinator->phone . ",<br/><a title='Send email...' href=mailto:c-rides@nycc.org>c-rides@nycc.org</a></div>";
   }
   $output .= "</div>";
   return $output;

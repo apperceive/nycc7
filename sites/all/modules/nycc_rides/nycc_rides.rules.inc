@@ -14,7 +14,7 @@ function nycc_rides_rules_event_info() {
         'ride' => array('type' => 'node', 'label' => t('Ride Being Joined')),
       ),
     ),
-    
+  
     'nycc_rides_member_joins_waitlist' => array(
       'label' => t('Member Joins a Waitlist'),
       'module' => 'nycc_rides',
@@ -55,7 +55,7 @@ function nycc_rides_rules_event_info() {
       ),
     ), 
 
-    'nycc_rides_ride_submitted' => array(
+    'nycc_rides_ride_is_submitted' => array(
       'label' => t('Ride Is Submitted And Awaiting Approval'),
       'module' => 'nycc_rides',
       'group' => 'NYCC Rides' ,
@@ -91,7 +91,8 @@ function nycc_rides_rules_event_info() {
       'group' => 'NYCC Rides' ,
       'variables' => array(
         'revised_by' => array('type' => 'user', 'label' => t('Revised By User')),
-        'ride' => array('type' => 'node', 'label' => t('Ride That Was Revised')),
+        'ride' => array('type' => 'node', 'label' => t('Revised Ride')),
+        'original_ride' => array('type' => 'node', 'label' => t('Ride Prior To Revision')),
       ),
     ),
     
