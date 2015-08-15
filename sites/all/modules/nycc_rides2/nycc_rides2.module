@@ -188,3 +188,219 @@ function nycc_rides2_renew_button_pages() {
   }
 
 } // nycc_rides2_renew_button_pages
+
+
+// todo: do this properly in D7, using vars, preprocessors and templates
+// called from theme override of theme_node_form
+function nycc_rides2_output_ride_node_form($form, $op = 'add') {
+  
+  $output = "";
+  
+  // todo: output only here, move all customizations to nycc_rides_form_alter 
+  
+  // NOTE: called by node--rides--edit.tpl.php
+  // TODO: consider moving all render code to tpl
+  
+  //dsm($form);
+  
+  
+  $status = nycc_rides_get_ride_status($form['#node']);
+  if ($op == 'edit' && ($status == 'Approved'))
+    $output .= drupal_render($form['revision_information']);
+
+  $output .= "<h3>Step 1. Schedule ride date:</h3>";
+
+  //$output .= drupal_render($form['dp-normal-1']);
+
+  //$output .= drupal_render($form['field_date_ride_first']);
+  $output .= drupal_render($form['field_ride_timestamp']);
+  //$output .= drupal_render($form['field_ride_additional_dates']);
+  //$output .= drupal_render($form['choose_calendar_target']);
+  //$output .= drupal_render($form['nycc_rides_datepicker']);
+  //$output .= drupal_render($form['existing_rides_wrapper']);
+
+  //$output .= "<input id='ride-add-recurring' type='button'value='Clone This Ride ▼'/>";
+  //$output .= "<div id='ride-add-recurring-fields'>";
+  //$output .= drupal_render($form['additional_dates']);
+  //$output .= "</div>";
+  if(nycc_rides_can_approve())
+    $output .= drupal_render($form['field_ride_open_signup_days']);
+  
+  
+  $output .= "<h3>" .t("Step 2. Specify ride details:"). "</h3>";
+
+  // D7: do not allow change/view by leaders
+  $output .= drupal_render($form['title']);
+  //$output .= drupal_render($form['field_ride_status']);
+  // D7: not showing?
+  $output .= drupal_render($form['field_ride_type']);
+   // D7: not showing?
+  $output .= drupal_render($form['field_ride_select_level']);
+  
+  
+  
+  // D7: not showing? all of these
+  $output .= drupal_render($form['field_ride_speed']);
+  $output .= drupal_render($form['field_ride_distance_in_miles']);
+  $output .= drupal_render($form['field_ride_signups']);
+  
+  // move to form alter?
+  $form['field_ride_spots']['#title'] = 'Max. Participants';
+  $form['field_ride_spots'][0]['#title'] = 'Max. Participants';
+  $form['field_ride_spots']['und'][0]['value']['#title'] = 'Max. Participants';
+  
+  $output .= drupal_render($form['field_ride_spots']);
+
+  //$output .= drupal_render($form['field_ride_start_time_hour']);
+  //
+  //$form['field_ride_start_time_min']['#title'] = "";
+  //$form['field_ride_start_time_min']['value']['#title'] = "";
+  //
+  //$output .= drupal_render($form['field_ride_start_time_min']);
+  //
+  //$form['field_ride_start_time_select']['#title'] = "";
+  //$form['field_ride_start_time_select']['value']['#title'] = "";
+  //
+  //$output .= drupal_render($form['field_ride_start_time_select']);
+
+  //TODO: Toggle From select & from
+  $output .= drupal_render($form['field_ride_from_select']);
+  $output .= drupal_render($form['field_ride_from']);
+  
+  $form['field_ride_description']['#cols'] = 50;
+  
+  $output .= drupal_render($form['field_ride_description']);
+
+  $output .= "<h3>" .t("Step 3. Select ride leaders:"). "</h3>";
+  
+  //$output .= "<small>(Start typing last name & wait a second for the system to query our database)</small>";
+  
+  $form['field_ride_current_leaders']['field_ride_current_leaders_add_more']['#value'] = t("Add another ride leader");
+ 
+  $output .= drupal_render($form['field_ride_current_leaders']);
+  unset($form['field_ride_leaders']);
+  
+  if ($op == 'add') {
+    unset($form['field_ride_current_riders']);
+    unset($form['field_ride_waitlist']);
+    //TODO: Set default value for signup days limit if not Approver
+  } else {
+    $form['field_ride_current_riders']['field_ride_current_riders_add_more']['#value'] = t('Add another rider');
+    if(nycc_rides_can_approve()) {
+      $output .= drupal_render($form['field_ride_current_riders']);
+      $output .= drupal_render($form['field_ride_waitlist']);
+    }
+  }
+
+  $output .= "<h3>" .t("Step 4. Upload some images or file attachments (optional):"). "</h3>";
+  
+  $form['field_ride_image']['field_ride_image_add_more']['#value'] = t('Add another image');
+  
+  $output .= drupal_render($form['field_ride_image']);
+
+  $form['field_ride_attachments']['field_ride_attachments_add_more']['#value'] = t('Attach another file');
+  
+  $output .= drupal_render($form['field_ride_attachments']);
+
+  $output .= "<h3>" .t("Step 5. Reference a ride library cue-sheet (optional):"). "</h3>";
+  $output .= drupal_render($form['field_ride_cue_sheet']);
+
+  $action = !nycc_rides_can_approve() && in_array($status, array('Approved','Pending','Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
+
+  //if (nycc_rides_can_approve() || ($op=='add'))
+  //if ($op == 'add')
+    //$output .= nycc_rides_output_button("$action This Ride", "#", "nycc-ride-save nycc-ride-save-bottom", 'nycc_show_ride_submit_click(); return FALSE;', "");
+  //else
+    $output .= nycc_rides_output_button("$action This Ride", "#submit-top", "nycc-ride-save nycc-ride-save-bottom btn btn-success", 'nycc_rides_show_ride_submit_confirm();', "");
+
+  $output .= "<a name='submit-top'></a>";
+
+  //if (!nycc_rides_can_approve() && in_array($status, array('Approved', 'Pending', 'Cancelled', 'Flagged'))) {
+  //if ($op != 'add')
+    $output .= drupal_render($form['submit_instructions']);
+    $output .= drupal_render($form['buttons']['submit']);
+    $output .= drupal_render($form['submit_cancel']);
+  //}
+
+  $buttons = drupal_render($form['buttons']);
+
+  // old: hide the rest for now
+  $output .= "<div class='xxxhide'>";
+  // d7:
+  //$output .= drupal_render($form);
+  $output .= drupal_render_children($form);
+  $output .= $buttons;
+  $output .= "</div>";
+ 
+  return $output;
+} // nycc_rides_output_ride_node_form
+
+
+
+
+function nycc_rides2_node_view($node, $view_mode = NULL, $langcode = NULL) {
+//  $r_debug =   variable_get("nycc_rides_debug", TRUE);
+    global $user;
+
+  //if(nycc_rides_ride_allows_signups($node))
+  //  dpm("Rides allow signup is true" );
+
+  if ($node->type == 'rides') {
+    if ($view_mode == 'full') {
+      $nid = $node->nid;
+
+      // todo: push all bootstrap and ui to theme_ functions
+      $buttons = nycc_rides_output_ride_buttons($nid);
+      $node->content['nycc_buttons'] = array(
+        '#markup' => theme_item_list(array(
+              'title' => '',
+              'items' => $buttons,
+              'type' => 'ul',
+              'attributes' => array(), 
+               )),
+        // '#weight' => 100,
+        // '#theme' => 'function_name_without_theme',
+      );
+      
+      $node->content['field_ride_spots']['#title'] = t("Remaining/Spots");
+      $node->content['field_ride_spots'][0]['#markup'] = nycc_rides_get_ride_spots_text($node);
+    }
+
+//TODO: FIX THIS - how to set the default value? I'd think we just just use a view to update all records missing a value
+        //if (!nycc_rides_field_has_value($node->field_ride_signups))
+        //    $node->field_ride_signups['und'][0]['value'] == "Signups with waiting list";
+
+    //TODO: MOVE TO RULE
+    $uid = $user->uid;
+    $ridetime = strtotime(nycc_rides_get_ride_time_as_text($node));
+        // check if user has already joined a ride on this date +/- 4 hours
+        // removed condition: $node->field_ride_type['und'][0]['value'] == "Cue Sheet Ride" &&
+        if (!nycc_rides_is_rider($node, $user) && nycc_rides_get_user_ride_counts($ridetime, $uid)) {
+            $rtitle = $node->title;
+            drupal_set_message(filter_xss("Alert: You are signed-up for a conflicting ride. NYCC allows members to sign up for only one ride during the same 4-hour time slot.
+                      To join $rtitle, you need drop the conflicting ride <a href='/user/$uid/myrides' target='blank'>see all your rides here</a>."),"warning");
+          //drupal_goto("node/$nid");
+        }
+
+    //TODO: MOVE TO RULE
+        if (!nycc_rides_ride_is_upcoming($node) && (nycc_rides_get_ride_status($node) == ' Approved'))
+            drupal_set_message(check_plain("NOTE: This ride has already taken place."),"warning");
+
+    //TODO: move to rules
+    $ride_enable_time = nycc_rides_ride_enable_time($node);
+    if( $ride_enable_time > REQUEST_TIME) {
+            drupal_set_message(check_plain("PLEASE NOTE: Ride signups will be enabled on: ". date('l, F jS, Y \@ h:i A', $ride_enable_time) ));
+        }
+
+        // check for more than two overlapping waitlists - part II
+//TODO: IF FIX THIS
+//         if (nycc_rides_ride_overlaps_user($uid, $ridetime) > 0) {
+//             drupal_set_message("PLEASE NOTE: Add Me To The Waiting List is disabled because you are already on two waiting lists for rides within 4 hours of this ride.  You can view your waitlist signups in your <a href='/user/$uid/mywaitlists'>profile</a>");
+//         }
+
+  }
+}
+
+
+
+
