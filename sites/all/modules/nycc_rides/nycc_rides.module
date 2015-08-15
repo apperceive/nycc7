@@ -2,19 +2,16 @@
 
 /*
 TODO List:
-1) Fix load last revision and also fix adding new revision on submisssion.
-2) Implement revisioning on ride edit page in nycc_rides_form_alter()
-3) Fix warning upon resubmission
 6) add back Event Logging
 7) add back ride rosters
 8) add back ride reports
 11) Fix how to handle multiple dates
-12) Fix Ride Submission Warning in nycc_rides_form_alter()
 15) implement required Profile
 18) fix SQL in nycc_rides_ride_roster_email
 22) fix nycc_rides_ride_overlaps_user
 23) fix viewRideSignups
 27) fix nycc_rides_approve_rides and add javascript inline editing & ensure event is fired upon status change
+28) toggle ride location so that selecting from other... shows text box
 
 */
 
