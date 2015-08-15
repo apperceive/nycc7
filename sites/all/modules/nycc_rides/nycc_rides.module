@@ -14,9 +14,7 @@ TODO List:
 18) fix SQL in nycc_rides_ride_roster_email
 22) fix nycc_rides_ride_overlaps_user
 23) fix viewRideSignups
-26) show/hide 10-day limit based on can_approve()
 27) fix nycc_rides_approve_rides and add javascript inline editing & ensure event is fired upon status change
-28) Combine Revise Ride and Resubmit into a single action for cancelled rides
 
 */
 
@@ -177,25 +175,6 @@ function nycc_rides_menu() {
     'access arguments' => array(2, 1),
     'type' => MENU_CALLBACK,
   );
-  $items['node/%/resubmit'] = array(
-    'title' => 'Resubmit Ride',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('nycc_rides_ride_resubmit_confirm', 1),
-    'access callback' => TRUE,
-    'access callback' => 'nycc_rides_access',
-    'access arguments' => array(2, 1),
-    'type' => MENU_CALLBACK,
-  );
-  
-  //WORKING
-  //$items['node/%/join'] = array(
-  //  'title' => 'Join Ride',
-  //  'page callback' => 'nycc_rides_join_ride',
-  //  'access callback' => 'nycc_rides_access',
-  //  'access arguments' => array(2, 1),
-  //  'page arguments' => array(1),
-  //  'type' => MENU_CALLBACK,
-  //);
 
   $items['node/%/join'] = array(
     'title' => 'Join Ride',
@@ -211,17 +190,6 @@ function nycc_rides_menu() {
     'access callback' => TRUE,
     'access callback' => 'nycc_rides_access',
     'access arguments' => array(2, 1),
-    'page arguments' => array(1),
-    'type' => MENU_CALLBACK,
-  );
-
-  //TODO: I don't think we need this
-  $items['node/%/waitlist'] = array(
-    'title' => 'Join Ride Waitlist',
-    'page callback' => 'nycc_rides_join_ride',
-    'access callback' => TRUE,
-    //'access callback' => 'nycc_rides_access',
-    //'access arguments' => array(2, 1),
     'page arguments' => array(1),
     'type' => MENU_CALLBACK,
   );
@@ -348,7 +316,10 @@ function nycc_rides_node_update($node) {
       } else {
         rules_invoke_event('nycc_rides_ride_is_approved', $user, $node);
       }
-    }    
+    } else if((arg(3)=="resubmit") && (nycc_rides_get_ride_status($node) =="Cancelled")) {
+        nycc_rides_update_ride_status($node, "Submitted");
+    }
+
 
 //TODO: Find a better way to handle additional dates
 //     $ad = (!empty($node->field_ride_additional_dates['und'][0]['value'])) ? $node->field_ride_additional_dates['und'][0]['value'] : null ;
@@ -419,6 +390,9 @@ function nycc_rides_node_presave($node) {
   //dpm($node);
   $r_debug =   variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
+       
+    if(!nycc_rides_field_has_value($node->field_ride_open_signup_days))
+      $node->field_ride_open_signup_days['und'][0]['value'] = variable_get("nycc_rides_days_before_ride", 10);
     // set dow and timestamp
     $node->field_ride_dow['und'][0]['value'] = date("l", nycc_rides_get_ride_time($node));
 
@@ -434,7 +408,8 @@ function nycc_rides_node_presave($node) {
           in_array($node->field_ride_status['und'][0]['value'] , array('Approved', 'Submitted', 'Pending')) &&
           nycc_rides_ride_has_changed($node)) {
         
-          if ($r_debug) watchdog("nycc_rides", "Presave: Setting ride status to Revised for ride %title", array( '%title' => $node->title), WATCHDOG_INFO);
+          if ($r_debug) watchdog("nycc_rides", "Presave: Setting ride status to Revised for ride %title",
+                                 array( '%title' => $node->title), WATCHDOG_INFO);
           $node->field_ride_status['und'][0]['value'] = 'Revised';
           rules_invoke_event('nycc_rides_ride_is_revised', $user, $node, nycc_rides_last_approved_revision($node));
           //drupal_set_message(check_plain("Setting ride status to Revised"));
@@ -525,13 +500,18 @@ function nycc_rides_node_prepare($node) {
     //TODO: FIND BETTER WAY TO HANDLE MULDIPLE DATES
     $node->field_ride_additional_dates['und'][0]['value'] = "";
 
-    //TODO: MOVE THIS TO RULES
+
     if (!nycc_rides_can_approve()) {
-        drupal_set_message(filter_xss("<b>Please Note:</b> If you modify key fields on this ride it will be taken offline until the Ride Coordinator has had a chance to review the changes."));
-        drupal_set_message(filter_xss("While we make every effort to approve it  a timely manner, It could take up to 48 hours for the change to be approved."));
-        drupal_set_message(filter_xss("If you must make changes to the ride within 48 hours of the ride start, we'd suggest that your reach out to <a href='mailto:" .
-             $node->field_ride_select_level['und'][0]['value'] . "-rides@nycc.org?subject=Urgent: I need to make changes to a ride!'>" .  $node->field_ride_select_level['und'][0]['value'] .
-             "-rides@nycc.org</a> to confirm that they can approve in a timely manner <b>before you make the changes</b>"));
+      drupal_set_message(filter_xss("<b>Please Note:</b> If you modify key fields on this ride
+                                    it will be taken offline until the Ride Coordinator has had a chance to review the changes."));
+      drupal_set_message(filter_xss("While we make every effort to approve it  a timely manner,
+                                    It could take up to 48 hours for the change to be approved."));
+      drupal_set_message(filter_xss("If you must make changes to the ride within 48 hours of the ride start,
+                                    we'd suggest that your reach out to <a href='mailto:" .
+               $node->field_ride_select_level['und'][0]['value'] . "-rides@nycc.org?subject=Urgent: I need to make changes to a ride!'>" .
+               $node->field_ride_select_level['und'][0]['value'] .
+               "-rides@nycc.org</a> to confirm that they can approve in a timely manner <b>before you make the changes</b>"));      
+
     }//can't approve
   } // ride edit
 }
@@ -539,6 +519,7 @@ function nycc_rides_node_prepare($node) {
 function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
   // alter the rides add/edit form
   if ($form_id == 'rides_node_form') {
+    dpm($form);
     // note: tpl calls nycc_rides_output_ride_node_form?
     //TODO: Fix the cancel button 
     
@@ -569,10 +550,13 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
         $form['revision_information']['#title'] = t("This is an approved ride!");
         $form['revision_information']['log']['#type'] = "textarea";
         $form['revision_information']['log']['#title'] = t("Revision summary");
-        $form['revision_information']['log']['#attributes'] = array('placeholder' =>'e.g., start time change');
+        $form['revision_information']['log']['#attributes'] = array('placeholder' =>'Please summarize the changes made. e.g., changed start time and location');
         $form['revision_information']['log']['#rows'] = 3;
-        $form['revision_information']['revision']['#default_value'] = FALSE;
-        if (!nycc_rides_can_approve()) {
+        if (nycc_rides_can_approve()) {
+          $form['revision_information']['revision']['#default_value'] = FALSE;
+          $form['revision_information']['log']['#required'] = FALSE;
+        }
+        else {
           $form['revision_information']['revision']['#default_value'] = TRUE;
           $form['revision_information']['log']['#required'] = TRUE;
         } 
@@ -760,11 +744,11 @@ function nycc_rides_output_ride_buttons($nid) {
                array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
       }
       if(($is_cancelled) && $can_modify){
-        $buttons[] = l(t('Resubmit Ride For Approval'), "node/$nid/resubmit",
+        $buttons[] = l(t('Resubmit Ride For Approval'), "node/$nid/edit/resubmit",
                array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
       }
       if ($no_of_riders && $can_modify ) {
-        $buttons[] = l(t('Email Participants '), "mailto:". nycc_rides_get_all_rider_emails($ride) ."?subject=$title",
+        $buttons[] = l(t('Email Participants '), "mailto:". nycc_rides_get_all_rider_emails($ride) ."?subject=Ride: $title",
                array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
 
       }
@@ -1391,45 +1375,6 @@ function nycc_rides_ride_cancel_confirm_submit($form, &$form_state) {
   }
   $form_state['redirect'] = 'node/'. $form_state['values']['nid'];
 }
-
-
-function nycc_rides_ride_resubmit_confirm($ride = NULL, &$form_state ) {
-  if (!$ride)
-    $ride = arg(1);
-    
-  $ride = nycc_rides_get_ride_object($ride);
-  if ($ride){
-    $form['nid'] = array(
-      '#type' => 'value',
-      '#value' => $ride->nid,
-    );
-    $ride_coordinator = nycc_rides_get_ride_coordinator_names($ride);
-  
-    return confirm_form($form,
-      t('Are you sure you want to resubmit %title? for approval', array('%title' => $ride->title)), 'node/'. $ride->nid,
-      //t('This action cannot be undone.'),
-      t("This action will cause email notifications to the Ride Coordinator ($ride_coordinator) requesting approval of this ride."),
-      t('Yes, resubmit this ride'),
-      t('No')
-    );
-  } else {
-        drupal_set_message(check_plain('nycc_rides_ride_resubmit_confirm: Could not load Ride '. $ride), "error");
-  }
-}
-
-function nycc_rides_ride_resubmit_confirm_submit($form, &$form_state) {
-  if ($form_state['values']['confirm']) {
-    $ride = nycc_rides_get_ride_object($form_state['values']['nid']);
-    if($ride){
-      nycc_rides_update_ride_status($ride, 'Submitted');
-      //drupal_set_message(filter_xss('<i>'. $ride->title .'</i> resubmitted for approval'));
-    } else {
-      drupal_set_message(check_plain('nycc_rides_ride_resubmit_confirm_submit: Could not load Ride '. $ride), "error");
-    }
-  }
-  $form_state['redirect'] = 'node/'. $form_state['values']['nid'];
-}
-
 
 //END RIDE RELATED FUNCTIONS
 
