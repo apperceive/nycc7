@@ -311,13 +311,13 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
         if (!nycc_rides_is_rider($node, $user) && nycc_rides_get_user_ride_counts($ridetime, $uid)) {
             $rtitle = $node->title;
             drupal_set_message(filter_xss("Alert: You are signed-up for a conflicting ride. NYCC allows members to sign up for only one ride during the same 4-hour time slot.
-                      To join $rtitle, you need drop the conflicting ride <a href='/user/$uid/myrides' target='blank'>see all your rides here</a>."));
+                      To join $rtitle, you need drop the conflicting ride <a href='/user/$uid/myrides' target='blank'>see all your rides here</a>."),"warning");
           //drupal_goto("node/$nid");
         }
 
     //TODO: MOVE TO RULE
         if (!nycc_rides_ride_is_upcoming($node) && (nycc_rides_get_ride_status($node) == ' Approved'))
-            drupal_set_message(check_plain("NOTE: This ride has already taken place."));
+            drupal_set_message(check_plain("NOTE: This ride has already taken place."),"warning");
 
     //TODO: move to rules
     $ride_enable_time = nycc_rides_ride_enable_time($node);
@@ -437,7 +437,7 @@ function nycc_rides_node_presave($node) {
           if ($r_debug) watchdog("nycc_rides", "Presave: Setting ride status to Revised for ride %title", array( '%title' => $node->title), WATCHDOG_INFO);
           $node->field_ride_status['und'][0]['value'] = 'Revised';
           rules_invoke_event('nycc_rides_ride_is_revised', $user, $node, nycc_rides_last_approved_revision($node));
-          drupal_set_message(check_plain("Setting ride status to Revised"));
+          //drupal_set_message(check_plain("Setting ride status to Revised"));
       }
     }
 
@@ -1116,7 +1116,7 @@ function nycc_rides_join_ride($nid) {
 
   if ($nid==null) {
     watchdog("nycc_rides", "nycc_rides_join_ride - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
-    drupal_set_message(check_plain("Warning: This operation could not be completed. No Ride ID was passed."));
+    drupal_set_message(check_plain("nycc_rides_join_ride: This operation could not be completed. No Ride ID was passed."),"error");
     drupal_goto("<front>");
     return;
   }
@@ -1127,7 +1127,7 @@ function nycc_rides_join_ride($nid) {
   //Checking User Access
   $user_access = in_array("paid member", $user->roles);
   if ($user_access != 1) {
-    drupal_set_message(check_plain("Warning! You must be a paid member to join this ride.", "error"));
+    drupal_set_message(check_plain("Error! You must be a paid member to join this ride.", "error"));
     drupal_goto("node/$nid");
   }
   
@@ -1136,7 +1136,7 @@ function nycc_rides_join_ride($nid) {
 
   if (!is_object($ride)){
     watchdog("nycc_rides", "nycc_rides_join_ride - unable to load ride %nid", array('%nid'=>$nid), WATCHDOG_WARNING);
-    drupal_set_message(check_plain("nycc_rides_join_ride - unable to load ride: $nid", "error"));
+    drupal_set_message(check_plain("nycc_rides_join_ride: unable to load ride: $nid", "error"));
     drupal_goto("node/$nid");
   }
 
@@ -2138,7 +2138,7 @@ function nycc_rides_get_users_emails($node, $field_name) {
         }
       }
     } else {
-      drupal_set_message(check_plain("could not find values for field $field_name" ));
+      drupal_set_message(check_plain("nycc_rides_get_users_emails: could not find values for field $field_name" ),"error");
     }
   }
   return $emails;
@@ -2550,7 +2550,7 @@ function nycc_rides_update_ride_status($ride, $ride_status) {
     }      
 
   } else {
-    drupal_set_message(check_plain('update failed: invalid node or ride status'));
+    drupal_set_message(check_plain('nycc_rides_update_ride_status: update failed. invalid node or ride status'), "error");
   }
 }
 
@@ -2917,7 +2917,7 @@ function nycc_rides_get_user_full_name($account = NULL) {
     return $cp->title;
   } else {
     //TODO: Add Watchdog.
-    drupal_set_message(check_plain("Could not load profile for user: $uid"));
+    drupal_set_message(check_plain("nycc_rides_get_user_full_name: Could not load profile for user: $uid"), "error");
   }
   return "";
 }
