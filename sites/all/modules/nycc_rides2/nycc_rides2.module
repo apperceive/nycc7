@@ -1,6 +1,8 @@
 <?php
 
-// new line comment here for git demo
+// NOTE: this is a temporary module - please do not edit
+
+
 
 // add buttons to rides node content
 // theme will place in proper region (node--rides.tpl.php)
@@ -399,6 +401,132 @@ function nycc_rides2_node_view($node, $view_mode = NULL, $langcode = NULL) {
 //         }
 
   }
+}
+
+
+// TODO: factor out links into theme - goal: no ui in this module
+function nycc_rides2_output_ride_buttons($nid) {
+    global $user;
+    $user_uid = $user->uid;
+    if (is_object($nid)) {
+      $ride = $nid;
+      $nid = $ride->nid;
+    } else {
+      $ride = node_load($nid, null, true);
+  }
+
+  $buttons = array();
+
+  if(is_object($ride)){
+    // ride time as binary
+    $ridetime = strtotime(nycc_rides_get_ride_time_as_text($ride));
+    $is_leader = nycc_rides_is_leader($ride,$user);
+    $can_approve = nycc_rides_can_approve($user);
+    $can_modify = nycc_rides_can_modify_ride($ride, $user);
+    $ride_is_upcoming = nycc_rides_ride_is_upcoming($ride, $user);
+    $is_approved = ($ride->field_ride_status['und'][0]['value'] == 'Approved' ) ? true : FALSE;
+    $is_cancelled = ($ride->field_ride_status['und'][0]['value'] == 'Cancelled' ) ? true : FALSE;
+    $allows_waiters = nycc_rides_ride_allows_signups($ride) ;
+
+    $no_of_riders = nycc_rides_count_riders($ride);
+    $no_of_waiters = nycc_rides_count_waiters($ride);
+    $no_of_spots = is_numeric($ride->field_ride_spots['und'][0]['value']) ? $ride->field_ride_spots['und'][0]['value'] : 0;
+
+    if ($no_of_spots)
+      $available_spots = $no_of_spots - $no_of_riders;
+
+    $title = $ride->title;
+    $path = "node/$nid";
+
+    if ($can_approve && (!$is_approved) && (!$is_cancelled)) {
+      $buttons[] = l(t('Approve Ride'), "node/$nid/approve",
+               array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
+    }
+
+    if ($can_modify) {
+      $buttons[] = l(t('Revise Ride Details'), "node/$nid/edit",
+               array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-edit-btn'))));
+    }
+
+    $buttons[] = l(t('Email Leaders '), "mailto:". nycc_rides_get_all_leader_emails($ride) ."?subject=$title",
+             array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+
+    //dsm(get_defined_vars());
+    //dsm(array("nycc_rides_is_waiting" => nycc_rides_is_waiting($ride), "field_ride_waitlist" => $ride->field_ride_waitlist));
+    if ($allows_waiters) {
+
+      $is_rider = nycc_rides_is_rider($ride, $user);
+      $is_waiter = nycc_rides_is_waiting($ride, $user) ;
+
+      if ($is_rider && $ride_is_upcoming && $is_approved) {
+        $buttons[] = l(t('Withdraw From Ride'), "node/$nid/withdraw",
+                 array('attributes' => array('class' => array('btn', 'nycc-btn', 'btn-primary', 'nycc-xxx-btn'))));
+      }
+      if ($is_waiter && $ride_is_upcoming && $is_approved) {
+        // TODO: check that signups are allowed?
+        $buttons[] = l(t('Withdraw From Waitlist'), "node/$nid/withdraw",
+                 array('attributes' => array('class' => array('btn', 'nycc-btn', 'btn-primary', 'nycc-xxx-btn'))));
+      }
+      $should_be_enabled = nycc_rides_ride_should_be_enabled($ride);
+      //TOOD: TEST GIT
+
+      if ($should_be_enabled['value'] == true){
+        if (!$no_of_spots || ($available_spots > 0)) {
+          $buttons[] = l(t('Join Ride'), "node/$nid/join",
+                       array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
+        } else if ($no_of_spots && (!$available_spots) && (!$is_rider) && (!$is_waiter)){
+          $buttons[] = l(t('Add Me To The Waitlist'), "node/$nid/join",
+                       array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
+        }
+      } else {
+        if($is_approved && (!$is_rider) && (!$is_waiter)){
+          $buttons[] = l(t('Join Ride (Disabled)'),
+                   "javascript:alert('" . $should_be_enabled['reason'] . ".')",
+                       array('attributes' =>
+                         array('class' => array('btn', 'btn-primary', 'nycc-disabled-button', 'nycc-join-btn')), 'external'=>true));
+        }
+      }
+
+      if ($can_modify && $is_approved) {
+        $buttons[] = l(t('Roster & Waiver Form'), "/printpdf/nycc-riders-roster-pdf/$nid",
+                 array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+      }
+
+      if((!$is_cancelled) && $can_modify){
+        $buttons[] = l(t('Cancel Ride'), "node/$nid/cancel",
+               array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+      }
+      if(($is_cancelled) && $can_modify){
+        $buttons[] = l(t('Resubmit Ride For Approval'), "node/$nid/edit/resubmit",
+               array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+      }
+      if ($no_of_riders && $can_modify ) {
+        $buttons[] = l(t('Email Participants '), "mailto:". nycc_rides_get_all_rider_emails($ride) ."?subject=Ride: $title",
+               array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+
+      }
+      if ($no_of_riders && $can_modify &&(!$is_cancelled) ) {
+
+        $buttons[] = l(t('Ride Attendance'), "/node/$nid/attend",
+                 array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+      }
+      if ($no_of_waiters && $can_modify ) {
+        $buttons[] = l(t('Email Waitlist '), "mailto:". nycc_rides_get_all_waitlist_emails($ride) ."?subject=$title",
+                 array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+      }
+      if ($no_of_riders && $no_of_waiters && $can_modify ) {
+        $buttons[] = l(t('Email Riders & Waitlist '), "mailto:". nycc_rides_get_all_rider_emails($ride) . "," . nycc_rides_get_all_waitlist_emails($ride) ."?subject=$title",
+                 array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+      }
+    }
+    if (!arg(2)) {
+      //TODO: Is this the right IF condition?
+      $buttons[] = l(t('Re-list This Ride'), "node/add/rides/relist/$nid", array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-xxx-btn'))));
+    }
+  } else {
+    watchdog("nycc_rides", "nycc_rides_output_ride_buttons could not load ride with nid: $nid");
+  }
+  return $buttons;
 }
 
 
