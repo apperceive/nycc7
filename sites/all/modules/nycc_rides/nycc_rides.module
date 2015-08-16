@@ -2401,13 +2401,6 @@ EOS;
   return $output;
 }
 
-function nycc_rides_output_button($title, $href, $class = "", $onclick = "", $msg = "") {
-  $titlesafe = str_replace("'", "&apos;", $title);
-  $onclicksafe = str_replace("'", "&apos;", $onclick);
-  $hrefsafe = str_replace("'", "&apos;", $href);
-  $output = "<div class='nycc-button-wrapper $class'>". ($msg ? "<div>$msg</div>" : "") ."<a href='$hrefsafe' title='$titlesafe' ". ($onclicksafe ? "onclick='$onclicksafe'" : "") ." >$title</a></div>";
-  return $output;
-}
 
 function nycc_rides_output_block($title, $html, $classes = "") {
   $title = drupal_strlen($title) ? "<h2>$title</h2>" : "";
