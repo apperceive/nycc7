@@ -1,0 +1,14 @@
+<?php
+
+function nycc_mail_alter(&$message){
+  $allowed_to = array("test1@nycc.org", "test2@nycc.org");
+  $trap_address = "test_mailbox@nycc.org";
+  if(! in_array($message['to'], $allowed_to)) {
+    
+    $message['to']=$trap_address;
+  }
+}
+
+
+
+

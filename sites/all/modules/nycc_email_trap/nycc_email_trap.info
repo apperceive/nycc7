@@ -1,0 +1,6 @@
+name = NYCC Email Trap
+description = traps outbound emails and redirects them to test users
+package = NYCC
+core = 7.x 
+files[]=nycc_email_trap.module
+
