@@ -352,7 +352,7 @@ function nycc_rides2_node_view($node, $view_mode = NULL, $langcode = NULL) {
       $nid = $node->nid;
 
       // todo: push all bootstrap and ui to theme_ functions
-      $buttons = nycc_rides_output_ride_buttons($nid);
+      $buttons = nycc_rides2_output_ride_buttons($nid);
       $node->content['nycc_buttons'] = array(
         '#markup' => theme_item_list(array(
               'title' => '',
