@@ -1,5 +1,7 @@
 <?php
   $debug_print =  false;
+  $start_time = time(); 
+
   
 $sql = "select n.nid, fr.field_ride_from_value, frs.field_ride_from_select_value from node n left outer join field_data_field_ride_from fr on n.nid=fr.entity_id and n.vid=fr.revision_id left outer join field_data_field_ride_from_select frs on n.nid=frs.entity_id and n.vid=frs.revision_id where type='rides' and status=1  and not (fr.field_ride_from_value is null AND frs.field_ride_from_select_value is null) and nid NOT IN (select distinct entity_id from field_data_field_ride_start_location l  where l.entity_id=n.nid and l.revision_id=n.vid and l.bundle='rides');";
 
@@ -12,8 +14,8 @@ $sql = "select n.nid, fr.field_ride_from_value, frs.field_ride_from_select_value
   
   foreach($q as $row) {
     $cnt++;
-    if ($cnt % 25 == 0)
-      drush_print("processed ". $cnt  . " rides...");
+    if ($cnt % 50 == 0)
+      drush_print("processed ". $cnt  . " of " . $q->rowCount()  . " rides... " . (time() - $start_time) . " seconds elapsed");
     
     $ride = nycc_rides_get_ride_object($row->nid);
     if ($ride) {
@@ -72,5 +74,5 @@ $sql = "select n.nid, fr.field_ride_from_value, frs.field_ride_from_select_value
   }
   drush_print("script finished processing " . $cnt . " rides.");
   drush_print($update_cnt . " locations were updated.");
-  drush_print("Script complete.");
+  drush_print("Script complete.  " . (time() - $start_time) . " seconds elapsed");
 ?>

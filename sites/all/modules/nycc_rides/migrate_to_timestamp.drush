@@ -1,0 +1,35 @@
+<?php
+  $debug_print =  true;
+  $start_time = time(); 
+
+  
+$sql =<<<EOS
+select n.nid, CONCAT(DATE_FORMAT(r.field_date_ride_first_value, `\%Y-\%m-\%d`), " ", If(r.field_ride_start_time_select_value = "AM", r.field_ride_start_time_hour_value,  IF(r.field_ride_start_time_hour_value < 12,  r.field_ride_start_time_hour_value+12,  r.field_ride_start_time_hour_value-12)), ":", r.field_ride_start_time_min_value, ":00") as old_value
+from node n join content_type_rides r on n.nid=r.nid and n.vid=r.vid where type="rides" and status=1  and n.nid NOT IN ( select distinct entity_id from field_data_field_ride_timestamp l where l.entity_id=n.nid and l.revision_id=n.vid and l.bundle="rides");
+EOS;
+
+	$q = db_query($sql);
+  drush_print("retrieved ". $q->rowCount() . " rides from database");
+  $cnt = 0;
+  $update_cnt = 0;
+  
+  foreach($q as $row) {
+    $cnt++;
+    if ($cnt % 50 == 0)
+      drush_print("processed ". $cnt  . " of " . $q->rowCount()  . " rides... " . (time() - $start_time) . " seconds elapsed");
+    
+    $ride = nycc_rides_get_ride_object($row->nid);
+    if ($ride) {
+      if ($debug_print) drush_print("for NID: " . $ride->nid . " setting timestamo" . $row->old_valued);
+      
+      $ride->field_ride_timestamp['und'][0]['value']  = $row->old_value;
+      //node_save($ride);
+      $update_cnt++;
+    } else {
+      drush_print("Error: for NID: " . $ride->nid . " could not load ride object");
+    }
+  }
+  drush_print("script finished processing " . $cnt . " rides.");
+  drush_print($update_cnt . " timestamps were updated.");
+  drush_print("Script complete.  " . (time() - $start_time) . " seconds elapsed");
+?>
