@@ -48,8 +48,8 @@ function nycc_profile_output_profile_buttons($account=null) {
 function nycc_profile_has_required_profile_info() {
   global $user;
   $cp = profile2_load_by_user($user->uid, "profile");
-  return drupal_strlen($cp->field_emergency_contact_no[0]['value'])
-      && drupal_strlen($cp->field_contact_name[0]['value']);
+  return nycc_field_has_value($cp->field_emergency_contact_no)
+      && nycc_field_has_value($cp->field_contact_name);
 }
 
 
@@ -178,75 +178,75 @@ function nycc_profile_review_membership() {
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("First Name"),
-      '#default_value' => $cp->field_first_name[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_first_name),
     );
     $form['last_name'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("Last Name"),
-      '#default_value' => $cp->field_last_name[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_last_name),
     );
 
-    $form['mail'] = array(
-      '#type' => 'textfield',
-      '#required' => true,
-      '#title' => t("Email"),
-      '#default_value' => $user->mail,
-    );
+    //$form['mail'] = array(
+    //  '#type' => 'textfield',
+    //  '#required' => true,
+    //  '#title' => t("Email"),
+    //  '#default_value' => $user->mail,
+    //);
     $form['phone'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("Phone"),
-      '#default_value' => $cp->field_phone[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_phone),
     );
 
     $form['contact_name'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("Emergency Contact Name"),
-      '#default_value' => $cp->field_contact_name[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_contact_name),
     );
     $form['emergency_contact_no'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("Emergency Contact Number"),
-      '#default_value' => $cp->field_emergency_contact_no[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_emergency_contact_no),
     );
 
     $form['address'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("Address"),
-      '#default_value' => $cp->field_address[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_address),
     );
     $form['city'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("City"),
-      '#default_value' => $cp->field_city[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_city),
     );
     $form['state'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("State"),
-      '#default_value' => $cp->field_state[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_state),
     );
     $form['zip'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("Zip"),
-      '#default_value' => $cp->field_zip[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_zip),
     );
     $form['country'] = array(
       '#type' => 'textfield',
       '#required' => true,
       '#title' => t("Country"),
-      '#default_value' => $cp->field_country[0]['value'],
+      '#default_value' => nycc_field_get_text_value($cp->field_country),
     );
 
 
 
-    $wdate = $cp->field_waiver_last_date[0]['value'];
+    $wdate = nycc_field_get_text_value($cp->field_waiver_last_date);
     if (drupal_strlen($wdate))
       $sdate = t("Aggrement last acknowleged on %date.", array('%date' => $wdate));
     else
@@ -277,7 +277,7 @@ function nycc_profile_review_membership() {
     //   '#suffix' => '</div>',
     // );
 
-    drupal_set_title(check_plain(t("Review NYCC Profile Information for %mail", array('%mail' => $user->mail, '%account' => $user->name))));
+    drupal_set_title(t("Review NYCC Profile Information for @account", array( '@account' => $user->name)));
 
   }  else {
     drupal_set_message("Please login.");
@@ -293,8 +293,8 @@ function nycc_profile_review_membership() {
 
 function nycc_profile_review_membership_submit($form, $form_state) {
   global $user;
-  $user->mail = $form_state['values']['mail'];
-  user_save($user);
+  //$user->mail = $form_state['values']['mail'];
+  //user_save($user);
   //dsm($form_state);
   $cp = profile2_load_by_user($user->uid, "profile");
 
@@ -305,27 +305,27 @@ function nycc_profile_review_membership_submit($form, $form_state) {
     $cp->type = 'profile';
     $cp->uid = $user->uid;
     $cp->status = 1;
-    $cp->field_terms_of_use[0]['value'] = "I agree";
+    $cp->field_terms_of_use['und'][0]['value'] = "I agree";
     // assume $node->title handled by autotitle module
     // same for $node->name
-    node_save($cp);
+    profile2_save($cp);
     //$cp = content_profile_load('profile', $user->uid);
     watchdog("nycc_profile review_membership_submit", "Profile created.", array(), WATCHDOG_INFO);
   }
   if ($cp) {
-    $cp->field_review_last_date[0]['value'] = date('Y-m-d');
-    $cp->field_waiver_last_date[0]['value'] = date('Y-m-d');
-    $cp->field_first_name[0]['value'] = $form_state['values']['first_name'];
-    $cp->field_last_name[0]['value'] = $form_state['values']['last_name'];
-    $cp->field_contact_name[0]['value'] = $form_state['values']['contact_name'];
-    $cp->field_emergency_contact_no[0]['value'] = $form_state['values']['emergency_contact_no'];
-    $cp->field_phone[0]['value'] = $form_state['values']['phone'];
-    $cp->field_address[0]['value'] = $form_state['values']['address'];
-    $cp->field_city[0]['value'] = $form_state['values']['city'];
-    $cp->field_state[0]['value'] = $form_state['values']['state'];
-    $cp->field_zip[0]['value'] = $form_state['values']['zip'];
-    $cp->field_country[0]['value'] = $form_state['values']['country'];
-    node_save($cp);
+    $cp->field_review_last_date['und'][0]['value'] = date('Y-m-d');
+    $cp->field_waiver_last_date['und'][0]['value'] = date('Y-m-d');
+    $cp->field_first_name['und'][0]['value'] = $form_state['values']['first_name'];
+    $cp->field_last_name['und'][0]['value'] = $form_state['values']['last_name'];
+    $cp->field_contact_name['und'][0]['value'] = $form_state['values']['contact_name'];
+    $cp->field_emergency_contact_no['und'][0]['value'] = $form_state['values']['emergency_contact_no'];
+    $cp->field_phone['und'][0]['value'] = $form_state['values']['phone'];
+    $cp->field_address['und'][0]['value'] = $form_state['values']['address'];
+    $cp->field_city['und'][0]['value'] = $form_state['values']['city'];
+    $cp->field_state['und'][0]['value'] = $form_state['values']['state'];
+    $cp->field_zip['und'][0]['value'] = $form_state['values']['zip'];
+    $cp->field_country['und'][0]['value'] = $form_state['values']['country'];
+    profile2_save($cp);
     watchdog("nycc_profile review_membership_submit", "Profile updated.", array(), WATCHDOG_INFO);
   }
   else {
@@ -339,8 +339,8 @@ function nycc_profile_has_valid_review_date() {
   if ($user->uid) {
     $cp = profile2_load_by_user($user->uid, "profile");
     if ($cp) {
-      $wdate = $cp->field_waiver_last_date[0]['value'];
-      $rdate = $cp->field_review_last_date[0]['value'];
+      $wdate = nycc_field_get_text_value($cp->field_waiver_last_date);
+      $rdate = nycc_field_get_text_value($cp->field_review_last_date);
       if (drupal_strlen($wdate))
         $wdiff = REQUEST_TIME - strtotime($wdate);
       if (drupal_strlen($rdate))
@@ -384,7 +384,7 @@ function nycc_profile_create_review_membership_header_node() {
   $node->changed = $node->created;
   $node->status = 1;
   $node->promote = 0;
-  $node->field_date[0]['value'] = date("m/d/Y h:i");
+  $node->field_date['und'][0]['value'] = date("m/d/Y h:i");
   node_save($node);
   variable_set("nycc_review_membership_header_node", $node->nid);
   return $node->nid;
