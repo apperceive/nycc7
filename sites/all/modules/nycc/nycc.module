@@ -1,0 +1,312 @@
+<?php
+
+/*
+TODO List:
+
+*/
+
+/*TODO LIST WHEN DEPLOYING TO PROD
+ *1) add field to control 10-day waitlist (field_ride_open_signup_days)
+ *2) INSTALL WYSIWYG Module
+ *3) create new leaders field (field_ride_current_leaders) & run migrate script
+ *3a) change rides content type ->old leader's field is not required
+ *4) script to set 10-days signup limit
+ *
+ */
+
+function nycc_init() {
+  variable_set("nycc_debug", TRUE);
+}
+
+
+function nycc_menu() {
+  $items = array();
+
+  $items['admin/config/nycc'] = array(
+      'title' => 'NYCC  module settings',
+      'description' => 'Settings for NYCC  Module',
+      'page callback' => 'drupal_get_form',
+      'file' => 'nycc.admin.inc', 
+      'access arguments' => array('administer nycc'),
+      'type' => MENU_LOCAL_TASK,
+    'access callback' => TRUE,
+      'page arguments' => array('nycc_admin'),  
+  );
+
+  $items['user/%user_uid_optional/myevents'] = array(
+    'page callback' => 'nycc_report_events',
+    'type' => MENU_LOCAL_TASK,
+    //'access callback' => TRUE,
+    'access callback' => 'nycc_report_access',
+    'file' => 'nycc.reports.inc',
+    'title' => 'Events',
+    'page arguments' => array(1),
+  );
+
+  return $items;
+}
+
+
+//HOOK Functions
+//function nycc_cron() {
+//  //watchdog('cron', 'starting nycc_cron');
+//
+//
+//  //watchdog('cron', 'finished nycc_cron');
+//}
+//
+//function nycc_node_view($node, $view_mode = NULL, $langcode = NULL) {
+//}
+//
+//
+//function nycc_node_update($node) {
+//}
+//
+//function nycc_node_validate($node, $form = NULL, $form_state = NULL) {
+//
+//}
+//
+//function nycc_node_presave($node) {
+//
+//}
+//
+//
+//function nycc_node_prepare($node) {
+//
+//}
+//
+//function nycc_form_alter(&$form, &$form_state, $form_id) {
+//} // nycc_form_alter
+
+
+
+//END HOOK Functions
+
+
+
+
+//Access Related Functions
+function nycc_report_node_access() {
+  global $user;
+  $acctid = arg(1);
+  //dpm(get_defined_vars());
+  if (($user->uid == $acctid)
+        || in_array("administer", $user->roles)
+        || in_array("board members", $user->roles)
+        || user_access('administer users')
+        || in_array("paid member", $user->roles) )
+    return TRUE;
+  return FALSE;
+}
+
+
+function nycc_permission() {
+  return array(
+    'administer nycc' => array(
+          'title' => t('administer nycc'),
+          'description' => t('administer nycc'),
+        ));
+}
+
+//only works for node types
+function nycc_access($op, $node, $account = NULL) {
+    global $user;
+    if (!$account)
+      $account = $user;
+      
+    $ride = node_load($node);
+    if (!is_object($ride))
+      return FALSE;
+
+
+}
+
+
+//GENERAL UTILITY FUNCTIONS
+function nycc_refs2ids($refs) {
+  //takes in array of arrays and returns just the value(generally used for UIDs returned as an array arrays)
+  $ids = array();
+  if (!is_array($refs))
+    return $ids;
+
+  foreach ($refs as $ref) {
+    $id = array_values($ref);
+    $ids[] = $id[0];
+  }
+  return $ids;
+}
+
+function nycc_noderefs2userrefs($nrefs) {
+  //Returns UID from array of NIDs referring to the user's profile.
+  $urefs = array();
+
+  if (!is_array($nrefs))
+    return $urefs;
+
+  //remove the 'und' element
+  if(isset($nrefs['und']))
+    $nrefs = $nrefs['und'];
+
+  foreach ($nrefs as $nref) {
+    $cp = node_load($nref['nid']);
+    if ($cp)
+      $urefs[] = array('uid' => $cp->uid);
+    else
+      //TODO: Change to Watchdog
+      drupal_set_message (check_plain("unable to load profile for NID: " . $nref['nid']));
+  }
+  //if (count($urefs) != count($nrefs))
+  //  drupal_set_message ("Not all profiles were loaded");
+  //else
+  //  drupal_set_message ("All profiles were loaded");
+  return $urefs;
+}
+
+function nycc_field_get_value($field) {
+  /*
+   *possible values are:
+   *  null or  empty array (checked for by nycc_field_has_value) -> return  array with empty string in 'value'
+   *  array inside of ['und'] -> return values under ['und']
+   *  non-array value stored in either #value or #default_value -> return as array with value element
+   */
+  if(nycc_field_has_value($field)) {
+    if(is_string($field))
+       return array(0=>array('value'=>$field));
+
+    if(isset($field['und']))
+      return $field['und'];
+
+    if(isset($field['#value']))
+      return array( 0=>array('value'=>$field['#value']));
+
+    if(isset($field['#default_value']))
+      return array( 0=>array('value'=>$field['#default_value']));
+
+    return array(0=>array('value'=>''));
+
+  } else {
+    return array(0=>array('value'=>''));
+  }
+}
+
+
+function nycc_field_get_text_value($field) {
+  /*
+   *possible values are:
+   *  null or  empty array (checked for by nycc_field_has_value) -> return  array with empty string in 'value'
+   *  array inside of ['und'] -> return values under ['und']
+   *  non-array value stored in either #value or #default_value -> return as array with value element
+   */
+  if(nycc_field_has_value($field)) {
+    if(is_string($field))
+       return $field;
+
+    if(isset($field['und']))
+      return $field['und'][0]['value'];
+
+    if(isset($field['#value']))
+      return $field['#value'];
+
+    if(isset($field['#default_value']))
+      return $field['#default_value'];
+
+    return "";
+
+  } else {
+    return "";
+  }
+}
+
+function nycc_field_has_value($field) {
+  if (!$field)
+    return FALSE;
+
+  if  ( is_string($field) || isset($field['#value']) || isset($field['#default_value'])) //if value isn't localized then no 'und'
+    return true;
+
+  if (is_object($field)) //if value is stored as object
+    return true;
+
+  if (!isset($field['und']))
+    return FALSE;
+
+  if (!is_array($field['und']))
+    return FALSE;
+
+  if (empty($field['und']))
+    return FALSE;
+
+  return true;
+}
+
+
+function nycc_compare_values($v1, $v2) {
+  if (nycc_field_has_value($v1) && nycc_field_has_value($v2))
+  {
+    //dpm("$v1 is being compared to $v2");
+    return $v1 == $v2;
+  }
+  if ( ( ! nycc_field_has_value($v1)) && (! nycc_field_has_value($v2)))
+    return true;
+
+  return FALSE;
+
+}
+
+
+//END GENERAL UTILITY FUNCTIONS
+
+//RIDE USER RELATED FUNCTIONS
+
+function nycc_user_is_in_list($node, $account = NULL, $field_name){
+  if (is_numeric($node))
+    $node = node_load($node);  
+  
+  global $user;
+  if (!$account){
+    $account = $user;
+  }
+    
+  if(is_numeric($account)){
+    $uid = $account;
+  }
+  else {
+    $uid = $account->uid;
+  }
+    
+  if ($node && nycc_field_has_value($node->{$field_name}) && is_numeric($uid)) {
+    foreach(nycc_field_get_value($node->{$field_name}) as $user_ref)
+    {
+      if ($user_ref['uid'] == $uid){
+        return true;
+      }
+    }
+  }
+  return FALSE;    
+}
+
+
+
+function nycc_get_user_full_name($account = NULL) {
+    global $user;
+    if (!$account){
+      $account = $user;
+    $uid = $account->uid;
+    } else if (is_object($account)) {
+    $uid = $account->uid;
+  } else {
+    $uid = $account;
+  }
+
+  $cp = profile2_load_by_user($uid, "profile");
+  if($cp) {
+    return $cp->title;
+  } else {
+    //TODO: Add Watchdog.
+    drupal_set_message(check_plain("nycc_get_user_full_name: Could not load profile for user: $uid"), "error");
+  }
+  return "";
+}
+
+
+ 

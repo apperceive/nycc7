@@ -1,0 +1,71 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the admin menu module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function nycc_schema() {
+
+}
+
+/**
+ * Implements hook_install().
+ */
+function nycc_install() {
+    //field_cache_clear();
+    //field_associate_fields('nycc');
+    //
+    //# Already created?
+    //if (field_info_field('MYMODULE_rating'))
+    //    return;
+    //
+    //# Create the field singleton
+    //$field = array( 'field_name' => 'MYMODULE_rating', 'type' => 'MYMODULE_rating', );
+    //$field = field_create_field($field);
+    //
+    //# Create the instance on the bundle.
+    //$instance = array(
+    //    'field_name' => $field['field_name'],
+    //    'entity_type' => 'node',
+    //    'bundle' => 'wine',
+    //
+    //    'label' => 'Rating',
+    //    'description' => 'Rating information',
+    //
+    //    'required' => TRUE,
+    //
+    //    'settings' => array(),
+    //    'widget' => array(),
+    //
+    //    'display' => array(
+    //        'default' => array('label' => 'hidden'),
+    //    ),
+    //);
+    //field_create_instance($instance);
+    //
+    //$instance['bundle'] = 'review';
+    //field_create_instance($instance);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function nycc_uninstall() {
+  // Delete variables.
+  //variable_del('');
+
+}
+
+
+/**
+ * placeholder for update
+ */
+
+//function nycc_update_7300() {
+//
+//}
+
