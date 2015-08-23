@@ -56,14 +56,33 @@ function nycc_menu() {
 //}
 //
 function nycc_node_view($node, $view_mode = NULL, $langcode = NULL) {
-  if(nycc_should_redirect_to_membership_review()) {
+  if(nycc_should_redirect_to_membership_review() && (!user_access('administer nycc'))) {
     global $user;
-    drupal_set_message("You must review and update your profile prior to continuing. Please review your information below, check the I Agree box, and click Save");
+    drupal_set_message(filter_xss("You must review and update your profile prior to continuing. <br/>Please review your information below, check the <strong>I Agree box</strong>, and click <strong>Save</strong>", array('br', 'b', 'strong', 'i')) );
     drupal_goto("user/" . $user->uid . "/edit/profile", array('query'=>drupal_get_destination()));
   }
+} //nycc_node_view
+
+
+function nycc_form_profile2_form_alter(&$form, &$form_state) {
+  if (!isset($form_state['redirect'])) {
+   $form_state['redirect'] = drupal_get_destination();
+  }
+  if(!nycc_has_valid_review_date()) {
+    $form['profile_profile']['field_terms_of_use']['und']['#default_value'] = 0;
+    $form['profile_profile']['field_review_last_date']['und'][0]['value']['#default_value'] = date('Y-m-d');
+    $form['profile_profile']['field_waiver_last_date']['und'][0]['value']['#default_value'] = date('Y-m-d');
+  }
 }
+
+
+//function nycc_form_alter(&$form, &$form_state, $form_id) {
+//  //dsm ($form_id);
+//  //dpm($form_state);
+//  
 //
-//
+//} // nycc_form_alter
+
 //function nycc_node_update($node) {
 //}
 //
@@ -80,9 +99,6 @@ function nycc_node_view($node, $view_mode = NULL, $langcode = NULL) {
 //
 //}
 //
-//function nycc_form_alter(&$form, &$form_state, $form_id) {
-//} // nycc_form_alter
-
 
 
 //END HOOK Functions
