@@ -6,13 +6,12 @@ TODO List:
 7) add back ride rosters
 8) add back ride reports
 11) Fix how to handle multiple dates
-15) implement required Profile
 18) fix SQL in nycc_rides_ride_roster_email
 22) fix nycc_rides_ride_overlaps_user
 23) fix viewRideSignups
 27) fix nycc_rides_approve_rides and add javascript inline editing & ensure event is fired upon status change
 28) toggle ride location so that selecting from other... shows text box
-
+29) Add Rides & Waitlists buttons to user Profile
 */
 
 /*TODO LIST WHEN DEPLOYING TO PROD
@@ -955,12 +954,12 @@ function nycc_rides_join_ride($nid) {
     }
     drupal_goto("node/$nid");
   }
-  
+  if(!nycc_has_required_profile_info($user)) {
+    drupal_set_message("Please update your Emergency Contact No and Name (required for ride signup).");
+    drupal_goto("user/" . $user->uid . "/edit/profile", array('query'=>drupal_get_destination()));
+  }  
 
-  //if (!nycc_has_required_profile_info()) {
-  //  drupal_set_message("Please update your Emergency Contact No and Name (required for ride signup).");
-  //  drupal_goto("user/$user_uid/profile/profile/", "destination=node/$nid");
-  //}  
+
   
   $open_spots = nycc_rides_get_ride_spots($ride); //100 = no limit, -100 = no signup, 0= no spots, >0 = available spots
   switch ($open_spots) {

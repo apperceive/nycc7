@@ -170,7 +170,7 @@ function nycc_profile_review_membership() {
     $form['description'] = array(
       '#prefix' => '<div>',
       '#value' => $description,
-      //'#value' => t("Please review your contact information and acknowledge your agreement with the NYCC Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement."),
+      '#value' => t("Please review your contact information and acknowledge your agreement with the NYCC Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement."),
       '#suffix' => '</div>',
     );
 
@@ -244,8 +244,6 @@ function nycc_profile_review_membership() {
       '#default_value' => nycc_field_get_text_value($cp->field_country),
     );
 
-
-
     $wdate = nycc_field_get_text_value($cp->field_waiver_last_date);
     if (drupal_strlen($wdate))
       $sdate = t("Aggrement last acknowleged on %date.", array('%date' => $wdate));
@@ -295,9 +293,8 @@ function nycc_profile_review_membership_submit($form, $form_state) {
   global $user;
   //$user->mail = $form_state['values']['mail'];
   //user_save($user);
-  //dsm($form_state);
-  $cp = profile2_load_by_user($user->uid, "profile");
 
+  $cp = profile2_load_by_user($user->uid, "profile");
 
   if (!$cp) {
     watchdog("nycc_profile review_membership_submit", "No content profile found. Creating one.", array(), WATCHDOG_INFO);
