@@ -1485,12 +1485,14 @@ function nycc_rides_get_ride_time_as_text($ride) {
 function nycc_rides_get_ride_location($ride) {
   if (!$ride || $ride->type != 'rides')
       return "";
-
-   if(nycc_field_has_value($ride->field_ride_from)) {
-    return $ride->field_ride_from['und'][0]['value'];
+   
+   if( nycc_field_has_value($ride->field_ride_start_location))
+    return nycc_field_get_text_value($ride->field_ride_start_location);
+   else if(nycc_field_has_value($ride->field_ride_from)) {
+    return nycc_field_get_text_value($ride->field_ride_from);
   }
   else {
-    return $ride->field_ride_from_select['und'][0]['value'];
+    return nycc_field_get_text_value($ride->field_ride_from_select);
   }
 }
 
@@ -1795,7 +1797,7 @@ function nycc_rides_speed2num($str) {
 function nycc_rides_spots_remaining($ride) {
   if (is_numeric($ride))
     $ride = node_load($ride);
-  $no_of_spots = trim($ride->field_ride_spots['und'][0]['value']);
+  $no_of_spots = trim(nycc_field_get_text_value($ride->field_ride_spots));
   if (!$no_of_spots)
     return "Unlimited";
   $available_spots = $no_of_spots - nycc_rides_count_riders($ride);
@@ -2392,8 +2394,9 @@ function nycc_rides_get_user_full_name($account = NULL) {
   }
 
   $cp = profile2_load_by_user($uid, "profile");
+  
   if($cp) {
-    return $cp->title;
+    return nycc_field_get_text_value($cp->field_first_name) . " " . nycc_field_get_text_value($cp->field_last_name);
   } else {
     //TODO: Add Watchdog.
     drupal_set_message(check_plain("nycc_rides_get_user_full_name: Could not load profile for user: $uid"), "error");
@@ -2415,11 +2418,13 @@ function nycc_rides_output_ride_participants($nid = NULL) {
 function nycc_rides_output_ride_leaders($nid = NULL) {
   $ride = nycc_rides_get_ride_object($nid);
   if ($ride) {
-    return nycc_rides_output_list_of_users($ride ,'field_ride_current_leaders', 'my_rides');
+    return nycc_rides_output_list_of_users($ride ,'field_ride_current_leaders', null);
   } else {
     return array();
   }
 }
+
+
 
 function nycc_rides_output_ride_waiters($nid = NULL) {
   $ride = nycc_rides_get_ride_object($nid);
@@ -2431,10 +2436,11 @@ function nycc_rides_output_ride_waiters($nid = NULL) {
 }
 
 function nycc_rides_get_ride_object($nid=null, $vid=null, $reset = FALSE){
+  
   if (! isset($nid))
     $nid = ($_POST && ($_POST['nid']) && ($_POST['nid'] > 0)) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
 
-  if (is_object($nid) && $nid->type=='rides')
+  if (is_object($nid) && $nid->type =='rides')
     return $nid;
 
   if (is_numeric($nid) && ($nid > 0)){
@@ -2446,15 +2452,19 @@ function nycc_rides_get_ride_object($nid=null, $vid=null, $reset = FALSE){
     return null;
 }
 
-function nycc_rides_output_list_of_users($ride = NULL, $field_name, $path = NULL ) {
+function nycc_rides_output_list_of_users($ride, $field_name, $path = NULL ) {
   $users = array();
   if ($ride) {
     //$output = "<ul class='nycc-ride-particpants-list'>";
     if (nycc_field_has_value( $ride->{$field_name})){
       foreach(nycc_refs2ids(nycc_field_get_value($ride->{$field_name})) as $this_uid) {
-        $user_path = ($path) ? "/user/$this_uid/$path" : "/user/$this_uid";
-        $users[] = l(t(nycc_rides_get_user_full_name($this_uid)), $user_path,
+        if($path) {
+          $user_path = "/user/$this_uid/$path" ;
+          $users[] = l(t(nycc_rides_get_user_full_name($this_uid)), $user_path,
               array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
+        } else {
+          $users[] = nycc_rides_get_user_full_name($this_uid);
+        }
     //TODO: FIX Class definition for this
       }
     }

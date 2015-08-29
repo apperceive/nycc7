@@ -11,6 +11,7 @@ TODO List:
  *3) create new leaders field (field_ride_current_leaders) & run migrate script
  *3a) change rides content type ->old leader's field is not required
  *4) script to set 10-days signup limit
+ *5) Add date time format (Day Mon d, hh:mm A)
  *
  */
 
@@ -147,7 +148,7 @@ function nycc_has_required_profile_info($account = null) {
   if(!$account) {
     global $user;
   } else if(is_object($account)) {
-    $user = account;
+    $user = $account;
   } else if( is_numeric($account)) {
     $user = user_load($account);
   }
