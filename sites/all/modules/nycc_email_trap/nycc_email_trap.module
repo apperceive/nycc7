@@ -4,11 +4,11 @@ function nycc_email_trap_mail_alter(&$message){
   $trap_address = "test_mailbox@nycc.org";
   $user = user_load_by_mail($message['to']);
   if (isset($user) && in_array("tester", $user->roles)) {
-    drupal_set_message("sending email to " . $user->mail);
+    //drupal_set_message("sending email to " . $user->mail);
   }
   else {
     $message['to']=$trap_address;
-    drupal_set_message("sending email to " . $message['to']);
+    //drupal_set_message("sending email to " . $message['to']);
   }
 
     // Unset Bcc and Cc fields to prevent emails from going to those addresses.

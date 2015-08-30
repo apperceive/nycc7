@@ -1057,7 +1057,7 @@ function nycc_rides_withdraw_from_ride($nid=null) {
         rules_invoke_event('nycc_rides_member_withdraws_from_ride', $user, $ride);
         
         //MOVED TO RULE
-        drupal_set_message(check_plain("You have withdrawn from this ride's participant list."));
+        //drupal_set_message(check_plain("You have withdrawn from this ride's participant list."));
 
         drupal_goto("node/$nid");
       }
@@ -1079,7 +1079,7 @@ function nycc_rides_withdraw_from_ride($nid=null) {
         rules_invoke_event('nycc_rides_member_withdraws_from_waitlist', $user, $ride);
         nycc_rides_log_action($ride, $user_uid, "Withdraw From Waitlist");
 
-        drupal_set_message(check_plain("You have withdrawn from this ride's waiting list."));
+        //drupal_set_message(check_plain("You have withdrawn from this ride's waiting list."));
         watchdog("rides", "user: %uid (%uname) withdrew from ride waitlist: %nid (%rname)",
                    array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
                    WATCHDOG_INFO);
@@ -1706,7 +1706,7 @@ function nycc_rides_get_all_leader_names_emails($ride) {
       
     $names .= "<a href='mailto:" . $leader['email'] . "'>". $leader['name'] . "</a>";
   }
-  dpm ($names);
+  //dpm ($names);
   return $names;
 }
 function nycc_rides_get_all_leader_names($ride) {
