@@ -1,0 +1,41 @@
+<?php
+
+function nycc_email_trap_mail_alter(&$message){
+  $trap_address = "test_mailbox@nycc.org";
+  $user = user_load_by_mail($message['to']);
+  if (isset($user) && in_array("tester", $user->roles)) {
+    drupal_set_message("sending email to " . $user->mail);
+  }
+  else {
+    $message['to']=$trap_address;
+    drupal_set_message("sending email to " . $message['to']);
+  }
+
+    // Unset Bcc and Cc fields to prevent emails from going to those addresses.
+    if (isset($message['headers']) && is_array($message['headers'])) {
+
+      // Ensure we catch all Cc and Bcc headers, regardless of case,
+      // and protecting against multiple instances of the "same" header.
+      $header_keys = array();
+      foreach (array_keys($message['headers']) as $key) {
+        $header_keys[strtolower($key)][] = $key;
+      }
+
+      if (!empty($header_keys['cc'])) {
+        foreach ($header_keys['cc'] as $header) {
+          $message['headers']['X-Rerouted-Original-Cc'] = $message['headers'][$header];
+          unset($message['headers'][$header]);
+        }
+      }
+      if (!empty($header_keys['bcc'])) {
+        foreach ($header_keys['bcc'] as $header) {
+          $message['headers']['X-Rerouted-Original-Bcc'] = $message['headers'][$header];
+          unset($message['headers'][$header]);
+        }
+      }
+    }  
+}
+
+
+
+

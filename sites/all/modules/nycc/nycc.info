@@ -1,0 +1,10 @@
+name = NYCC Core Module 
+description = Handle Core NYCC  functionality
+package = NYCC
+core = 7.x 
+files[] = nycc.reports.inc
+files[] = nycc.rules.inc
+files[] = nycc.tokens.inc
+
+
+

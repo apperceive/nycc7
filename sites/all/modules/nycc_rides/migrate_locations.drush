@@ -1,0 +1,78 @@
+<?php
+  $debug_print =  false;
+  $start_time = time(); 
+
+  
+$sql = "select n.nid, fr.field_ride_from_value, frs.field_ride_from_select_value from node n left outer join field_data_field_ride_from fr on n.nid=fr.entity_id and n.vid=fr.revision_id left outer join field_data_field_ride_from_select frs on n.nid=frs.entity_id and n.vid=frs.revision_id where type='rides' and status=1  and not (fr.field_ride_from_value is null AND frs.field_ride_from_select_value is null) and nid NOT IN (select distinct entity_id from field_data_field_ride_start_location l  where l.entity_id=n.nid and l.revision_id=n.vid and l.bundle='rides');";
+
+  
+
+	$q = db_query($sql);
+  drush_print("retrieved ". $q->rowCount() . " rides from database");
+  $cnt = 0;
+  $update_cnt = 0;
+  
+  foreach($q as $row) {
+    $cnt++;
+    if ($cnt % 50 == 0)
+      drush_print("processed ". $cnt  . " of " . $q->rowCount()  . " rides... " . (time() - $start_time) . " seconds elapsed");
+    
+    $ride = nycc_rides_get_ride_object($row->nid);
+    if ($ride) {
+      if ($debug_print) drush_print("");
+      if ($debug_print) drush_print("Processing Ride:" . $ride->nid);
+      $value_was_set = false; //set flag to ensure old values are only removed if one was successully added to new field
+      
+      $old_loc_select = $row->field_ride_from_select_value;
+      $old_loc = $row->field_ride_from_value;
+      if ($debug_print) drush_print("for NID: " . $ride->nid . " old_loc_select is: " . $old_loc_select[0]['value']);
+      if ($debug_print) drush_print("for NID: " . $ride->nid . " old_loc is: " . $old_loc[0]['value']);
+      
+      
+      if( (isset($old_loc_select)) || (isset($old_loc))) {
+        if ($debug_print) drush_print("value found in old_loc_select:" . $old_loc_select);
+
+        if (($old_loc_select == '- Other...') || (!isset($old_loc_select))){
+          if(isset($old_loc)){
+            if ($debug_print) drush_print("for NID: " . $ride->nid . " setting start location to old_loc: " . $old_loc);
+            $ride->field_ride_start_location['und'][0]['value']  = $old_loc;
+            $value_was_set = true;
+          } else {
+            drush_print("Warning - for NID: " . $ride->nid . " old_loc has no value");
+          }
+          
+        } //end if old_location_select has '-Other...' as value
+        else {
+          $loc_select_name = htmlspecialchars_decode(strip_tags($old_loc_select), ENT_QUOTES);
+          if ($debug_print) drush_print("for NID: " . $ride->nid . " setting start location to old_loc_select: " . $loc_select_name);
+
+          $ride->field_ride_start_location['und'][0]['value']  = $loc_select_name;
+          $value_was_set = true;
+        } //if else  
+      } //end if old_location_select has a value
+      else {
+        drush_print("Warning - for NID: " . $ride->nid . " Skipping because old_loc_select and old_loc have no value");
+      }
+      
+      if(nycc_rides_field_has_value($ride->field_ride_from_select) && $value_was_set){
+        if ($debug_print) drush_print("Unsetting field_ride_from_select");
+        unset($ride->field_ride_from_select['und'][0]);  
+      }
+      if(nycc_rides_field_has_value($ride->field_ride_from) && $value_was_set){
+        if ($debug_print) drush_print("Unsetting field_ride_from");
+        unset($ride->field_ride_from['und'][0]);
+      }
+      
+      if($value_was_set) {
+        if ($debug_print) drush_print("Finished Unsetting values. saving node");
+        node_save($ride);
+        $update_cnt++;
+      } else {
+       if ($debug_print) drush_print("No changes made.");
+      }
+    }
+  }
+  drush_print("script finished processing " . $cnt . " rides.");
+  drush_print($update_cnt . " locations were updated.");
+  drush_print("Script complete.  " . (time() - $start_time) . " seconds elapsed");
+?>
