@@ -29,30 +29,61 @@ function nycc7_preprocess_page(&$variables) {
   $search_form = drupal_get_form('search_form');
   $search_form_box = drupal_render($search_form);
   $variables['search_box'] = $search_form_box;
-  $variables['settings_box'] = drupal_render($variables['tabs']['#primary']);
+  
+  //$variables['settings_box'] = drupal_render($variables['tabs']['#primary']);
   // unset effect of drupal_render for now
-  $variables['tabs']['#primary']['#printed'] = FALSE;
-  $variables['menu_expanded'] = _nycc7_menu(menu_tree('main-menu'));
-} // nycc7_preprocess_node
+  //$variables['tabs']['#primary']['#printed'] = FALSE;
+  
+  $variables['main_menu_expanded'] = _nycc7_menu(menu_tree('main-menu'));
+  
+  // make these drop downs? they only have one level of depth
+  // add a title, bold but not a link?
+  // how toggle menus off when another opened?
+  $variables['user_menu_expanded'] = _nycc7_menu(menu_tree('user-menu'), true);
+  
+  // navigation and other menus can have several levels e.g add content | type 
+  $variables['navigation_menu_expanded'] = _nycc7_menu(menu_tree('navigation'), true);
+} // nycc7_preprocess_page
 
-function _nycc7_menu($menu) {
+function nycc7_preprocess_node(&$variables) {
+  // note: this is not called for add/edit
+} //nycc_rides2_preprocess_node 
+
+// can't we just add classes in preprocessor?
+function nycc7_nycc_ride_link($variables) {
+  return l($variables['text'], $variables['path'], array('attributes' => array('class' => array('btn btn-primary ' . $variables['classes'])))); 
+}
+
+/*
+function nycc7_preprocess($variables) {
+  if (array_key_exists('text', $variables) && array_key_exists('path', $variables)) {
+    return l($variables['text'], $variables['path'], array('attributes' => array('class' => array('btn btn-primary nycc-button')))); 
+  }
+}*/
+
+
+// note: only handles two levels of menu
+function _nycc7_menu($menu, $flat = false) {
   $tree = array();
-  $i = 0;
+  //$i = 0;
+  $liclass = $flat ? '' : 'top-item';
+  $ulclass = $flat ? 'col-xs-12' : 'col-xs-12 col-sm-6 col-md-3 col-lg-2';
   foreach ($menu as $key => $item) {
-    if (!is_numeric($key)){
+    if (!is_numeric($key))
       break;
-    }
+    
     $leaf = array();
-    $leaf[] = '<li class="top-item">' . l($item['#title'], $item['#href']) . '</li>';
+    $leaf[] = "<li class='$liclass'>" . l($item['#title'], $item['#href']) . "</li>";
+    
     foreach ($item['#below'] as $child_key => $child) {
-      if (!is_numeric($child_key)){
+      if (!is_numeric($child_key))
         break;
-      }
+ 
       $leaf[] = '<li>' . l($child['#title'], $child['#href']) . '</li>';
     }
-    $class = 'col-xs-12 col-sm-6 col-md-3 col-lg-2 ';
-    $tree[] = '<ul class="' . $class . '">' . implode('', $leaf) . '</ul>';
-    $i++;
+    
+    $tree[] = "<ul class='$ulclass'>" . implode('', $leaf) . "</ul>";
+    //$i++;
   }
   return implode('', $tree);
 } // _nycc7_menu
@@ -66,17 +97,17 @@ function xxnycc7_menu_local_tasks(&$variables) {
   //return theme_menu_local_tasks($variables);
 } // nycc7_menu_local_tasks
 
+/*
 function nycc7_theme($existing, $type, $theme, $path) {
   return array(
     'rides_node_form' => array(
         'arguments' => array('form' => NULL),
-        'template' => 'templates/node--rides--edit',
+        'template' => 'templates/node--rides_edit',
         'render element' => 'form',
         ),
   );
 }
 
-/*
 function nycc7_preprocess_image_style(&$variables) {
   $variables['attributes']['class'][] = 'img-responsive'; // http://getbootstrap.com/css/#overview-responsive-images
 }

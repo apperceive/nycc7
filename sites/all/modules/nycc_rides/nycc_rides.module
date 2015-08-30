@@ -2345,19 +2345,14 @@ EOS;
   return $output;
 }
 
-function nycc_rides_output_button($title, $href, $class = "", $onclick = "", $msg = "") {
-  $titlesafe = str_replace("'", "&apos;", $title);
-  $onclicksafe = str_replace("'", "&apos;", $onclick);
-  $hrefsafe = str_replace("'", "&apos;", $href);
-  $output = "<div class='nycc-button-wrapper $class'>". ($msg ? "<div>$msg</div>" : "") ."<a href='$hrefsafe' title='$titlesafe' ". ($onclicksafe ? "onclick='$onclicksafe'" : "") ." >$title</a></div>";
-  return $output;
-}
-
+/* 
+// not used in theme or mods - obsolete?
 function nycc_rides_output_block($title, $html, $classes = "") {
   $title = drupal_strlen($title) ? "<h2>$title</h2>" : "";
   $output = "<div class='nycc-block $classes'>$title$html</div>";
   return $output;
 }
+*/
 
 function nycc_rides_approve_rides() {
   global $user;
@@ -2383,18 +2378,22 @@ function nycc_rides_ride_participants_js($nid = NULL) {
 }
 
 function nycc_rides_get_user_full_name($account = NULL) {
-    global $user;
-    if (!$account){
-      $account = $user;
+  global $user;
+  if (!$account){
+    $account = $user;
     $uid = $account->uid;
-    } else if (is_object($account)) {
+  } else if (is_object($account)) {
     $uid = $account->uid;
   } else {
     $uid = $account;
   }
+  
+  // QUICK FIX: just return user name for now
+  if ($account > 0)
+    $account = user_load($account);
+  return $account->name;
 
   $cp = profile2_load_by_user($uid, "profile");
-  
   if($cp) {
     return nycc_field_get_text_value($cp->field_first_name) . " " . nycc_field_get_text_value($cp->field_last_name);
   } else {

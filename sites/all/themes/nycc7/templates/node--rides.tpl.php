@@ -80,6 +80,7 @@
  */
  
   //dpm(get_defined_vars());
+  //dpm($content['field_ride_current_riders']);
  
   global $user;
   if (!$user->uid) {
@@ -145,6 +146,7 @@
           <?php print render($content['nycc_buttons']); ?>
         </div>      
         <?php print render($content['field_ride_current_riders']); ?>
+          
         <?php print render($content['field_ride_waitlist']); ?>
       </div>
     </div>

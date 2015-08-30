@@ -87,37 +87,63 @@
           <?php print render($page['navigation']); ?>
         <?php endif; ?>      
    
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".menu-collapse" title='Menu'>
+        <?php if ($logged_in) : ?>
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".user-menu-collapse" title='User Menu'>
+            <span class="glyphicon glyphicon-wrench"></span>
+          </button>
+        <?php endif ?>
+        
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".main-menu-collapse" title='Main Menu'>
           <span class="sr-only"><?php print t('Toggle navigation'); ?></span>
           <span class="glyphicon glyphicon-menu-hamburger"></span>
         </button>
+
+        <!-- button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navigation-menu-collapse" title='Navigation Menu'>
+          <span class="fa fa-bicycle"></span>
+        </button -->
 
         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".search-collapse" title='Search'>
           <span class="glyphicon glyphicon-search"></span>
         </button>
 
-        <button class="btn navbar-toggle dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-          <span class="glyphicon glyphicon-cog"></span>
-          <span class="caret"></span>
-        </button>
+        <?php if (!$logged_in) : ?>
+          <button class="btn navbar-toggle dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            <span class="glyphicon glyphicon-cog"></span>
+            <span class="caret"></span>
+          </button>
+ 
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+            <!-- li><a href="/user">Sign In</a></li -->
+            <li><a href="/user/password">Request new password</a></li>
+            <li><a href="/join">Become a member</a></li>
+            <li><a href="/user/register">Create an account</a></li>
+            <!-- li role="separator" class="divider"></li -->
+            <?php /*print $settings_box;*/ ?>
+          </ul>
+        <?php endif ?>
         
-        <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-          <li><a href="#">Sign In</a></li>
-          <li><a href="#">Request new password</a></li>
-          <li><a href="#">Become a member</a></li>
-          <li><a href="#">Create an account</a></li>
-          <li role="separator" class="divider"></li>
-          <?php print $settings_box; ?>
-        </ul>
-      
       </div>
       
       
-      <div class="menu-collapse collapse">
+      <div class="main-menu-collapse collapse">
         <nav role="navigation" class='clearfix'>
-          <?php print $menu_expanded; ?>
+          <?php print $main_menu_expanded; ?>
         </nav>
       </div>
+
+      <?php if ($logged_in) : ?>
+        <div class="user-menu-collapse collapse">
+          <nav role="navigation" class='clearfix'>
+            <?php print $user_menu_expanded; ?>
+          </nav>
+        </div>
+      <?php endif ?>
+
+     <!-- div class="navigation-menu-collapse collapse">
+        <nav role="navigation" class='clearfix'>
+          <?php print $navigation_menu_expanded; ?>
+        </nav>
+      </div -->
 
       <div class="search-collapse collapse">
         <nav role="navigation" class='well'>
