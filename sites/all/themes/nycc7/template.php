@@ -29,11 +29,28 @@ function nycc7_preprocess_page(&$variables) {
   $search_form = drupal_get_form('search_form');
   $search_form_box = drupal_render($search_form);
   $variables['search_box'] = $search_form_box;
+  
   $variables['settings_box'] = drupal_render($variables['tabs']['#primary']);
   // unset effect of drupal_render for now
   $variables['tabs']['#primary']['#printed'] = FALSE;
   $variables['menu_expanded'] = _nycc7_menu(menu_tree('main-menu'));
-} // nycc7_preprocess_node
+} // nycc7_preprocess_page
+
+function nycc7_preprocess_node(&$variables) {
+  // note: this is not called for add/edit
+} //nycc_rides2_preprocess_node 
+
+// can't we just add classes in preprocessor?
+function nycc7_nycc_ride_link($variables) {
+  return l($variables['text'], $variables['path'], array('attributes' => array('class' => array('btn btn-primary ' . $variables['classes'])))); 
+}
+
+/*
+function nycc7_preprocess($variables) {
+  if (array_key_exists('text', $variables) && array_key_exists('path', $variables)) {
+    return l($variables['text'], $variables['path'], array('attributes' => array('class' => array('btn btn-primary nycc-button')))); 
+  }
+}*/
 
 function _nycc7_menu($menu) {
   $tree = array();
@@ -66,17 +83,17 @@ function xxnycc7_menu_local_tasks(&$variables) {
   //return theme_menu_local_tasks($variables);
 } // nycc7_menu_local_tasks
 
+/*
 function nycc7_theme($existing, $type, $theme, $path) {
   return array(
     'rides_node_form' => array(
         'arguments' => array('form' => NULL),
-        'template' => 'templates/node--rides--edit',
+        'template' => 'templates/node--rides_edit',
         'render element' => 'form',
         ),
   );
 }
 
-/*
 function nycc7_preprocess_image_style(&$variables) {
   $variables['attributes']['class'][] = 'img-responsive'; // http://getbootstrap.com/css/#overview-responsive-images
 }

@@ -2401,12 +2401,14 @@ EOS;
   return $output;
 }
 
-
+/* 
+// not used in theme or mods - obsolete?
 function nycc_rides_output_block($title, $html, $classes = "") {
   $title = drupal_strlen($title) ? "<h2>$title</h2>" : "";
   $output = "<div class='nycc-block $classes'>$title$html</div>";
   return $output;
 }
+*/
 
 function nycc_rides_approve_rides() {
   global $user;
@@ -2432,19 +2434,25 @@ function nycc_rides_ride_participants_js($nid = NULL) {
 }
 
 function nycc_rides_get_user_full_name($account = NULL) {
-    global $user;
-    if (!$account){
-      $account = $user;
+  global $user;
+  if (!$account){
+    $account = $user;
     $uid = $account->uid;
-    } else if (is_object($account)) {
+  } else if (is_object($account)) {
     $uid = $account->uid;
   } else {
     $uid = $account;
   }
+  
+  // QUICK FIX: just return user name for now
+  if ($account > 0)
+    $account = user_load($account);
+  return $account->name;
 
   $cp = profile2_load_by_user($uid, "profile");
+  //dpm($cp);
   if($cp) {
-    return $cp->title;
+    return $cp->title;      // no title field in cp anymore, need to load profile node instead
   } else {
     //TODO: Add Watchdog.
     drupal_set_message(check_plain("nycc_rides_get_user_full_name: Could not load profile for user: $uid"), "error");
@@ -2500,13 +2508,10 @@ function nycc_rides_get_ride_object($nid=null){
 function nycc_rides_output_list_of_users($ride = NULL, $field_name, $path = NULL ) {
   $users = array();
   if ($ride) {
-    //$output = "<ul class='nycc-ride-particpants-list'>";
-    if (nycc_rides_field_has_value( $ride->{$field_name})){
-      foreach(nycc_rides_refs2ids(nycc_rides_field_get_value($ride->{$field_name})) as $this_uid) {
+    if (nycc_rides_field_has_value($ride->{$field_name})){
+      foreach (nycc_rides_refs2ids(nycc_rides_field_get_value($ride->{$field_name})) as $this_uid) {
         $user_path = ($path) ? "/user/$this_uid/$path" : "/user/$this_uid";
-        $users[] = l(t(nycc_rides_get_user_full_name($this_uid)), $user_path,
-              array('attributes' => array('class' => array('btn', 'btn-primary', 'nycc-btn', 'nycc-join-btn'))));
-    //TODO: FIX Class definition for this
+        $users[] = l(nycc_rides_get_user_full_name($this_uid), $user_path);
       }
     }
   }
