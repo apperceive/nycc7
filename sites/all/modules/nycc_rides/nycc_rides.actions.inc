@@ -10,7 +10,6 @@ TODO List:
 22) fix nycc_rides_ride_overlaps_user
 23) fix viewRideSignups
 27) fix nycc_rides_approve_rides and add javascript inline editing & ensure event is fired upon status change
-28) toggle ride location so that selecting from other... shows text box
 29) Add Rides & Waitlists buttons to user Profile
 */
 
@@ -127,8 +126,6 @@ function nycc_rides_menu() {
     'title' => 'Riders'
   );
 
-  // move these to views
-  /*
   $items['user/%user_uid_optional/myrides'] = array(
     'page callback' => 'nycc_rides_report_rides',
     'type' => MENU_LOCAL_TASK,
@@ -157,8 +154,6 @@ function nycc_rides_menu() {
     'title' => 'Leads',
     'page arguments' => array(1),
   );
-  
-  */
 
   $items['approve-rides'] = array(
     'page callback' => 'nycc_rides_approve_rides',
@@ -1061,7 +1056,7 @@ function nycc_rides_withdraw_from_ride($nid=null) {
         rules_invoke_event('nycc_rides_member_withdraws_from_ride', $user, $ride);
         
         //MOVED TO RULE
-        drupal_set_message(check_plain("You have withdrawn from this ride's participant list."));
+        //drupal_set_message(check_plain("You have withdrawn from this ride's participant list."));
 
         drupal_goto("node/$nid");
       }
@@ -1083,7 +1078,7 @@ function nycc_rides_withdraw_from_ride($nid=null) {
         rules_invoke_event('nycc_rides_member_withdraws_from_waitlist', $user, $ride);
         nycc_rides_log_action($ride, $user_uid, "Withdraw From Waitlist");
 
-        drupal_set_message(check_plain("You have withdrawn from this ride's waiting list."));
+        //drupal_set_message(check_plain("You have withdrawn from this ride's waiting list."));
         watchdog("rides", "user: %uid (%uname) withdrew from ride waitlist: %nid (%rname)",
                    array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
                    WATCHDOG_INFO);
@@ -1710,7 +1705,7 @@ function nycc_rides_get_all_leader_names_emails($ride) {
       
     $names .= "<a href='mailto:" . $leader['email'] . "'>". $leader['name'] . "</a>";
   }
-  dpm ($names);
+  //dpm ($names);
   return $names;
 }
 function nycc_rides_get_all_leader_names($ride) {
@@ -2349,14 +2344,19 @@ EOS;
   return $output;
 }
 
-/* 
-// not used in theme or mods - obsolete?
+function nycc_rides_output_button($title, $href, $class = "", $onclick = "", $msg = "") {
+  $titlesafe = str_replace("'", "&apos;", $title);
+  $onclicksafe = str_replace("'", "&apos;", $onclick);
+  $hrefsafe = str_replace("'", "&apos;", $href);
+  $output = "<div class='nycc-button-wrapper $class'>". ($msg ? "<div>$msg</div>" : "") ."<a href='$hrefsafe' title='$titlesafe' ". ($onclicksafe ? "onclick='$onclicksafe'" : "") ." >$title</a></div>";
+  return $output;
+}
+
 function nycc_rides_output_block($title, $html, $classes = "") {
   $title = drupal_strlen($title) ? "<h2>$title</h2>" : "";
   $output = "<div class='nycc-block $classes'>$title$html</div>";
   return $output;
 }
-*/
 
 function nycc_rides_approve_rides() {
   global $user;
@@ -2382,22 +2382,18 @@ function nycc_rides_ride_participants_js($nid = NULL) {
 }
 
 function nycc_rides_get_user_full_name($account = NULL) {
-  global $user;
-  if (!$account){
-    $account = $user;
+    global $user;
+    if (!$account){
+      $account = $user;
     $uid = $account->uid;
-  } else if (is_object($account)) {
+    } else if (is_object($account)) {
     $uid = $account->uid;
   } else {
     $uid = $account;
   }
-  
-  // QUICK FIX: just return user name for now
-  if ($account > 0)
-    $account = user_load($account);
-  return $account->name;
 
   $cp = profile2_load_by_user($uid, "profile");
+  
   if($cp) {
     return nycc_field_get_text_value($cp->field_first_name) . " " . nycc_field_get_text_value($cp->field_last_name);
   } else {
