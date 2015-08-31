@@ -127,6 +127,8 @@ function nycc_rides_menu() {
     'title' => 'Riders'
   );
 
+  // move these to views
+  /*
   $items['user/%user_uid_optional/myrides'] = array(
     'page callback' => 'nycc_rides_report_rides',
     'type' => MENU_LOCAL_TASK,
@@ -155,6 +157,8 @@ function nycc_rides_menu() {
     'title' => 'Leads',
     'page arguments' => array(1),
   );
+  
+  */
 
   $items['approve-rides'] = array(
     'page callback' => 'nycc_rides_approve_rides',

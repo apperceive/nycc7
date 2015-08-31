@@ -21,6 +21,8 @@ function nycc_rides_report_riders() {
   return nycc_rides_report("Ride Reports: Riders", $sql, nycc_rides_report_rides_header_1(), 'nycc_rides_report_rides_process_row_1', 1);
 }
 
+// obsolete
+/*
 function nycc_rides_report_rides($account) {
   $uid = $account->uid;
   $sql = array();
@@ -65,6 +67,7 @@ function nycc_rides_report_leads($account) {
     $title = $account->name ."'s Leads";
   return nycc_rides_report($title, $sql, nycc_rides_report_rides_header_2(), 'nycc_rides_report_rides_process_row_2');
 }
+*/
 
 function nycc_rides_report_rides_process_row_1($r) {
   return array('data' =>
@@ -86,6 +89,8 @@ function nycc_rides_report_rides_header_1() {
   );
 }
 
+// obsolete
+/*
 function nycc_rides_report_rides_process_row_2($r) {
   return array('data' =>
     array(
@@ -122,6 +127,7 @@ function nycc_rides_report_rides_header_2() {
     array('data' => t('Status'), 'field' => 'r.field_ride_status_value'),
   );
 }
+*/
 
 function nycc_rides_report($title, $sql, $header, $process, $group = null) {
   drupal_set_title($title);
