@@ -20,10 +20,10 @@
   
   // todo: use a variable instead?  $output?
   // note: arg(1) is 'add' or 'edit'
-  $output = nycc_rides2_output_ride_node_form($form, arg(1));
+  
+  //$output = nycc_rides2_output_ride_node_form($form, arg(1));
   
 ?>
 
-<h1>Edit<h1>
 <?php print $output;  ?>
 

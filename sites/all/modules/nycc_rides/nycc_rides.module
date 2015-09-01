@@ -452,6 +452,27 @@ function nycc_rides_node_prepare($node) {
 }
 
 function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
+   if ($form_id == 'rides_node_form') {
+       //dpm($form);
+     
+      $op = (arg(1) == 'add') ? 'add' : ((arg(2) == 'edit') ? 'edit' : 'noop');
+      $can_approve = nycc_rides_can_approve();
+      if (arg(1) == 'add')
+        drupal_set_title('Submit a Ride');
+      else
+        drupal_set_title('Revise a Ride: <small>' . $form['#node']->title . '</small>',  PASS_THROUGH);
+      // move to nycc_rides_form_alter
+      $status = nycc_rides_get_ride_status($form['#node']);
+      $action = !nycc_rides_can_approve() && in_array($status, array('Approved','Pending','Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
+      $form['actions']['submit']['#value'] = $action;
+      
+      // let bootstrap handle this
+      //$form['field_ride_description']['#cols'] = 50;
+
+
+      
+
+  } // rides_node_form 
 } // nycc_rides_form_alter
 
 function nycc_rides_block_info() {
