@@ -152,4 +152,7 @@ header#navbar .menu-collapse ul {
   display: none;
 }
 
-
+#rides-node-form  .panel-body .help-block {
+  font-weight: bold;
+  font-size: 110%;
+}

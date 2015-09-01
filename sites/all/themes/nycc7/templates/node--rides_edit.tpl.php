@@ -27,9 +27,6 @@
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_riders']);
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_waitlist']);
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']);
-    
-    // todo: set and hide status from !approve
-  
   }
   
   // where is best place to do this? does not work in hook_form_alter as 'group_rides_htabs' key does not yet exist yet
@@ -61,13 +58,18 @@
       '#cols' => 40,
       '#rows' => 3,
       '#weight' => 10,
-      '#default_value' => '',
-      '#value' => '',  // required!!!
+      //'#default_value' => 'testing 1 2 3',
+      '#value' => 'initial value',  // required!!!
       '#prefix' => '',
       '#suffix' => '',
       '#resizable' => false,  // just kills window-shade sizer, not bootstrap or browsers
+      '#tree' => false,
+      //'#parents' => array(),
     ),
   );
+  
+  //dpm($form['group_rides_htabs']['group_rides_info']);
+  
   
   if ($op == 'add') {
     hide($form['group_rides_htabs']['group_ride_rc_info']);
