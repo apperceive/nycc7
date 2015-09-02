@@ -48,27 +48,48 @@
   // note various spellings of attachments/attachements. ugh!
   $form['group_rides_htabs']['group_ride_attachements']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
 
-  // add attitional dates field
+  /*
+  // add attitional dates field next to timestamp
   // todo: make collapsable? collpased?
-  $form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value'][] = array(
-    'additional_dates' => array(
-      '#type' => 'textarea',
+  $form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']['additional_dates'] = array(
+    '#type' => 'textarea',
+    '#title' => 'Additional dates',
+    '#description' => 'Optional. Create additional submissions based on this one, but for the list of dates entered here. Separate multiple dates by commas.',
+    '#cols' => 60,
+    '#rows' => 1,
+    '#weight' => 10,
+    //'#default_value' => 'testing 1 2 3',
+    '#value' => 'initial value',  // required!!!
+    '#prefix' => '',
+    '#suffix' => '',
+    '#resizable' => false,  // just kills window-shade sizer, not bootstrap or browsers
+    //'#tree' => false, 
+    //'#parents' => array('additional_dates'),
+  );
+  */
+ $form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']['additional_dates'] = array(
+      '#type' => 'textfield',
       '#title' => 'Additional dates',
-      '#description' => 'Optional. Create additional submissions based on this one, but for the list of dates entered below. Separate multiple dates by commas.',
-      '#cols' => 40,
-      '#rows' => 3,
+      '#description' => 'Optional. Create additional submissions based on this one, but for the list of dates entered here. Separate multiple dates by commas.',
+      //'#cols' => 60,
+      //'#rows' => 1,
       '#weight' => 10,
-      //'#default_value' => 'testing 1 2 3',
-      '#value' => 'initial value',  // required!!!
+      '#value' => '',           // this is required!!!
       '#prefix' => '',
       '#suffix' => '',
-      '#resizable' => false,  // just kills window-shade sizer, not bootstrap or browsers
-      '#tree' => false,
-      //'#parents' => array(),
-    ),
-  );
+      '#id' => 'edit-additonal_dates',
+      //'#default_value' => 'testing 1 2 3',  // not used?
+      '#input' => true,
+      '#name' => 'additional_dates',
+      //'#resizable' => false,  // just kills window-shade sizer, not bootstrap or browsers
+      //'#tree' => true, 
+      //'#parents' => array('group_rides_htabs', 'group_rides_info', 'field_ride_timestamp', 'und', 0, 'value', 'additional_dates'),
+      //'#parents' => array('field_ride_timestamp', 'und', 0, 'value', 'additional_dates'),
+      //'#parents' => array('additional_dates'),
+      //'#processed' => true,
+    ); 
   
-  //dpm($form['group_rides_htabs']['group_rides_info']);
+  //dpm($form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']);
   
   
   if ($op == 'add') {
