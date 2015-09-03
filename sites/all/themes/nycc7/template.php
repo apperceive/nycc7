@@ -3,7 +3,18 @@
  * @file
  * template.php
  */
- 
+
+
+function nycc7_theme($existing, $type, $theme, $path) {
+  return array(
+    'rides_node_form' => array(
+        'arguments' => array('form' => NULL),
+        'template' => 'templates/node--rides_edit',
+        'render element' => 'form',
+        ),
+  );
+}
+
 function nycc7_preprocess_block(&$variables) {
   if ($variables['block']->region != 'navigation') {
     $variables['classes_array'][] = 'well';
@@ -88,6 +99,9 @@ function _nycc7_menu($menu, $flat = false) {
   return implode('', $tree);
 } // _nycc7_menu
 
+
+/*
+
 function xxnycc7_menu_local_tasks(&$variables) {
   if (isset($variables['primary'])) {
     foreach($variables['primary'] as $menu_item_key => $menu_attributes) {
@@ -97,16 +111,6 @@ function xxnycc7_menu_local_tasks(&$variables) {
   //return theme_menu_local_tasks($variables);
 } // nycc7_menu_local_tasks
 
-/*
-function nycc7_theme($existing, $type, $theme, $path) {
-  return array(
-    'rides_node_form' => array(
-        'arguments' => array('form' => NULL),
-        'template' => 'templates/node--rides_edit',
-        'render element' => 'form',
-        ),
-  );
-}
 
 function nycc7_preprocess_image_style(&$variables) {
   $variables['attributes']['class'][] = 'img-responsive'; // http://getbootstrap.com/css/#overview-responsive-images

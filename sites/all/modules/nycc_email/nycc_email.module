@@ -71,7 +71,7 @@ function nycc_email_inbound_callback() {
 
 					if (_nycc_email_has_approval($args['text']['value'])) {
 					    $ride->field_ride_status[0]['value'] = "Approved";
-					    $ride->field_ride_additional_dates[0]['value'] = "";
+					    //$ride->field_ride_additional_dates[0]['value'] = "";
 					    node_save($ride);
 						watchdog('nycc_email', "Ride: " . $ride->nid . " is Approved via email by: " . $args['from_email'], array(), WATCHDOG_NOTICE) ;
 

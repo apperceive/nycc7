@@ -72,6 +72,7 @@
  *
  * @ingroup themeable
  */
+ global $user;
 ?>
 <header id="navbar" role="banner" class="<?php print $navbar_classes; ?>">
   <div class="<?php print $container_class; ?>">
@@ -133,6 +134,7 @@
 
       <?php if ($logged_in) : ?>
         <div class="user-menu-collapse collapse">
+          <h4><?php print $user->name; ?></h4>
           <nav role="navigation" class='clearfix'>
             <?php print $user_menu_expanded; ?>
           </nav>
