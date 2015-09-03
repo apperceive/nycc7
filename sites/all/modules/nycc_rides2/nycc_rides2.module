@@ -283,7 +283,7 @@ function theme_nycc_ride_users($variables) {
 // TODO: move js to nycc_rides.js, add to module.info
 // reference: https://api.jqueryui.com/datepicker/#option-onSelect
 function _nycc_rides2_custom_form_uidatepicker($form, $form_state) {
-  $jsdatefmt = 'm-d-yy';
+  $jsdatefmt = 'd M yy';
   drupal_add_library('system', 'ui.datepicker');
   $js =<<< EOS
     (function ($) { 
