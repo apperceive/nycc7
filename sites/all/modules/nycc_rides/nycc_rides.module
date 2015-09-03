@@ -358,15 +358,18 @@ function nycc_rides_node_presave($node) {
 
 
 function nycc_rides_node_prepare($node) {
-  if (arg(3) == "relist")  {
+  global $user;
+  
+  // handle node/add/relist/%node by copying fields from %node to new node 
+  if (arg(3) == "relist")  {    
     $onode = node_load(arg(4));
 
     if ($onode && $onode->type=='rides') {
       $item = array($onode);
       foreach ($item['0'] as $field => $value) {
         if ((substr($field, 0, 5) == 'field') || ($field == 'title')) {
-          if(!in_array($field, array('field_ride_token',
-                        // 'field_ride_additional_dates',
+          if(!in_array($field, array(
+                         'field_ride_token',
                          'field_ride_author_id',
                          'field_ride_dow',
                          'field_ride_timestamp',
@@ -383,9 +386,8 @@ function nycc_rides_node_prepare($node) {
           }
         }  
       }
-      global $user;
       
-      // copy old leaders or reset to new person?
+      // change leaders to current user
       $node->field_ride_current_leaders['und'][0]['uid'] = $user->uid;
       $node->field_ride_status['und'][0]['value'] = "Pending";
     } // if onode rides
@@ -421,10 +423,7 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
     // note: 'group_rides_htabs' key does not yet exist yet. why?
     // dpm($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']);
            
-    // let bootstrap handle this?
-    //$form['field_ride_description']['#cols'] = 50;
-
-    // add submit handler here for additional dates
+    // add handlers for additional dates
     $form['#submit'][] = '_nycc_rides_additional_dates_submit';
     $form['#validate'][] = '_nycc_rides_additional_dates_validate';
 
