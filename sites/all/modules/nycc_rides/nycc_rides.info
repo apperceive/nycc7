@@ -6,6 +6,7 @@ dependencies[] = nycc
 files[] = nycc_rides.reports.inc
 files[] = nycc_rides.rules.inc
 files[] = nycc_rides.tokens.inc
+files[] = nycc_rides.actions.inc
 configure = admin/config/nycc/rides
 
 

@@ -48,21 +48,21 @@ function nycc_rides_menu() {
   //  'type' => MENU_CALLBACK,
   //  'access callback' => TRUE,
   //);
-
-  
-  $items['nycc-update-ride-status-js/%'] = array(
-    //'page arguments' => array(1),
-    'page callback' => 'nycc_rides_update_ride_status_js',
-    'type' => MENU_CALLBACK,
-    'access callback' => TRUE,
-  );
-
-  $items['nycc-update-ride-type-js/%'] = array(
-    //'page arguments' => array(1),
-    'page callback' => 'nycc_rides_update_ride_type_js',
-    'type' => MENU_CALLBACK,
-    'access callback' => TRUE,
-  );
+  //
+  //
+  //$items['nycc-update-ride-status-js/%'] = array(
+  //  //'page arguments' => array(1),
+  //  'page callback' => 'nycc_rides_update_ride_status_js',
+  //  'type' => MENU_CALLBACK,
+  //  'access callback' => TRUE,
+  //);
+  //
+  //$items['nycc-update-ride-type-js/%'] = array(
+  //  //'page arguments' => array(1),
+  //  'page callback' => 'nycc_rides_update_ride_type_js',
+  //  'type' => MENU_CALLBACK,
+  //  'access callback' => TRUE,
+  //);
 
   //$items['nycc-join-ride'] = array(
   //  'page callback' => 'nycc_rides_join_ride',
@@ -158,14 +158,14 @@ function nycc_rides_menu() {
     'page arguments' => array(1),
   );
   
-  */
+
 
   $items['approve-rides'] = array(
     'page callback' => 'nycc_rides_approve_rides',
     'type' => MENU_CALLBACK,
     'access callback' => TRUE,
   );
-
+  */
   $items['node/%/cancel'] = array(
     'title' => 'Cancel Ride',
     'page callback' => 'drupal_get_form',
