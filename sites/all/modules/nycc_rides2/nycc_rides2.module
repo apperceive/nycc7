@@ -22,8 +22,8 @@ function nycc_rides2_renew_button_pages() {
   if ((($node_type == "rides") && (arg(0)  != "current-riders")) ||
       (($node_type == "region") && (arg(2) != "edit")) ||
       (($node_type == "cue_sheet") && (arg(2) != "edit")) ||
-      (($node_type == "product") && (arg(2) != "edit") && (arg(1) != 27756))
-      (($node_type == "message_board") && (arg(2) != "edit"))
+      (($node_type == "product") && (arg(2) != "edit") && (arg(1) != 27756)) ||
+      (($node_type == "message_board") && (arg(2) != "edit")))
     return true;
 
 return false;
