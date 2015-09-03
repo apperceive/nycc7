@@ -61,15 +61,17 @@
     '#value' => '',           // this is required!!!
     '#prefix' => '',
     '#suffix' => '',
-    '#id' => 'edit-additonal_dates',
+    '#id' => 'edit-nycc-additional-dates',
     '#input' => true,
     '#name' => 'additional_dates',
+    '#attributes' => array('class' => array('datepicker')),
     //'#cols' => 60,
     //'#rows' => 1,
     //'#default_value' => 'testing 1 2 3',  // not used?
     //'#resizable' => false,  // just kills window-shade sizer, not bootstrap or browsers
   ); 
   
+ 
   //dpm($form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']);
   
   
