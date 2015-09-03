@@ -544,6 +544,7 @@ function nycc_rides_block_view($delta = 0) {
 
 //END HOOK Functions
 
+// not called?
 function nycc_rides_output_ride_buttons($nid) {
   global $user;
   $user_uid = $user->uid;
