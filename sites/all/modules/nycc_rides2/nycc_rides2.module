@@ -262,13 +262,19 @@ function nycc_rides2_output_ride_buttons($nid) {
     $can_approve = nycc_rides_can_approve($user);
     $can_modify = nycc_rides_can_modify_ride($ride, $user);
     $ride_is_upcoming = nycc_rides_ride_is_upcoming($ride, $user);
-    $is_approved = ($ride->field_ride_status['und'][0]['value'] == 'Approved' ) ? true : FALSE;
-    $is_cancelled = ($ride->field_ride_status['und'][0]['value'] == 'Cancelled' ) ? true : FALSE;
+
+    $has_status = isset($ride->field_ride_status) && is_array($ride->field_ride_status) && array_key_exists('und', $ride->field_ride_status);
+    
+    $is_approved = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Approved' ) ? true : FALSE;
+    $is_cancelled = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Cancelled' ) ? true : FALSE;
     $allows_waiters = nycc_rides_ride_allows_signups($ride) ;
 
     $no_of_riders = nycc_rides_count_riders($ride);
     $no_of_waiters = nycc_rides_count_waiters($ride);
-    $no_of_spots = is_numeric($ride->field_ride_spots['und'][0]['value']) ? $ride->field_ride_spots['und'][0]['value'] : 0;
+
+    $has_spots = isset($ride->field_ride_spots) && is_array($ride->field_ride_spots) && array_key_exists('und', $ride->field_ride_spots);
+    
+    $no_of_spots = $has_spots && is_numeric($ride->field_ride_spots['und'][0]['value']) ? $ride->field_ride_spots['und'][0]['value'] : 0;
 
     if ($no_of_spots)
       $available_spots = $no_of_spots - $no_of_riders;

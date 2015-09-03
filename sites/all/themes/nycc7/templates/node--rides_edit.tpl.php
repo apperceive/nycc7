@@ -52,22 +52,17 @@
     '#type' => 'textfield',
     '#title' => 'Additional dates',
     '#description' => 'Optional. Create additional submissions based on this one, but for the list of dates entered here. Separate multiple dates by commas.',
-    //'#cols' => 60,
-    //'#rows' => 1,
     '#weight' => 10,
     '#value' => '',           // this is required!!!
     '#prefix' => '',
     '#suffix' => '',
     '#id' => 'edit-additonal_dates',
-    //'#default_value' => 'testing 1 2 3',  // not used?
     '#input' => true,
     '#name' => 'additional_dates',
+    //'#cols' => 60,
+    //'#rows' => 1,
+    //'#default_value' => 'testing 1 2 3',  // not used?
     //'#resizable' => false,  // just kills window-shade sizer, not bootstrap or browsers
-    //'#tree' => true, 
-    //'#parents' => array('group_rides_htabs', 'group_rides_info', 'field_ride_timestamp', 'und', 0, 'value', 'additional_dates'),
-    //'#parents' => array('field_ride_timestamp', 'und', 0, 'value', 'additional_dates'),
-    //'#parents' => array('additional_dates'),
-    //'#processed' => true,
   ); 
   
   //dpm($form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']);
