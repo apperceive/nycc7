@@ -269,8 +269,6 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
     $node->content['field_ride_spots']['#title'] = t("Remaining/Spots");
     $node->content['field_ride_spots'][0]['#markup'] = nycc_rides_get_ride_spots_text($node);
   }  // ride
-    
-  }
 } // nycc_rides_node_view
 
 function nycc_rides_node_update($node) {
