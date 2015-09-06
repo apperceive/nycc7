@@ -35,7 +35,7 @@ function nycc_rides_menu() {
       'title' => 'NYCC Rides module settings',
       'description' => 'Settings for NYCC Rides Module',
       'page callback' => 'drupal_get_form',
-      'file' => 'nycc_rides_admin.inc', 
+      'file' => 'nycc_rides.admin.inc', 
       'access arguments' => array('administer nycc rides'),
       'type' => MENU_LOCAL_TASK,
     'access callback' => TRUE,
@@ -246,6 +246,7 @@ function nycc_rides_cron() {
 }
 
 function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
+  //dpm(nycc_rides_get_ride_coordinator_emails("a"));
   global $user;
   if ($node->type == 'rides') {
     rules_invoke_event('nycc_rides_ride_is_viewed', $user, $node);
@@ -1635,7 +1636,7 @@ function nycc_rides_count_waiters($data) {
 }
 
 function nycc_rides_get_ride_coordinator_emails($data) {
-  if(is_string($ride) && $ride=="all") {
+  if(is_string($data) && strtolower($data) == "all") {
     $level = "%";
   } else {  
     if (is_object($data) && $data->type && ($data->type == 'rides')) {
@@ -1655,11 +1656,11 @@ function nycc_rides_get_ride_coordinator_emails($data) {
     } else {
       return "";
     }
-   $level=+"-ride" ;
+   $level .= "-ride" ;
   }
 
   
-  $sql = "SELECT u.mail FROM {users} u, {node} n, {field_data_field_ride_coordinator} c WHERE n.uid = u.uid AND c.entity_id = n.nid AND c.revision_id = n.vid AND c.field_ride_coordinator_value = '$level'";
+  $sql = "SELECT u.mail FROM {users} u, {node} n, {field_data_field_ride_coordinator} c WHERE n.uid = u.uid AND c.entity_id = n.nid AND c.revision_id = n.vid AND c.field_ride_coordinator_value like '$level'";
 
   //dpm($sql);
   $q = db_query($sql);
@@ -2524,7 +2525,7 @@ function nycc_rides_inbound_callback() {
 		$email_debug = false;
   	
   	// Check signature.
-	if(_nycc_rides_isValid_signature('nycc_rides/inbound', $_POST)) {
+	if(_nycc_rides_isValid_signature('nycc_rides/inbound')) {
 		//iterate through the messages
     	foreach (json_decode($_POST['mandrill_events']) as $event) {
       		$args = array(
@@ -2537,7 +2538,7 @@ function nycc_rides_inbound_callback() {
       		);
 
       	// Add type & ID.
-      	$args += _nycc_rides_inbound_parse_address($args['to_mail']);
+      	//$args += _nycc_rides_inbound_parse_address($args['to_mail']);
       	$token = _nycc_rides_parse_email($args['to_mail']);
       	
       	if ($email_debug ) watchdog('nycc_rides', "Ride Token is " .  $token, array(), WATCHDOG_NOTICE) ;
@@ -2545,7 +2546,7 @@ function nycc_rides_inbound_callback() {
 		if (isset($ride)) {
 			if ($email_debug ) watchdog('nycc_rides', "Ride found is " .  $ride->title, array(), WATCHDOG_NOTICE) ;
 			if(nycc_rides_can_approve_rides($args['from_email'])) {
-				$ride_status = $ride->field_ride_status[0]['value'];
+				$ride_status = nycc_rides_get_ride_status($ride);
 				if ($email_debug ) watchdog('nycc_rides', 'Ride Status for Ride: ' . $ride->nid . " is " .  $ride_status, array(), WATCHDOG_NOTICE) ;	
 				if($ride_status == 'Revised' || $ride_status == 'Submitted') {
 					if ($email_debug ) watchdog('nycc_rides', 'Ride: ' . $ride->nid . ' needs approval', array(), WATCHDOG_NOTICE) ;
@@ -2610,6 +2611,11 @@ function _nycc_rides_has_approval($text) {
 
 
 function nycc_rides_send_msg($to, $from, $subject, $body) {
+	if (variable_get('nycc_rides_debug_to_log', '') == 1)
+		$email_debug = true;
+	else
+		$email_debug = false;
+    
 	if ($email_debug ) watchdog('nycc_rides', 'nycc_rides_send_msg called', array(), WATCHDOG_NOTICE) ;
 	$headers = array(
 		'MIME-Version' => '1.0',
@@ -2637,21 +2643,26 @@ function nycc_rides_can_approve_rides($sender='') {
 
 
 function nycc_rides_get_ride_from_token($token='') {
+	if (variable_get('nycc_rides_debug_to_log', '') == 1)
+		$email_debug = true;
+	else
+		$email_debug = false;
+    
 	if (empty($token)) {
     	return FALSE;
   	}
-  $sql =<<<EOS
-SELECT n.nid
-from node n
-inner join field_data_field_ride_token t on n.nid = t.entity_id and n.vid = t.revision_id
-where t.field_ride_token_value = ':s%' 
-limit 1  
-EOS;
-  $q = db_query($sql,
-          array(':s'=>$token));
+  $sql =" SELECT n.nid from node n inner join field_data_field_ride_token t on n.nid = t.entity_id and n.vid = t.revision_id where t.field_ride_token_value = '$token' limit 1";
+  //watchdog('nycc_rides', 'SQL: ' .$sql);
+  $q = db_query($sql);
   foreach($q as $row) {
-		if ($email_debug ) watchdog('nycc_rides', 'Token: ' . $token . " returned node: " . $row['nid'], array(), WATCHDOG_NOTICE) ;	
-		return node_load($row['nid']);
+    //watchdog('nycc_rides', 'Token: ' . $token . " returned: <pre>" . print_r($row) . '</pre>', array(), WATCHDOG_NOTICE) ;
+		if ($email_debug ) watchdog('nycc_rides', 'Token: ' . $token . " returned node: " . $row->nid, array(), WATCHDOG_NOTICE) ;	
+		$ride =  node_load($row->nid);
+    if (is_object($ride)) {
+      return $ride;
+    } else {
+      watchdog('nycc_rides', 'nycc_rides_get_ride_from_token: could not load ride:' . $row->nid . ' from token: ' . $token, array(), WATCHDOG_NOTICE) ;	
+    }
   }    
   if ($email_debug ) watchdog('nycc_rides', 'Ride could not be found for Token: ' . $token, array(), WATCHDOG_NOTICE) ;	
 }
@@ -2669,25 +2680,6 @@ function nycc_rides_email_alter(&$args) {
 }
 
 
-function _nycc_rides_inbound_parse_address($email = '') {
-/**
- * Parse email address to get arguments for rules.
- *
- * @param string $email
- *  The email address.
- *
- * @return array
- *  Arguments: type & id.
- */
-  $mail = explode('@', $email);
-  $data = explode('.', $mail[0]);
-
-  return array(
-    'type' => $data[0] ?: '',
-    'id' => $data[1] ?: '',
-  );
-}
-
 
 function _nycc_rides_parse_email($email = '') {
   $mail = explode('@', $email);
@@ -2695,11 +2687,11 @@ function _nycc_rides_parse_email($email = '') {
 }
 
 
-function _nycc_rides_isValid_signature($urlSuffix='', $_POST=''){
+function _nycc_rides_isValid_signature($urlSuffix=''){
 	if(!empty($urlSuffix) && !empty($_POST)) {
 		$url = url($urlSuffix, array('absolute' => TRUE));	
 		try {
-			foreach (nycc_rides_mandrill_get_api_object()->request('webhooks/list') as $list) {
+			foreach (mandrill_get_api_object()->webhooks->getList() as $list) {
 				if (($url == $list['url']) 
 					&& (_nycc_rides_generate_signature($url, $list['auth_key'], $_POST) == $_SERVER['HTTP_X_MANDRILL_SIGNATURE']))
 				{
@@ -2737,32 +2729,6 @@ function _nycc_rides_generate_signature($url, $webhook_key, $params) {
   	return base64_encode(hash_hmac('sha1', $signed_data, $webhook_key, TRUE));
 }
 
-
-function nycc_rides_mandrill_get_api_object($key='') {
-	if (empty($key)) {
-		$api_key = variable_get('nycc_rides_mandrill_api_key', '');
-	} else {
-		$api_key = $key;
-	}
-	if (empty($api_key)) {
-		//drupal_set_message("Please specify a valid API key.");
-		watchdog('nycc_rides', "nycc_rides_mandrill_get_api_object: Unable to connect to Mandrill. API KEY is empty", array(),  WATCHDOG_WARNING) ;	
-  	}
-  	try {
-	  	require_once('mandrill.class.php');
-		$m = new Mandrill($api_key, 60);
-		if (isset($m)) {
-			if ($email_debug ) watchdog('nycc_rides', 'Successfully connected to Mandrill', array(), WATCHDOG_NOTICE) ;	
-			return $m;
-		} else {
-			watchdog('nycc_rides', "nycc_rides_mandrill_get_api_object: Unable to connect to Mandrill", array(), WATCHDOG_WARNING) ;	
-  			throw $e;  		
-		}  	
-  	} catch(Mandrill_Exception $e) {
-  		watchdog('nycc_rides', "nycc_rides_mandrill_get_api_object: Unable to connect to Mandrill: " . $e->getMessage(), array(), WATCHDOG_WARNING) ;
-  		throw $e;	
-  	}
-}
 
 function random_text( $type = 'alnum', $length = 60 )
 {
