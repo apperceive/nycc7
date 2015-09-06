@@ -38,33 +38,31 @@ function nycc_rides2_output_ride_buttons($ride) {
   $buttons = array();
 
   // ride time as binary
-  $ridetime = strtotime(nycc_rides_get_ride_time_as_text($ride));
+  //$ridetime = strtotime(nycc_rides_get_ride_time_as_text($ride));
   
   $is_leader = nycc_rides_is_leader($ride, $user);
+  $is_rider = nycc_rides_is_rider($ride, $user);
+  $is_waiter = nycc_rides_is_waiting($ride, $user) ;
   $can_approve = nycc_rides_can_approve($user);
   $can_modify = nycc_rides_can_modify_ride($ride, $user);
   $ride_is_upcoming = nycc_rides_ride_is_upcoming($ride, $user);
   $should_be_enabled = nycc_rides_ride_should_be_enabled($ride);
+  $allows_waiters = nycc_rides_ride_allows_signups($ride) ;
+  $no_of_riders = nycc_rides_count_riders($ride);
+  $no_of_waiters = nycc_rides_count_waiters($ride);
 
   $has_status = isset($ride->field_ride_status) && is_array($ride->field_ride_status) && array_key_exists('und', $ride->field_ride_status);
   
+  $is_pending = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Pending' ) ? true : FALSE;
   $is_approved = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Approved' ) ? true : FALSE;
   $is_cancelled = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Cancelled' ) ? true : FALSE;
   $is_submitted = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Submitted' ) ? true : FALSE;
-  $allows_waiters = nycc_rides_ride_allows_signups($ride) ;
-
-  $is_rider = nycc_rides_is_rider($ride, $user);
-  $is_waiter = nycc_rides_is_waiting($ride, $user) ;
-
-  $no_of_riders = nycc_rides_count_riders($ride);
-  $no_of_waiters = nycc_rides_count_waiters($ride);
 
   $has_spots = isset($ride->field_ride_spots) && is_array($ride->field_ride_spots) && array_key_exists('und', $ride->field_ride_spots);
   
   $no_of_spots = $has_spots && is_numeric($ride->field_ride_spots['und'][0]['value']) ? $ride->field_ride_spots['und'][0]['value'] : 0;
 
-  if ($no_of_spots)
-    $available_spots = $no_of_spots - $no_of_riders;
+  $available_spots = $no_of_spots ? $no_of_spots - $no_of_riders : 0;
 
   $nid = $ride->nid;
   $title = $ride->title;
@@ -93,31 +91,36 @@ function nycc_rides2_output_ride_buttons($ride) {
     }
   } else {
     if ($is_approved && !$is_rider && !$is_waiter){
-      $buttons[] = nycc_rides2_nycc_ride_link('Join Ride (Disabled)', "javascript:alert('" . $should_be_enabled['reason'] . ".')");
+      //$buttons[] = nycc_rides2_nycc_ride_link('Join Ride (Disabled)', "javascript:alert('" . $should_be_enabled['reason'] . ".')");
+      $buttons[] = nycc_rides2_nycc_ride_link('Join Ride (Disabled)', "#", check_plain($should_be_enabled['reason']));
     }
   }
 
-  if ($can_modify && $is_approved) {
+  if ($is_approved && $can_modify) {
     $buttons[] = nycc_rides2_nycc_ride_link('Roster & Waiver Form', "/printpdf/nycc-riders-roster-pdf/$nid");
   }
 
-  if (!$is_cancelled && $can_modify) {
+  if (!$is_cancelled && ($is_submitted || $is_approved) && $can_modify) {
     $buttons[] = nycc_rides2_nycc_ride_link('Cancel Ride', "node/$nid/cancel");
   }
   
-  if (!$is_approved && $can_modify) {
+  if (!$is_approved && !$is_submitted && !$is_pending && $can_modify) {
     $buttons[] = nycc_rides2_nycc_ride_link('Resubmit Ride For Approval', "node/$nid/edit/resubmit");
+  }
+  
+  if (!$is_pending && !$is_cancelled && !$is_approved && !$is_submitted && $can_modify) {
+    $buttons[] = nycc_rides2_nycc_ride_link('Submit Ride For Approval', "node/$nid/edit/resubmit");
   }
   
   if ($no_of_riders && $can_modify) {
     $buttons[] = nycc_rides2_nycc_ride_link('Email Participants', "mailto:". nycc_rides_get_all_rider_emails($ride) ."?subject=Ride: $title");
   }
   
-  if ($no_of_riders && $can_modify && !$is_cancelled) {
+  if ($no_of_riders && !$is_cancelled && $can_modify) {
     $buttons[] = nycc_rides2_nycc_ride_link('Ride Attendance', "node/$nid/attend");
   }
   
-  if ($no_of_waiters && $can_modify ) {
+  if ($no_of_waiters && $can_modify) {
     $buttons[] = nycc_rides2_nycc_ride_link('Email Waitlist', "mailto:". nycc_rides_get_all_waitlist_emails($ride) ."?subject=$title");
   }
   
@@ -190,8 +193,8 @@ function nycc_rides2_nycc_ride_users() {
   return theme('nycc_ride_users');
 }
 
-function nycc_rides2_nycc_ride_link($text, $path, $classes='nycc-link nycc-ride-link') {
-  return theme('nycc_ride_link', array('text' => $text, 'path' => $path, 'classes' => $classes));
+function nycc_rides2_nycc_ride_link($text, $path, $title = '', $classes='nycc-link nycc-ride-link') {
+  return theme('nycc_ride_link', array('text' => $text, 'path' => $path, 'title' => $title, 'classes' => $classes));
 }
 
 function nycc_rides2_process_nycc_ride_link(&$variables) {
@@ -221,7 +224,7 @@ function nycc_rides2_process_nycc_ride_users(&$variables) {
 
 // override in theme, adding bootstrap classes there?
 function theme_nycc_ride_link($variables) {
-  return l($variables['text'], $variables['path'], array('attributes' => array('class' => array($variables['classes'])))); 
+  return l($variables['text'], $variables['path'], array('attributes' => array('title' => $variables['title'], 'class' => array($variables['classes'])))); 
 }
 
 function theme_nycc_ride_users($variables) {
@@ -233,7 +236,7 @@ function theme_nycc_ride_users($variables) {
 // TODO: move js to nycc_rides.js, add to module.info
 // reference: https://api.jqueryui.com/datepicker/#option-onSelect
 function _nycc_rides2_custom_form_uidatepicker($form, $form_state) {
-  $jsdatefmt = 'd M yy';
+  $jsdatefmt = 'M d yy';
   drupal_add_library('system', 'ui.datepicker');
   $js =<<< EOS
     (function ($) { 

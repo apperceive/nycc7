@@ -4,6 +4,11 @@
  * Default theme implementation to edit a node.
  *
  * Available variables:
+ *
+ *
+ * Notes:
+ *  1. this is called for rides node add, node edit and node content type edit 
+ *
  */
  
   // note: customizations in nycc_rides module's 
@@ -68,18 +73,18 @@
     //'#cols' => 60,
     //'#rows' => 1,
     //'#default_value' => 'testing 1 2 3',  // not used?
-    //'#resizable' => false,  // just kills window-shade sizer, not bootstrap or browsers
+    //'#resizable' => false,  
   ); 
   
- 
-  //dpm($form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']);
-  
-  
+   
   // TODO: show for admins or canapprove's ?
   if ($op == 'add') {
     hide($form['group_rides_htabs']['group_ride_rc_info']);
     // todo: hide leaders fieldset, but keep leader userref field?
     // todo: show advanced and vert tabs for admin - use link?
+    
+    
+    
   }
   
   if ($op == 'edit') {

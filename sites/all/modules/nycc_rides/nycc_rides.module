@@ -516,7 +516,7 @@ function _nycc_rides_additional_dates_validate($form, &$form_state) {
   $additional_dates = $_POST['additional_dates'];
   $additional_dates = check_plain($additional_dates);
   $additional_dates = trim($additional_dates);
-  $additional_dates = str_replace(' ', '', $additional_dates);
+  //$additional_dates = str_replace(' ', '', $additional_dates);
   
   if (drupal_strlen($additional_dates)) {
     // parse dates, validate each one
@@ -533,11 +533,9 @@ function _nycc_rides_additional_dates_validate($form, &$form_state) {
         //form_set_value($form['additional_dates'], $_POST['additional_dates'], $form_state);
         $errstr = theme('item_list', array('items' => $errors));
         form_set_error('additional_dates', "Invalid additional dates: $errstr");
-      }
-      else {
-        if (array_key_exists('additional_dates', $form))
-          form_set_value($form['additional_dates'], $additional_dates, $form_state);  
       } // count
+      if (array_key_exists('additional_dates', $form))
+        form_set_value($form['additional_dates'], $additional_dates, $form_state);  
     } // if array
   } // if additional dates
   else {
@@ -1038,11 +1036,20 @@ function nycc_rides_ride_cancel_confirm($ride = NULL, &$form_state ) {
     '#type' => 'value',
     '#value' => $ride->nid,
   );
+  
+  $has_status = isset($ride->field_ride_status) && is_array($ride->field_ride_status) && array_key_exists('und', $ride->field_ride_status);
+  
+  $is_submitted = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Submitted' ) ? true : FALSE;
+  $is_approved = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Approved' ) ? true : FALSE;
+
+  $msg = "";
+  if ($is_submitted || $is_approved)
+    $msg = "This action will cause email notifications to be sent to all particpants, leaders and ride coordinators";
 
   return confirm_form($form,
     t('Are you sure you want to cancel %title?', array('%title' => $ride->title)), 'node/'. $ride->nid,
     //t('This action cannot be undone.'),
-    t("This action will cause email notifications to be sent to all particpants, leaders and ride coordinators"),
+    t($msg),
     t('Yes, cancel this ride'),
     t('No')
   );
@@ -1844,58 +1851,46 @@ function nycc_rides_ride_has_changed($ride, $value_name = null) {
     if (isset($value_name))
       return nycc_compare_values($ride->{$value_name}, $rev->{$value_name});
 
-    if ($ride->title !=  $rev->title)
-    {
+    if ($ride->title !=  $rev->title) {
       //dpm("title is different");
       return true;
     }
-    if (! nycc_compare_values($ride->field_ride_description['und'][0]['value'], $rev->field_ride_description['und'][0]['value']))
-    {
+    if (!nycc_compare_values($ride->field_ride_description['und'][0]['value'], $rev->field_ride_description['und'][0]['value'])) {
       //dpm("description is different");
       return true;
     }
-    if (! nycc_compare_values($ride->field_ride_spots['und'][0]['value'] ,$rev->field_ride_spots['und'][0]['value']))
-          {
+    if (!nycc_compare_values($ride->field_ride_spots['und'][0]['value'] ,$rev->field_ride_spots['und'][0]['value'])) {
       //dpm("spots is different");
       return true;
     }
-    if (! nycc_compare_values($ride->field_ride_select_level['und'][0]['value'], $rev->field_ride_select_level['und'][0]['value']))
-    {
+    if (!nycc_compare_values($ride->field_ride_select_level['und'][0]['value'], $rev->field_ride_select_level['und'][0]['value'])) {
       //dpm("level is different");
       return true;
     }
-    if (! nycc_compare_values($ride->field_ride_distance_in_miles['und'][0]['value'], $rev->field_ride_distance_in_miles['und'][0]['value']))
-    {
+    if (!nycc_compare_values($ride->field_ride_distance_in_miles['und'][0]['value'], $rev->field_ride_distance_in_miles['und'][0]['value'])) {
       //dpm("miles is different");
       return true;
     }
-    if (! nycc_compare_values($ride->field_ride_speed['und'][0]['value'], $rev->field_ride_speed['und'][0]['value']))
-    {
+    if (!nycc_compare_values($ride->field_ride_speed['und'][0]['value'], $rev->field_ride_speed['und'][0]['value'])) {
       //dpm("speed is different");
       return true;
     }
-    if (! nycc_compare_values($ride->field_ride_timestamp['und'][0]['value'], $rev->field_ride_timestamp['und'][0]['value']))
-    {
+    if (!nycc_compare_values($ride->field_ride_timestamp['und'][0]['value'], $rev->field_ride_timestamp['und'][0]['value'])) {
       //dpm("timestamp is different");
       return true;
     }
-    if (! nycc_compare_values($ride->field_ride_from['und'][0]['value'], $rev->field_ride_from['und'][0]['value']))
-    {
+    if (!nycc_compare_values($ride->field_ride_from['und'][0]['value'], $rev->field_ride_from['und'][0]['value'])) {
       //dpm("from is different");
       return true;
     }
-    if (! nycc_compare_values($ride->field_ride_from_select['und'][0]['value'], $rev->field_ride_from_select['und'][0]['value']))
-    {
+    if (!nycc_compare_values($ride->field_ride_from_select['und'][0]['value'], $rev->field_ride_from_select['und'][0]['value'])) {
       //dpm("from select is different");
       return true;
     }
-
     return FALSE;
   } else {
     drupal_set_message(check_plain("nycc_rides_ride_has_changed: Could not load last revision for ride", "error"));
-
   }
-
 }
 
 function nycc_rides_get_ride_spots_text($node){

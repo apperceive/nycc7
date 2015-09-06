@@ -57,21 +57,20 @@ function nycc7_preprocess_page(&$variables) {
 } // nycc7_preprocess_page
 
 function nycc7_preprocess_node(&$variables) {
-  // note: this is not called for add/edit
+  // note: this is not called for add/edit forms, only for view
 } //nycc_rides2_preprocess_node 
 
 // can't we just add classes in preprocessor?
-function nycc7_nycc_ride_link($variables) {
-  return l($variables['text'], $variables['path'], array('attributes' => array('class' => array('btn btn-primary ' . $variables['classes'])))); 
+function nycc7_nycc_ride_link($variables) {  
+  $title = check_plain($variables['title']);
+  $path = $variables['path'];
+  $classes = $variables['classes'];
+  $text = $variables['text'];
+  if ($path == "#")
+    return "<a href='#' onclick='alert(\"$title\");' title='$title' class='btn btn-info $classes'>$text</a>";
+  
+  return l($text, $path, array('attributes' => array('title' => $title, 'class' => array('btn btn-primary ' . $classes)))); 
 }
-
-/*
-function nycc7_preprocess($variables) {
-  if (array_key_exists('text', $variables) && array_key_exists('path', $variables)) {
-    return l($variables['text'], $variables['path'], array('attributes' => array('class' => array('btn btn-primary nycc-button')))); 
-  }
-}*/
-
 
 // note: only handles two levels of menu
 function _nycc7_menu($menu, $flat = false) {
