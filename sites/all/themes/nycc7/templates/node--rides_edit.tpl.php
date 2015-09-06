@@ -4,6 +4,11 @@
  * Default theme implementation to edit a node.
  *
  * Available variables:
+ *
+ *
+ * Notes:
+ *  1. this is called for rides node add, node edit and node content type edit 
+ *
  */
  
   // note: customizations in nycc_rides module's 
@@ -17,6 +22,11 @@
   //print "<pre>" . var_export(array_keys($form), 1) . "</pre>";
   // print render($form['group_rides_htabs']);
 
+  
+  // todo: align fields on details tab with bootstrap row and cols
+  // todo: next/prev for add (but not edit) or use pages and pagegroup?
+  
+  
   $output = '';
   // move to nycc_rides_processor_node_ride_edit()
   $op = (arg(1) == 'add') ? 'add' : ((arg(2) == 'edit') ? 'edit' : 'noop');
@@ -56,21 +66,25 @@
     '#value' => '',           // this is required!!!
     '#prefix' => '',
     '#suffix' => '',
-    '#id' => 'edit-additonal_dates',
+    '#id' => 'edit-nycc-additional-dates',
     '#input' => true,
     '#name' => 'additional_dates',
+    '#attributes' => array('class' => array('datepicker')),
     //'#cols' => 60,
     //'#rows' => 1,
     //'#default_value' => 'testing 1 2 3',  // not used?
-    //'#resizable' => false,  // just kills window-shade sizer, not bootstrap or browsers
+    //'#resizable' => false,  
   ); 
   
-  //dpm($form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']);
-  
-  
+   
+  // TODO: show for admins or canapprove's ?
   if ($op == 'add') {
     hide($form['group_rides_htabs']['group_ride_rc_info']);
     // todo: hide leaders fieldset, but keep leader userref field?
+    // todo: show advanced and vert tabs for admin - use link?
+    
+    
+    
   }
   
   if ($op == 'edit') {
