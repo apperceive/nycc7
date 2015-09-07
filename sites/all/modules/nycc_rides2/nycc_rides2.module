@@ -44,17 +44,24 @@ function nycc_rides2_output_ride_buttons($ride) {
   // ride time as binary
   //$ridetime = strtotime(nycc_rides_get_ride_time_as_text($ride));
   
+  // user ride properties used for button display logic
   $is_leader = nycc_rides_is_leader($ride, $user);
   $is_rider = nycc_rides_is_rider($ride, $user);
   $is_waiter = nycc_rides_is_waiting($ride, $user) ;
+  
+  // user properties used for button display logic
   $can_approve = nycc_rides_can_approve($user);
   $can_modify = nycc_rides_can_modify_ride($ride, $user);
-  $ride_is_upcoming = nycc_rides_ride_is_upcoming($ride, $user);
+  
+  // ride properties used for button display logic
+  $ride_is_upcoming = nycc_rides_ride_is_upcoming($ride);
   $should_be_enabled = nycc_rides_ride_should_be_enabled($ride);
   $allows_waiters = nycc_rides_ride_allows_signups($ride) ;
   $no_of_riders = nycc_rides_count_riders($ride);
   $no_of_waiters = nycc_rides_count_waiters($ride);
 
+  // todo: refactor status code to make for simpler vars. use an array? eg return $status_is['pending']
+  // also, has_status not used here
   $has_status = isset($ride->field_ride_status) && is_array($ride->field_ride_status) && array_key_exists('und', $ride->field_ride_status);
   
   $is_pending = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Pending' ) ? true : FALSE;
@@ -62,80 +69,65 @@ function nycc_rides2_output_ride_buttons($ride) {
   $is_cancelled = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Cancelled' ) ? true : FALSE;
   $is_submitted = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Submitted' ) ? true : FALSE;
   $is_revised = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Revised' ) ? true : FALSE;
+  $is_flagged = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Flagged' ) ? true : FALSE;
 
+  // refactor (has_spots not used here)
   $has_spots = isset($ride->field_ride_spots) && is_array($ride->field_ride_spots) && array_key_exists('und', $ride->field_ride_spots);
-  
   $no_of_spots = $has_spots && is_numeric($ride->field_ride_spots['und'][0]['value']) ? $ride->field_ride_spots['und'][0]['value'] : 0;
-
   $available_spots = $no_of_spots ? $no_of_spots - $no_of_riders : 0;
 
+  // ride node properties using in building button links
   $nid = $ride->nid;
   $title = $ride->title;
   $path = "node/$nid";
   
-  if ($can_approve && $is_submitted) {
+  if ($can_approve && $is_submitted) 
     $buttons[] = nycc_rides2_nycc_ride_link('Approve Ride', "node/$nid/approve");
-  }
 
-  if ($can_modify) {
+  if ($can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Revise Ride Details', "node/$nid/edit");
-  }
 
   $buttons[] = nycc_rides2_nycc_ride_link('Email Ride Leaders', "mailto:". nycc_rides_get_all_leader_emails($ride) . "?subject=$title");
 
-  if ($is_waiter && $ride_is_upcoming && $is_approved) {
-    // TODO: check that signups are allowed?
+  // TODO: check that signups are allowed?
+  if ($is_waiter && $ride_is_upcoming && $is_approved)
     $buttons[] = nycc_rides2_nycc_ride_link('Withdraw From Waitlist', "node/$nid/withdraw");
-  }
   
-  if ($should_be_enabled['value'] == true){
-    if (!$no_of_spots || ($available_spots > 0)) {
-      $buttons[] = nycc_rides2_nycc_ride_link('Join Ride', "node/$nid/join");
-    } else if ($no_of_spots && (!$available_spots) && (!$is_rider) && (!$is_waiter)){
-      $buttons[] = nycc_rides2_nycc_ride_link('Add Me To The Waitlist', "node/$nid/join");
-    }
-  } else {
-    if ($is_approved && !$is_rider && !$is_waiter){
-      //$buttons[] = nycc_rides2_nycc_ride_link('Join Ride (Disabled)', "javascript:alert('" . $should_be_enabled['reason'] . ".')");
-      $buttons[] = nycc_rides2_nycc_ride_link('Join Ride (Disabled)', "#", check_plain($should_be_enabled['reason']));
-    }
-  }
-
-  if ($is_approved && $can_modify) {
+  if ($should_be_enabled['value'] && (!$no_of_spots || ($available_spots > 0)))
+    $buttons[] = nycc_rides2_nycc_ride_link('Join Ride', "node/$nid/join");
+    
+  if ($should_be_enabled['value'] && $no_of_spots && !$available_spots && !$is_rider && !$is_waiter)
+    $buttons[] = nycc_rides2_nycc_ride_link('Add Me To The Waitlist', "node/$nid/join");
+ 
+  if (!$should_be_enabled['value'] && $is_approved && !$is_rider && !$is_waiter)
+    $buttons[] = nycc_rides2_nycc_ride_link('Join Ride (Disabled)', "#", $should_be_enabled['reason']);
+  
+  if ($is_approved && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Roster & Waiver Form', "/printpdf/nycc-riders-roster-pdf/$nid");
-  }
 
-  if (!$is_cancelled && ($is_submitted || $is_approved) && $can_modify) {
+  if (!$is_cancelled && ($is_submitted || $is_approved) && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Cancel Ride', "node/$nid/cancel");
-  }
   
-  if (!$is_approved && !$is_submitted && !$is_pending && $can_modify) {
+  if (!$is_approved && !$is_submitted && !$is_pending && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Resubmit Ride For Approval', "node/$nid/edit/resubmit");
-  }
   
-  if (!$is_pending && !$is_cancelled && !$is_approved && !$is_submitted && !$is_revised && $can_modify) {
+  if (!$is_pending && !$is_cancelled && !$is_approved && !$is_submitted && !$is_revised && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Submit Ride For Approval', "node/$nid/edit/resubmit");
-  }
   
-  if ($no_of_riders && $can_modify) {
+  if ($no_of_riders && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Email Participants', "mailto:". nycc_rides_get_all_rider_emails($ride) ."?subject=Ride: $title");
-  }
   
-  if ($no_of_riders && !$is_cancelled && $can_modify) {
+  if ($no_of_riders && !$is_cancelled && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Ride Attendance', "node/$nid/attend");
-  }
   
-  if ($no_of_waiters && $can_modify) {
+  if ($no_of_waiters && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Email Waitlist', "mailto:". nycc_rides_get_all_waitlist_emails($ride) ."?subject=$title");
-  }
-  
-  if ($no_of_riders && $no_of_waiters && $can_modify) {
+    
+  if ($no_of_riders && $no_of_waiters && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Email Riders & Waitlist ', "mailto:". nycc_rides_get_all_rider_emails($ride) . "," . nycc_rides_get_all_waitlist_emails($ride) ."?subject=$title");
-  }
 
-  if ((arg(0) == 'node') && arg(1) && !arg(2) && $is_approved) {
+  if ((arg(0) == 'node') && arg(1) && !arg(2) && $is_approved)
     $buttons[] = nycc_rides2_nycc_ride_link('Re-list This Ride', "node/add/rides/relist/$nid");
-  }
 
   return $buttons;
 }
