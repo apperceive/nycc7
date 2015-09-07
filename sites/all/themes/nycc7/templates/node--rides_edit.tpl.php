@@ -67,23 +67,25 @@
   // note various spellings of attachments/attachements. ugh!
   $form['group_rides_htabs']['group_ride_attachements']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
 
+  /*
   $form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']['additional_dates'] = array(
     '#type' => 'textfield',
     '#title' => 'Additional dates',
     '#description' => 'Optional. Create additional submissions based on this one, but for the list of dates entered here. Separate multiple dates by commas.',
     '#weight' => 10,
-    '#value' => '',           // this is required!!!
+    '#value' => '',           // why is this is required for node form but not for general form!!!
     '#prefix' => '',
     '#suffix' => '',
     '#id' => 'edit-nycc-additional-dates',
-    '#input' => true,
+    '#input' => true,                            // why needed?
     '#name' => 'additional_dates',
     '#attributes' => array('class' => array('datepicker')),
     //'#cols' => 60,
     //'#rows' => 1,
-    //'#default_value' => 'testing 1 2 3',  // not used?
+    //'#default_value' => 'testing 1 2 3',  // not used? again, diff from general form
     //'#resizable' => false,  
   ); 
+  */
   
   if ($op == 'add') {
   }
