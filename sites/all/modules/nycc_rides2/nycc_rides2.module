@@ -1,9 +1,12 @@
 <?php
 
+
 // todo: plan better place for this and how things like this are handled
 // nycc_blocks.module or nycc_site.module or membership?
 // called by http://markus.test.nycc.org/admin/structure/block/manage/block/21/configure
 // function to replace block code
+// moved back to block due to scoping issues
+/*
 function nycc_rides2_renew_button_pages() {
   $editnids = array('2', '45511', '27725', '13902', '45415', '45416', '4', '45421', '6', '5', '45457', '45457', '45475', '45512', '45517', '45519', '45520', '45521');
   
@@ -29,6 +32,7 @@ function nycc_rides2_renew_button_pages() {
 return false;
 
 } // nycc_rides2_renew_button_pages
+*/
 
 
 // TODO: factor out links into theme - goal: no ui in this module
@@ -57,6 +61,7 @@ function nycc_rides2_output_ride_buttons($ride) {
   $is_approved = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Approved' ) ? true : FALSE;
   $is_cancelled = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Cancelled' ) ? true : FALSE;
   $is_submitted = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Submitted' ) ? true : FALSE;
+  $is_revised = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Revised' ) ? true : FALSE;
 
   $has_spots = isset($ride->field_ride_spots) && is_array($ride->field_ride_spots) && array_key_exists('und', $ride->field_ride_spots);
   
@@ -108,7 +113,7 @@ function nycc_rides2_output_ride_buttons($ride) {
     $buttons[] = nycc_rides2_nycc_ride_link('Resubmit Ride For Approval', "node/$nid/edit/resubmit");
   }
   
-  if (!$is_pending && !$is_cancelled && !$is_approved && !$is_submitted && $can_modify) {
+  if (!$is_pending && !$is_cancelled && !$is_approved && !$is_submitted && !$is_revised && $can_modify) {
     $buttons[] = nycc_rides2_nycc_ride_link('Submit Ride For Approval', "node/$nid/edit/resubmit");
   }
   

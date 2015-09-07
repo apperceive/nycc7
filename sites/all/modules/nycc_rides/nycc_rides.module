@@ -426,7 +426,14 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
 
     $status = nycc_rides_get_ride_status($form['#node']);
     $action = !nycc_rides_can_approve() && in_array($status, array('Approved', 'Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
-    $form['actions']['submit']['#value'] = $action; 
+    
+    $form['actions']['submit_ride'] = array(
+      '#type' => 'submit',
+      '#value' => $action,
+      '#submit' => '_nycc_rides_form_ride_submit',      
+    );
+    
+    //$form['actions']['submit']['#value'] = $action; 
     
     // note: 'group_rides_htabs' key does not yet exist yet. why?
     // dpm($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']);
@@ -436,10 +443,14 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
     $form['#validate'][] = '_nycc_rides_additional_dates_validate';
     $form['#after_build'] = array('_nycc_rides2_custom_form_uidatepicker');
     
-    $form['#cache'] = false;
+    //$form['#cache'] = false;
 
   } // rides_node_form 
 } // nycc_rides_form_alter
+
+function _nycc_rides_form_ride_submit($form, &$form_state) {
+  $form_state['values']['field_ride_status'] = 'Submitted';
+}
 
 function nycc_rides_block_info() {
   //TODO: IS THIS NEEDED?
@@ -491,18 +502,28 @@ function nycc_rides_block_view($delta = 0) {
 // CALLBACKS
 
 function _nycc_rides_additional_dates_submit($form, &$form_state) {
+  if (!isset($_POST['additional_dates'])) {
+    //drupal_set_message('submit: no $_POST["additional_dates"]');
+    return;
+  }
+  
+  //dpm(array($form, $form_state, $_POST));
+  //$additional_dates = $form_state['values'];
+  //$additional_dates = $form_state['inputs']['additional_dates']
+  $additional_dates = $_POST['additional_dates'];
+  $additional_dates = check_plain($additional_dates);
+  $additional_dates = trim($additional_dates);
+
   // create rides for additional dates based on newly submitted ride
   // why is this the only entry in values?
-  //dpm($form);
-  $additional_dates = $form_state['values'];
   if (drupal_strlen($additional_dates)) {
     $adsarr = explode(",", $additional_dates);
     if (is_array($adsarr)) {
-      foreach ($adsarr as $d) {
-        $ds = strtotime($d);
-        watchdog('nycc_node_update', "about to clone ride to date $d", array(), WATCHDOG_INFO);
+      foreach ($adsarr as $ds) {
+        $d = strtotime($ds);
+        watchdog('nycc_node_update', "about to clone ride to date $ds", array(), WATCHDOG_INFO);
         _nycc_rides_clone_ride($form['#node'], $d);
-        drupal_set_message(check_plain("Additional ride created for $d ($ds)"));
+        drupal_set_message("Additional ride created for $ds ($d)");
       } // for
       if (!$errors)
         form_set_value($form['additional_dates'], $additional_dates, $form_state);  
@@ -512,7 +533,7 @@ function _nycc_rides_additional_dates_submit($form, &$form_state) {
 
 function _nycc_rides_additional_dates_validate($form, &$form_state) {
   if (!isset($_POST['additional_dates'])) {
-    drupal_set_message(check_plain('no $_POST["additional_dates"]'));
+    //drupal_set_message('validate: no $_POST["additional_dates"]');
     return;
   }
   
@@ -527,10 +548,10 @@ function _nycc_rides_additional_dates_validate($form, &$form_state) {
     $errors = array();
     $adsarr = explode(",", $additional_dates);
     if (is_array($adsarr)) {
-      foreach ($adsarr as $d) {
-        $ds = strtotime($d);
-        if (!$ds)
-          $errors[] = "$d ($ds)";
+      foreach ($adsarr as $ds) {
+        $d = strtotime($ds);
+        if (!$d)
+          $errors[] = "$ds ($d)";
       } // for
       if (count($errors)) {
         //form_set_value($form['additional_dates'], $_POST['additional_dates'], $form_state);
@@ -945,6 +966,8 @@ function nycc_rides_approve_ride($ride = NULL) {
 }
 
 function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "Submitted") {
+  global $user;
+  
   if (!drupal_strlen(trim($datetime)))
     $datetime = REQUEST_TIME;
 
@@ -985,7 +1008,7 @@ function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "
                      'field_ride_author_id',
                      'field_ride_dow',
                      'field_ride_timestamp',
-                     'field_ride_attendees',
+                     //'field_ride_attendees',
                      'field_ride_current_riders',
                      'field_ride_current_leaders',
                      'field_ride_waitlist',
@@ -999,6 +1022,8 @@ function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "
     }  
   }
   
+  $node->field_ride_timestamp['und'][0]['value'] = date("Y-m-d H:i:s", $datetime);
+  
   //dpm($node);
   
   return $node;
@@ -1010,10 +1035,25 @@ function _nycc_rides_clone_ride($onode, $datetime = null, $ride_status = "Submit
   if (!drupal_strlen(trim($datetime)))
     $datetime = REQUEST_TIME;
   
-  $newnode = _nycc_rides_copy_ride($onode, new StdClass(), $datetime, $ride_status);
+  // prepare new target node for copy
+  $newnode = new StdClass();
+  $newnode->type = 'rides';
+  $newnode->is_new = true;
+  $newnode->status = 1;   // (1 or 0): published or unpublished
+  $node->promote = 0;  // (1 or 0): promoted to front page or not
+  $newnode->sticky = 0;  // (1 or 0): sticky at top of lists or not
+  $newnode->comment_count = 0;
+  $newnode->comment = 0;  // 2 = comments open, 1 = comments closed, 0 = comments hidden
+  $newnode->uid = $user->uid;  // Add author of the node
+  $newnode->created = time();
+  $newnode->language = LANGUAGE_NONE;  // Or e.g. 'en' if locale is enabled
+  node_object_prepare($newnode);  //Set some default values
+
+  $newnode = _nycc_rides_copy_ride($onode, $newnode, $datetime, $ride_status);
   if (!$newnode) 
     return false;
 
+  watchdog('rides', 'about to save node clone for :onid', array(':onid' => $onode->nid), WATCHDOG_INFO);
   node_save($newnode);
   
   if ($ride_status == "Submitted")

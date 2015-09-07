@@ -36,7 +36,14 @@
     hide($form['group_rides_htabs']['group_ride_rc_info']);
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_riders']);
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_waitlist']);
-    hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']);
+      
+    // hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']);
+  } // can_approve
+
+  else {
+    $form['group_rides_htabs']['group_ride_rc_info']['revs'] = array(
+      '#markup' => drupal_render($form['revision_information']),
+    );    
   }
   
   // where is best place to do this? does not work in hook_form_alter as 'group_rides_htabs' key does not yet exist yet
@@ -49,7 +56,9 @@
   
   $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_waitlist']['field_ride_waitlist']['und']['add_more']['#value'] = t("Add to waitlist");
   
+  /*
   $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']['field_ride_attendees']['und']['add_more']['#value'] = t("Add another attendee");
+  */
   
   //dpm($form['group_rides_htabs']['group_ride_attachements']);
   
@@ -76,28 +85,20 @@
     //'#resizable' => false,  
   ); 
   
-   
-  // TODO: show for admins or canapprove's ?
   if ($op == 'add') {
-    hide($form['group_rides_htabs']['group_ride_rc_info']);
-    // todo: hide leaders fieldset, but keep leader userref field?
-    // todo: show advanced and vert tabs for admin - use link?
-    
-    
-    
   }
   
   if ($op == 'edit') {
-    /*
-    if ($status == 'Approved')
-      $output .= drupal_render($form['revision_information']);
-    */
   }
+  
+  
   
   hide($form['actions']);
   
   $output .= drupal_render_children($form);
+  
   $output .= drupal_render($form['actions']['submit']);
+  $output .= drupal_render($form['actions']['submit_ride']);
   
 ?>
 
