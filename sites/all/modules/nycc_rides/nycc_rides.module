@@ -1989,7 +1989,6 @@ EOS;
     $coordinator->level = strtoupper(substr($coordinator->level,0,1)); // lcfirst($coordinator->level);
     $coordinators[] = $coordinator;
   }
-	dpm($coordinators);
   return $coordinators;
 }
 
@@ -2017,7 +2016,6 @@ function nycc_rides_output_ride_coordinators() {
       $coordinator->phone . ",<br/><a title='Send email...' href=mailto:c-rides@nycc.org>c-rides@nycc.org</a></div>";
   }
   $output .= "</div>";
-  dpm($output);
   return $output;
 }
 
