@@ -175,7 +175,7 @@ function nycc_rides_menu() {
   );
   
   $items['node/%node/copy'] = array(
-    'title' => 'Copy ride',
+    'title' => 'Copy Ride',
     'page callback' => 'drupal_get_form',
     'access callback' => TRUE,
     'page arguments' => array('nycc_rides_copy_ride_form', 1),
@@ -827,8 +827,7 @@ function nycc_rides_join_ride($nid) {
       } else {
         $ride->field_ride_waitlist['und'][0]['uid'] = $user_uid;
       }
-
-      //$ride->field_ride_additional_dates['und'][0]['value'] = "";
+      
       node_save($ride);
 
         //TODO: Add back when everything is working
@@ -853,7 +852,6 @@ function nycc_rides_join_ride($nid) {
         $ride->field_ride_current_riders['und'][0]['uid'] = $user_uid;
       }
         
-      //$ride->field_ride_additional_dates['und'][0]['value'] = "";
       node_save($ride);
               
       //fire the rules
@@ -898,7 +896,7 @@ function nycc_rides_withdraw_from_ride($nid=null) {
                  WATCHDOG_INFO);
 
         $was_joined = TRUE;
-        //$ride->field_ride_additional_dates['und'][0]['value'] = "";
+        
         node_save($ride);
 
         nycc_rides_log_action($ride, $user_uid, "Withdraw From Ride");          
@@ -922,7 +920,6 @@ function nycc_rides_withdraw_from_ride($nid=null) {
 
         $was_joined = TRUE;
 
-        //$ride->field_ride_additional_dates['und'][0]['value'] = "";
         node_save($ride);
 
         //fire rules
@@ -1928,7 +1925,7 @@ function nycc_rides_update_ride_status($ride, $ride_status) {
   if ($ride && in_array($ride_status, nycc_rides_ride_status_options())) {
     //$old_status = nycc_rides_get_ride_status($node);
     $ride->field_ride_status['und'][0]['value'] = $ride_status;
-    //$ride->field_ride_additional_dates['und'][0]['value'] = "";
+    
     node_save($ride);
     
     global $user;
