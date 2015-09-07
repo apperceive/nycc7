@@ -1,5 +1,10 @@
 <?php
 
+// rename to nycc_rides.theme.inc
+// move theme hook to nycc_rides.module
+// add to info file
+
+
 
 // todo: plan better place for this and how things like this are handled
 // nycc_blocks.module or nycc_site.module or membership?
@@ -192,7 +197,9 @@ function nycc_rides2_nycc_ride_users() {
   return theme('nycc_ride_users');
 }
 
+//function nycc_rides2_nycc_ride_link($text, $path, $title = '', $attributes=array('class' => 'nycc-link nycc-ride-link')) {
 function nycc_rides2_nycc_ride_link($text, $path, $title = '', $classes='nycc-link nycc-ride-link') {
+  //return theme('nycc_ride_link', array('text' => $text, 'path' => $path, 'title' => $title, 'attributes' => $attributes));
   return theme('nycc_ride_link', array('text' => $text, 'path' => $path, 'title' => $title, 'classes' => $classes));
 }
 
@@ -223,6 +230,11 @@ function nycc_rides2_process_nycc_ride_users(&$variables) {
 
 // override in theme, adding bootstrap classes there?
 function theme_nycc_ride_link($variables) {
+  // $arr = array();
+  // foreach $variables['attributes'] as $key => $value
+  //  $arr[$key] = $value
+  // l($variables['text'], $variables['path'], array('attributes' => $arr)); 
+  
   return l($variables['text'], $variables['path'], array('attributes' => array('title' => $variables['title'], 'class' => array($variables['classes'])))); 
 }
 
@@ -234,14 +246,15 @@ function theme_nycc_ride_users($variables) {
 // todo: set additional date date format from ride timestamp field format
 // TODO: move js to nycc_rides.js, add to module.info
 // reference: https://api.jqueryui.com/datepicker/#option-onSelect
-function _nycc_rides2_custom_form_uidatepicker($form, $form_state) {
+// change to theme_nycc_datepicker?
+function _nycc_rides2_custom_form_uidatepicker($element, $form_state) {
   $jsdatefmt = 'M d yy';
   drupal_add_library('system', 'ui.datepicker');
   $js =<<< EOS
     (function ($) { 
       $('#edit-nycc-additional-dates.datepicker').datepicker({
         dateFormat: '$jsdatefmt',
-        onSelect: function(selectDate, obj) {   var w = obj.lastVal; /*alert(w); var v = $(this).val(); alert(v);*/ w = w.length ? w + ", " + selectDate : selectDate;  $('#edit-nycc-additional-dates').val(w); },
+        onSelect: function(selectDate, obj) { var w = obj.lastVal;  $('#edit-nycc-additional-dates').val(w.length ? w + ", " + selectDate : selectDate); },
         //showOn: 'both',
         //buttonImage: 'sites/all/modules/custom/custom_form/images/calendar.png',
         //buttonImageOnly: true,
@@ -252,5 +265,5 @@ EOS;
   $args = array('type' => 'inline', 'scope' => 'footer', 'weight' => 5);
   drupal_add_js($js, $args);
 
-    return $form;
+  return $element;
 }

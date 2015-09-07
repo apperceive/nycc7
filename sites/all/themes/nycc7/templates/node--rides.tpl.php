@@ -104,7 +104,14 @@
   hide($content['field_ride_type']);
   hide($content['field_ride_distance_in_miles']);
   hide($content['nycc_buttons']);
+
+
+  $ride_is_upcoming = nycc_rides_ride_is_upcoming($node);
+  if (!$ride_is_upcoming)
+    drupal_set_message("<em><b>Please note that this ride's date has passed.</b></em>");
+  
 ?>
+
 <article id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
   <?php if ((!$page && !empty($title)) || !empty($title_prefix) || !empty($title_suffix) || $display_submitted): ?>
   

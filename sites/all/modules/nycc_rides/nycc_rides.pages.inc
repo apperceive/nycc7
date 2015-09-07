@@ -1,40 +1,38 @@
 <?php
 
-function nycc_rides_copy_ride_form($form, $form_state, $node) {
+function nycc_rides_copy_ride_form($form, &$form_state, $node) {
   
   // TODO: sanity check on $node and $node->type == 'rides'
   
   drupal_set_title("Copy Ride <em/>" . $node->title . "</em>", PASS_THROUGH);
-  
+
+  // TODO: CONSIDER: show preview of node or other useful data
   // TODO: show current date
   
-  // TODO: add datepicker
-  
-  // TODO: CONSIDER: show preview of node or other useful data
-  
-  // TODO: instructions
+  // TODO: better instructions
   $form['instructions'] = array(
     '#markup' => "<h3>This page is under construction.</h3>",
   );
   
   // text field - copy from additional_dates
   $form['additional_dates'] = array(
-    '#type' => 'textarea',
-    '#title' => 'Additional dates',
+    '#type' => 'textfield',
+    '#title' => "Replicate <em/>" . $node->title . "</em> to the following dates",
     '#description' => 'Create additional submissions based on this one, but for the list of dates entered here. Separate multiple dates by commas.',
-    '#value' => '',           // this is required!!!
     '#prefix' => '',
     '#suffix' => '',
     '#id' => 'edit-nycc-additional-dates',
-    '#input' => true,
     '#name' => 'additional_dates',
     '#required' => true,
-    '#attributes' => array('class' => array('datepicker')),
+    '#attributes' => array(
+      'class' => array('datepicker'), 
+      'placeholder' => 'Example: ' . date("M d Y", strtotime('+1 month')) . ', ' . date("M d Y", strtotime('+2 month')),
+    ),
     //'#weight' => 10,
     //'#cols' => 60,
     //'#rows' => 1,
-    //'#default_value' => 'testing 1 2 3',  // not used?
     //'#resizable' => false,  
+    //'#default_value' => 'testing 1 2 3',  // not used?
   );
 
   $form['submit'] = array(
@@ -42,19 +40,78 @@ function nycc_rides_copy_ride_form($form, $form_state, $node) {
     '#value' => 'Submit Copies',
   );
   
+  $form['#after_build'] = array('_nycc_rides2_custom_form_uidatepicker');
+  
+  if (!array_key_exists('#node', $form))
+    $form['#node'] = $node;
+
   return $form;
   
-}
+} // nycc_rides_copy_ride_form
 
 // how best pass $node to callbacks? use $form['#node']???
 
-function nycc_rides_copy_ride_form_validate($form, $form_state) {
-  // copy from additional_dates, do not allow current date
-}
+function nycc_rides_copy_ride_form_validate($form, &$form_state) {
+  dpm(get_defined_vars());
+
+  // TODO: refactor this to a utilty function to validate a list of dates and return errors
+
+  $additional_dates = $form_state['values']['additional_dates'];
+  $additional_dates = check_plain($additional_dates);
+  $additional_dates = trim($additional_dates);
+  //$additional_dates = str_replace(' ', '', $additional_dates);
+  
+  if (drupal_strlen($additional_dates)) {
+    // parse dates, validate each one
+    // TODO: remove dups and dup of current node date
+    $errors = array();
+    $adsarr = explode(",", $additional_dates);
+    if (is_array($adsarr)) {
+      foreach ($adsarr as $ds) {
+        $d = strtotime($ds);
+        if (!$d)
+          $errors[] = "$ds ($d)";
+      } // for
+      if (count($errors)) {
+        //form_set_value($form['additional_dates'], $_POST['additional_dates'], $form_state);
+        $errstr = theme('item_list', array('items' => $errors));
+        form_set_error('additional_dates', "Invalid additional dates: $errstr");
+      } // count
+      if (array_key_exists('additional_dates', $form))
+        form_set_value($form['additional_dates'], $additional_dates, $form_state);  
+    } // if array
+  } // if additional dates
+  else {
+    // drupal_set_message('$_POST["additional_dates"] has no length');    
+  }
+  
+  //dpm($additional_dates);
+} // nycc_rides_copy_ride_form_validate
 
 
-function nycc_rides_copy_ride_form_submit($form, $form_state) {
-  // copy from additional_dates, but use values
-}
+function nycc_rides_copy_ride_form_submit($form, &$form_state) {
+
+  $additional_dates = $form_state['values']['additional_dates'];
+  $additional_dates = check_plain($additional_dates);
+  $additional_dates = trim($additional_dates);
+
+  $onode = $form['#node'];
+
+  //dpm(get_defined_vars());
+  
+  if (drupal_strlen($additional_dates)) {
+    $adsarr = explode(",", $additional_dates);
+    if (is_array($adsarr)) {
+      foreach ($adsarr as $ds) {
+        $d = strtotime($ds);
+        watchdog('nycc_node_update', "about to clone ride to date $ds", array(), WATCHDOG_INFO);
+        $newnode = _nycc_rides_clone_ride($onode, $d);
+        drupal_set_message("Additional ride created for $ds ($d)");
+      } // for
+      if (!$errors)
+        form_set_value($form['additional_dates'], $additional_dates, $form_state);  
+    } // if array
+  } // if additional dates
+} // nycc_rides_copy_ride_form_submit
 
 
