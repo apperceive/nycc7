@@ -4,17 +4,16 @@
 TODO List:
 
 1) use leading underscore or other naming convention for all non-hook functions so as to not avoid unintentional overrides 
-
 2) move all non-hook functions to an include file (e.g., nycc_rides.utils.inc)
-
 3) run this through drupal coder module check
-
 6) add back Event Logging
 7) add back ride rosters with PDF
 8) add back ride reports
 18) fix SQL in nycc_rides_ride_roster_email
 22) fix nycc_rides_ride_overlaps_user
 23) fix viewRideSignups
+24) write script to apply timestamp to all rides
+25) write script to collapse the two from locations into the new start location field.
 */
 
 /*TODO LIST WHEN DEPLOYING TO PROD
@@ -250,6 +249,7 @@ function nycc_rides_cron() {
 }
 
 function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
+  
   global $user;
   if ($node->type == 'rides') {
     rules_invoke_event('nycc_rides_ride_is_viewed', $user, $node);
@@ -364,7 +364,8 @@ function nycc_rides_node_presave($node) {
     if (!($num_spots > 0)){
       $node->field_ride_signups['und'][0]['value'] = "No signups or waiting list";
       if ($r_debug)
-        watchdog("nycc_rides", "Presave: Spots is 0: Setting Ride Signups to No signups or waiting list for Ride: %title", array('%title' => $node->title), WATCHDOG_INFO);
+        watchdog("nycc_rides", "Presave: Spots is 0: Setting Ride Signups to No signups or waiting list for Ride: %title",
+                 array('%title' => $node->title), WATCHDOG_INFO);
     }
 
     if (nycc_rides_ride_allows_signups($node) && ($num_spots > $num_riders) && ($num_waiters > 0)) {
@@ -373,7 +374,8 @@ function nycc_rides_node_presave($node) {
         $waiter = array_shift($node->field_ride_waitlist['und']);
         $node->field_ride_current_riders['und'][] = array("uid" => $waiter['uid']);
         if ($r_debug) 
-          watchdog("rides", "user: (%uid) auto joined from ride waitlist: %nid (%rname)", array( '%uid' => $waiter['uid'], '%nid'=> $node->nid, '%rname' => $node->title), WATCHDOG_INFO);
+          watchdog("rides", "user: (%uid) auto joined from ride waitlist: %nid (%rname)",
+                   array( '%uid' => $waiter['uid'], '%nid'=> $node->nid, '%rname' => $node->title), WATCHDOG_INFO);
         rules_invoke_event('nycc_rides_member_joins_from_waitlist', user_load($waiter['uid']), $node);
         //TODO: Add this back once everything else is working
         //nycc_rides_log_action($node, $waiter['uid'], "Auto-Join From Waitlist");
@@ -460,7 +462,7 @@ function nycc_rides_block_save($delta = 0, $edit = array()) {
 
 function nycc_rides_block_view($delta = 0) {
   //TODO: IS THIS NEEDED?
-
+  $block = array();
   if ($delta == 0) {
     $block['content'] = nycc_rides_output_ride_participants();
     $block['subject'] = drupal_strlen($block['content']) ? t('Ride Participants') : "";
@@ -1941,7 +1943,7 @@ function nycc_rides_ride_coordinators() {
   ORDER BY 1;
 EOS;
   $results = db_query($sql);
-  foreach ($result as $coordinator) {
+  foreach ($results as $coordinator) {
     $coordinator->level = strtoupper(substr($coordinator->level,0,1)); // lcfirst($coordinator->level);
     $coordinators[] = $coordinator;
   }
