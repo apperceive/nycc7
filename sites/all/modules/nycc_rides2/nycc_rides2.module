@@ -126,9 +126,11 @@ function nycc_rides2_output_ride_buttons($ride) {
   if ($no_of_riders && $no_of_waiters && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Email Riders & Waitlist ', "mailto:". nycc_rides_get_all_rider_emails($ride) . "," . nycc_rides_get_all_waitlist_emails($ride) ."?subject=$title");
 
-  if ((arg(0) == 'node') && arg(1) && !arg(2) && $is_approved)
+  if ((arg(0) == 'node') && arg(1) && !arg(2) && $is_approved) {
     $buttons[] = nycc_rides2_nycc_ride_link('Re-list This Ride', "node/add/rides/relist/$nid");
-
+    $buttons[] = nycc_rides2_nycc_ride_link('Copy This Ride', "node/$nid/copy");
+  }
+  
   return $buttons;
 }
 
