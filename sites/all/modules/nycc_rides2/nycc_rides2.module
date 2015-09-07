@@ -8,7 +8,7 @@ function nycc_rides2_renew_button_pages() {
   $editnids = array('2', '45511', '27725', '13902', '45415', '45416', '4', '45421', '6', '5', '45457', '45457', '45475', '45512', '45517', '45519', '45520', '45521');
   
   if (drupal_is_front_page() || 
-      (arg(0) == "node" && arg(2) != "edit" && in_array(arg(1), $editids)) ||
+      (arg(0) == "node" && arg(2) != "edit" && in_array(arg(1), $editnids)) ||
       (arg(0) == "node" && arg(1) =="add" && arg(2) == "rides") ||
       (arg(0) == "upcoming-events") )
     return true;
