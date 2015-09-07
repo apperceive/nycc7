@@ -997,7 +997,6 @@ function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "
 
   $node->is_new = true;
   $node->comment_count = 0;
->>>>>>> 3110e47e42a98e50a1e43b0cd35c79aa319a2a58
    
   $item = array($onode);
   foreach ($item['0'] as $field => $value) {
