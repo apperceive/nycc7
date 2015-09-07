@@ -1987,6 +1987,7 @@ EOS;
     $coordinator->level = strtoupper(substr($coordinator->level,0,1)); // lcfirst($coordinator->level);
     $coordinators[] = $coordinator;
   }
+	dpm($coordinators);
   return $coordinators;
 }
 
