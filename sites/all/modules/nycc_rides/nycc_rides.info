@@ -9,6 +9,7 @@ files[] = nycc_rides.tokens.inc
 files[] = nycc_rides.actions.inc
 files[] = nycc_rides.admin.inc
 files[] = nycc_rides.email_approvals.inc
+files[] = nycc_rides.ride-coordinators.inc
 configure = admin/config/nycc/rides
 
 
