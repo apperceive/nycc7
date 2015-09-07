@@ -67,6 +67,7 @@
   // note various spellings of attachments/attachements. ugh!
   $form['group_rides_htabs']['group_ride_attachements']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
 
+  /*
   $form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']['additional_dates'] = array(
     '#type' => 'textfield',
     '#title' => 'Additional dates',
@@ -84,6 +85,7 @@
     //'#default_value' => 'testing 1 2 3',  // not used? again, diff from general form
     //'#resizable' => false,  
   ); 
+  */
   
   if ($op == 'add') {
   }

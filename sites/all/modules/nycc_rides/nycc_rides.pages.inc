@@ -52,7 +52,6 @@ function nycc_rides_copy_ride_form($form, &$form_state, $node) {
 // how best pass $node to callbacks? use $form['#node']???
 
 function nycc_rides_copy_ride_form_validate($form, &$form_state) {
-  dpm(get_defined_vars());
 
   // TODO: refactor this to a utilty function to validate a list of dates and return errors
 
@@ -73,7 +72,6 @@ function nycc_rides_copy_ride_form_validate($form, &$form_state) {
           $errors[] = "$ds ($d)";
       } // for
       if (count($errors)) {
-        //form_set_value($form['additional_dates'], $_POST['additional_dates'], $form_state);
         $errstr = theme('item_list', array('items' => $errors));
         form_set_error('additional_dates', "Invalid additional dates: $errstr");
       } // count
@@ -84,8 +82,7 @@ function nycc_rides_copy_ride_form_validate($form, &$form_state) {
   else {
     // drupal_set_message('$_POST["additional_dates"] has no length');    
   }
-  
-  //dpm($additional_dates);
+
 } // nycc_rides_copy_ride_form_validate
 
 
@@ -97,8 +94,6 @@ function nycc_rides_copy_ride_form_submit($form, &$form_state) {
 
   $onode = $form['#node'];
 
-  //dpm(get_defined_vars());
-  
   if (drupal_strlen($additional_dates)) {
     $adsarr = explode(",", $additional_dates);
     if (is_array($adsarr)) {
