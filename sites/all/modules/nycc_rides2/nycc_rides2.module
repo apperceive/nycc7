@@ -1,9 +1,12 @@
 <?php
 
+
 // todo: plan better place for this and how things like this are handled
 // nycc_blocks.module or nycc_site.module or membership?
 // called by http://markus.test.nycc.org/admin/structure/block/manage/block/21/configure
 // function to replace block code
+// moved back to block due to scoping issues
+/*
 function nycc_rides2_renew_button_pages() {
   $editnids = array('2', '45511', '27725', '13902', '45415', '45416', '4', '45421', '6', '5', '45457', '45457', '45475', '45512', '45517', '45519', '45520', '45521');
   
@@ -29,6 +32,7 @@ function nycc_rides2_renew_button_pages() {
 return false;
 
 } // nycc_rides2_renew_button_pages
+*/
 
 
 // TODO: factor out links into theme - goal: no ui in this module
