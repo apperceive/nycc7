@@ -561,7 +561,7 @@ function _nycc_rides_additional_dates_validate($form, &$form_state) {
     } // if array
   } // if additional dates
   else {
-    drupal_set_message('$_POST["additional_dates"] has no length');    
+    // drupal_set_message('$_POST["additional_dates"] has no length');    
   }
   
   //dpm($additional_dates);
@@ -1788,6 +1788,8 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
     //if nothing else disqualified the ride, true should be returned
     $return_value = array('value'=>true, 'reason'=>"", 'display_msg'=>false);
   }
+  
+  $return_value['reason']  = check_plain($return_value['reason']);
 
   return $return_value;
 
