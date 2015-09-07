@@ -452,50 +452,50 @@ function _nycc_rides_form_ride_submit($form, &$form_state) {
   $form_state['values']['field_ride_status'] = 'Submitted';
 }
 
-function nycc_rides_block_info() {
-  //TODO: IS THIS NEEDED?
-  $blocks[0]['info'] = t('NYCC Ride Participants');
-  $blocks[0]['cache'] = 'BLOCK_NO_CACHE' ;
-  $blocks[1]['info'] = t('NYCC Ride Waiting List');
-  $blocks[1]['cache'] = 'BLOCK_NO_CACHE' ;
-  $blocks[2]['info'] = t('Ride Coordinators Email');
-  $blocks[2]['cache'] = 'BLOCK_CACHE_PER_PAGE';
-  return $blocks;
-}
-
-function nycc_rides_block_configure($delta = 0) {
-  return $form;
-}
-
-function nycc_rides_block_save($delta = 0, $edit = array()) {
-    break;
-} 
-
-function nycc_rides_block_view($delta = 0) {
-  //TODO: IS THIS NEEDED?
-  $block = array();
-  if ($delta == 0) {
-    $block['content'] = nycc_rides_output_ride_participants();
-    $block['subject'] = drupal_strlen($block['content']) ? t('Ride Participants') : "";
-  }
-  if ($delta == 1) {
-    $block['content'] = nycc_rides_output_ride_waitlist();
-    $block['subject'] = drupal_strlen($block['content']) ? t('Ride Waiting List') : "";
-  }
-//       if ($delta == 2) {
-//         $block['subject'] = t('Group Links');
-//         $block['content'] = nycc_output_group_links_block();
-//       }
-//       if ($delta == 3) {
-//         $block['subject'] = t('Group Ride Withdrawals');
-//         $block['content'] = nycc_output_group_ride_withdrawals_block();
-//       }
-  if ($delta == 2) {
-    $block['subject'] = t('Ride Coordinators Email');
-    $block['content'] = nycc_rides_output_ride_coordinators_email_block();
-  }
-  return $block;
-} //nycc_rides_block_view
+//function nycc_rides_block_info() {
+//  //TODO: IS THIS NEEDED?
+//  $blocks[0]['info'] = t('NYCC Ride Participants');
+//  $blocks[0]['cache'] = 'BLOCK_NO_CACHE' ;
+//  $blocks[1]['info'] = t('NYCC Ride Waiting List');
+//  $blocks[1]['cache'] = 'BLOCK_NO_CACHE' ;
+//  $blocks[2]['info'] = t('Ride Coordinators Email');
+//  $blocks[2]['cache'] = 'BLOCK_CACHE_PER_PAGE';
+//  return $blocks;
+//}
+//
+//function nycc_rides_block_configure($delta = 0) {
+//  return $form;
+//}
+//
+//function nycc_rides_block_save($delta = 0, $edit = array()) {
+//    break;
+//} 
+//
+//function nycc_rides_block_view($delta = 0) {
+//  //TODO: IS THIS NEEDED?
+//  $block = array();
+//  if ($delta == 0) {
+//    $block['content'] = nycc_rides_output_ride_participants();
+//    $block['subject'] = drupal_strlen($block['content']) ? t('Ride Participants') : "";
+//  }
+//  if ($delta == 1) {
+//    $block['content'] = nycc_rides_output_ride_waitlist();
+//    $block['subject'] = drupal_strlen($block['content']) ? t('Ride Waiting List') : "";
+//  }
+////       if ($delta == 2) {
+////         $block['subject'] = t('Group Links');
+////         $block['content'] = nycc_output_group_links_block();
+////       }
+////       if ($delta == 3) {
+////         $block['subject'] = t('Group Ride Withdrawals');
+////         $block['content'] = nycc_output_group_ride_withdrawals_block();
+////       }
+//  if ($delta == 2) {
+//    $block['subject'] = t('Ride Coordinators Email');
+//    $block['content'] = nycc_rides_output_ride_coordinators_email_block();
+//  }
+//  return $block;
+//} //nycc_rides_block_view
 
 // END HOOK Functions
 
