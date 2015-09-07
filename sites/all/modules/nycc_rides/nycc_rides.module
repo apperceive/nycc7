@@ -175,7 +175,7 @@ function nycc_rides_menu() {
   );
   
   $items['node/%node/copy'] = array(
-    'title' => 'Copy ride',
+    'title' => 'Copy Ride',
     'page callback' => 'drupal_get_form',
     'access callback' => TRUE,
     'page arguments' => array('nycc_rides_copy_ride_form', 1),

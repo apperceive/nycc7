@@ -6,17 +6,18 @@ function nycc_rides_copy_ride_form($form, $form_state, $node) {
   
   // text field - copy from additional_dates
   $form['additional_dates'] = array(
-    '#type' => 'textfield',
+    '#type' => 'textarea',
     '#title' => 'Additional dates',
-    '#description' => 'Optional. Create additional submissions based on this one, but for the list of dates entered here. Separate multiple dates by commas.',
-    '#weight' => 10,
+    '#description' => 'Create additional submissions based on this one, but for the list of dates entered here. Separate multiple dates by commas.',
     '#value' => '',           // this is required!!!
     '#prefix' => '',
     '#suffix' => '',
     '#id' => 'edit-nycc-additional-dates',
     '#input' => true,
     '#name' => 'additional_dates',
+    '#required' => true,
     '#attributes' => array('class' => array('datepicker')),
+    //'#weight' => 10,
     //'#cols' => 60,
     //'#rows' => 1,
     //'#default_value' => 'testing 1 2 3',  // not used?
