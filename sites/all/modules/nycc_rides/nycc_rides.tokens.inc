@@ -70,7 +70,7 @@ function nycc_rides_tokens($type, $tokens, array $data = array(), array $options
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_names($node)) : nycc_rides_get_ride_coordinator_names($node) ;
           break;  
         case 'nycc_rides_ride_coordinator_email':
-          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_meails($node)) : nycc_rides_get_ride_coordinator_meails($node) ;
+          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_emails($node)) : nycc_rides_get_ride_coordinator_emails($node) ;
           break;  
       } //switch
     }//for each
