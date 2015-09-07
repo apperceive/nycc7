@@ -1,4 +1,4 @@
-<?
+<?php
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //Ride Coordinator RELATED FUNCTIONS
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -166,7 +166,7 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 	$form['badge'] = array(
 		'#type' => 'select',
 		'#required' => false,
-		'#default_value' => $badge_names[0],
+		'#default_value' => $badge_names[''],
 		'#title' => t("Target Members By Badge"),
 		'#options' => $badge_names,
 		'#description' => "Only applies if you are targeting members by Badge",
@@ -201,6 +201,7 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 		'#type' => 'submit',
 		'#value' => t('Send'),
 	);
+	return($form);
 }
 
 function nycc_rides_ride_coordinators_email_validate($form, &$form_state) {
