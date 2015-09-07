@@ -114,7 +114,7 @@ function nycc_rides_output_ride_coordinators() {
 
 
 //RIDE COORDINATOR EMAIL FORM
-function nycc_rides_ride_coordinators_email(&$form_state) {
+function nycc_rides_ride_coordinators_email($form, &$form_state) {
   global $user;
 	$form = array();
 
@@ -203,7 +203,7 @@ function nycc_rides_ride_coordinators_email(&$form_state) {
 	);
 }
 
-function nycc_rides_ride_coordinators_email_validate($form, $form_state) {
+function nycc_rides_ride_coordinators_email_validate($form, &$form_state) {
 	if (!valid_email_address($form_state['values']['from']))
 		form_set_error('from', "Please enter a valid e-mail address.");
 		
@@ -216,7 +216,7 @@ function nycc_rides_ride_coordinators_email_validate($form, $form_state) {
     	
 }
 
-function nycc_rides_ride_coordinators_email_submit($form, $form_state) {
+function nycc_rides_ride_coordinators_email_submit($form, &$form_state) {
 
   	$arg1 = strtolower($form_state['values']['target']);
   	if (drupal_strlen($arg1) == 0)
