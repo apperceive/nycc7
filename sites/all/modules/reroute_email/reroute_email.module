@@ -126,12 +126,15 @@ function reroute_email_mail_alter(&$message) {
 
     // Split the address string on whitespace, ignoring any empty results.
     $addresslist = preg_split(REROUTE_EMAIL_EMAIL_SPLIT_RE, variable_get(REROUTE_EMAIL_ADDRESS, variable_get('site_mail', ini_get('sendmail_from'))), -1, PREG_SPLIT_NO_EMPTY);
-
-    if (!in_array($to, $addresslist)) {
+    $user = user_load_by_mail($to );
+    //dpm($user);
+    if (isset($user) && in_array("tester", $user->roles)) {
+      drupal_set_message("message will be delivered to " . $user->mail);
+      return;
+    } else if (!in_array($to, $addresslist)) {
       // Not on the list, so reroute to the first address in the list.
       $message['headers']['X-Rerouted-Original-To'] = $to;
-      $message['to'] = !empty($addresslist[0]) ? $addresslist[0] : REROUTE_EMAIL_ADDRESS_EMPTY_PLACEHOLDER;
-
+      $message['to'] = !empty($addresslist[0]) ? $addresslist[0] : REROUTE_EMAIL_ADDRESS_EMPTY_PLACEHOLDER;  
       if (variable_get(REROUTE_EMAIL_ENABLE_MESSAGE, 1)) {
         // Format a message to show at the top.
         $msg = t("This email was rerouted.") . "\n";
@@ -139,7 +142,7 @@ function reroute_email_mail_alter(&$message) {
         $msg .= t("Mail key: @key", array('@key' => $mailkey)) . "\n";
         $msg .= t("Originally to: @to", array('@to' => $to)) . "\n";
         $msg .= "-----------------------\n";
-
+  
         // Prepend explanation message to the body of the email. This must be
         // handled differently depending on whether the body came in as a
         // string or an array. If it came in as a string (despite the fact it
@@ -151,17 +154,18 @@ function reroute_email_mail_alter(&$message) {
           array_unshift($message['body'], $msg);
         }
       }
-    }
-    // Abort sending of the email only if the address is an empty string.
-    if (variable_get(REROUTE_EMAIL_ADDRESS, NULL) === '') {
-      $message['send'] = FALSE;
-      // Record a variable dump of the email in the recent log entries.
-      watchdog('reroute_email', 'Aborted email sending for <em>@message_id</em>. <br/>Detailed email data: Array $message <pre>@message</pre>', array(
-        '@message_id' => $message['id'],
-        '@message' => print_r($message, TRUE),
-      ));
-      // Let users know email has been aborted, but logged.
-      drupal_set_message(t('<em>@message_id</em> was aborted by reroute email, please check the <a href="@dblog">recent log entries</a> for complete details on the rerouted email.', array('@message_id' => $message['id'], '@dblog' => url('admin/reports/dblog'))));
+    
+      // Abort sending of the email only if the address is an empty string.
+      if (variable_get(REROUTE_EMAIL_ADDRESS, NULL) === '') {
+        $message['send'] = FALSE;
+        // Record a variable dump of the email in the recent log entries.
+        watchdog('reroute_email', 'Aborted email sending for <em>@message_id</em>. <br/>Detailed email data: Array $message <pre>@message</pre>', array(
+          '@message_id' => $message['id'],
+          '@message' => print_r($message, TRUE),
+        ));
+        // Let users know email has been aborted, but logged.
+        drupal_set_message(t('<em>@message_id</em> was aborted by reroute email, please check the <a href="@dblog">recent log entries</a> for complete details on the rerouted email.', array('@message_id' => $message['id'], '@dblog' => url('admin/reports/dblog'))));
+      }
     }
   }
 }
