@@ -39,7 +39,11 @@ function nycc_rides_permission() {
     'approve nycc rides' => array(
       'title' => t('approve nycc rides'),
       'description' => t('approve nycc rides'),
-        )   
+        ),
+    'email riders and leaders' => array(
+      'title' => t('email riders and leaders'),
+      'description' => t('email riders and leaders'),
+        ),    
     );
 }
 
@@ -50,10 +54,10 @@ function nycc_rides_menu() {
       'title' => 'NYCC Rides module settings',
       'description' => 'Settings for NYCC Rides Module',
       'page callback' => 'drupal_get_form',
-      'file' => 'nycc_rides_admin.inc', 
+      'file' => 'nycc_rides.admin.inc', 
       'access arguments' => array('administer nycc rides'),
       'type' => MENU_LOCAL_TASK,
-    'access callback' => TRUE,
+      'access callback' => TRUE,
       'page arguments' => array('nycc_rides_admin'),  
   );
   $items['nycc_rides/inbound'] = array(
@@ -63,19 +67,28 @@ function nycc_rides_menu() {
       	'page callback' => 'nycc_rides_inbound_callback',
       	'access callback' => TRUE,
     );
-  $items['nycc-update-ride-status-js/%'] = array(
-    //'page arguments' => array(1),
-    'page callback' => 'nycc_rides_update_ride_status_js',
-    'type' => MENU_CALLBACK,
+  $items['nycc-ride-coordinators-email'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nycc_rides_ride_coordinators_email'),
+    'file' => 'nycc_rides.ride_coordinators.inc', 
     'access callback' => TRUE,
-  );
-
-  $items['nycc-update-ride-type-js/%'] = array(
-    //'page arguments' => array(1),
-    'page callback' => 'nycc_rides_update_ride_type_js',
-    'type' => MENU_CALLBACK,
-    'access callback' => TRUE,
-  );
+    'access arguments' => array('email riders and leaders'),    
+    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Ride Coordinators Email'
+  );  
+  //$items['nycc-update-ride-status-js/%'] = array(
+  //  //'page arguments' => array(1),
+  //  'page callback' => 'nycc_rides_update_ride_status_js',
+  //  'type' => MENU_CALLBACK,
+  //  'access callback' => TRUE,
+  //);
+  //
+  //$items['nycc-update-ride-type-js/%'] = array(
+  //  //'page arguments' => array(1),
+  //  'page callback' => 'nycc_rides_update_ride_type_js',
+  //  'type' => MENU_CALLBACK,
+  //  'access callback' => TRUE,
+  //);
 
   $items['nycc-existing-rides-js'] = array(
     'page callback' => 'nycc_rides_existing_rides_js',
