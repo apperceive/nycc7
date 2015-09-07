@@ -174,25 +174,14 @@ function nycc_rides_menu() {
     'type' => MENU_CALLBACK,
   );
   
-  //$items['nycc-approve-ride/%'] = array(
-  //  //'page arguments' => array(1),
-  //  'page callback' => 'nycc_rides_approve_ride',
-  //  'type' => MENU_CALLBACK,
-  //  'access callback' => TRUE,
-  //);
-
-  
-  //$items['nycc-join-ride'] = array(
-  //  'page callback' => 'nycc_rides_join_ride',
-  //  'type' => MENU_CALLBACK,
-  //  'access callback' => TRUE,
-  //);
-  //
-  //$items['nycc-withdraw-from-ride'] = array(
-  //  'page callback' => 'nycc_rides_withdraw_from_ride',
-  //  'type' => MENU_CALLBACK,
-  //  'access callback' => TRUE,
-  //);
+  $items['node/%node/copy'] = array(
+    'title' => 'Copy ride',
+    'page callback' => 'drupal_get_form',
+    'access callback' => TRUE,
+    'page arguments' => array('nycc_rides_copy_ride_form', 1),
+    'type' => MENU_CALLBACK,
+    'file' => 'nycc_rides.pages.inc',
+  );
 
   // move these to views
   /*
@@ -448,9 +437,6 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
   } // rides_node_form 
 } // nycc_rides_form_alter
 
-function _nycc_rides_form_ride_submit($form, &$form_state) {
-  $form_state['values']['field_ride_status'] = 'Submitted';
-}
 
 //function nycc_rides_block_info() {
 //  //TODO: IS THIS NEEDED?
@@ -500,6 +486,12 @@ function _nycc_rides_form_ride_submit($form, &$form_state) {
 // END HOOK Functions
 
 // CALLBACKS
+
+
+function _nycc_rides_form_ride_submit($form, &$form_state) {
+  $form_state['values']['field_ride_status'] = 'Submitted';
+}
+
 
 function _nycc_rides_additional_dates_submit($form, &$form_state) {
   if (!isset($_POST['additional_dates'])) {
@@ -605,6 +597,7 @@ function nycc_rides_output_riders_roster_pdf($node = NULL) {
   return $output;
 }
 
+// UTILITY FUNCTION, not callback, no UI
 function nycc_rides_ride_roster_email($timestamp, $hrs) {
   //TODO FIX THIS SQL. Using Old Table Names
   //TODO FIX THIS SQL. Assumes leader is Node Reference. New field is user reference
@@ -659,6 +652,7 @@ EOS;
     }
 }
 
+// NOT A CALLBACK, UI output function
 function nycc_output_riders_roster_html($nid = NULL) {
 //This function is used by a custom token to generate a roster to be emailed
 //NOTE: It contains hardcoded view name and display IDs
@@ -766,6 +760,7 @@ function nycc_rides_access($op, $node, $account = NULL) {
 
 //RIDE RELATED FUNCTIONS
 
+// menu CALLBACK
 function nycc_rides_join_ride($nid) {
 //TODO: WHY IS THIS GETTING CALLED TWICE???
 
@@ -878,6 +873,7 @@ function nycc_rides_join_ride($nid) {
   drupal_goto("node/$nid");
 }
 
+// menu callback
 function nycc_rides_withdraw_from_ride($nid=null) {
   $ride = nycc_rides_get_ride_object($nid);
   if (!$ride) {
@@ -948,6 +944,7 @@ function nycc_rides_withdraw_from_ride($nid=null) {
     drupal_goto("node/$nid");
 }
 
+// menu callback
 function nycc_rides_approve_ride($ride = NULL) {
   if (!$ride)
     $ride = arg(1);
@@ -965,6 +962,7 @@ function nycc_rides_approve_ride($ride = NULL) {
   }
 }
 
+// utility function, no UI, not a callback
 function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "Submitted") {
   global $user;
   
@@ -1029,6 +1027,7 @@ function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "
   return $node;
 } // _nycc_rides_copy_ride
 
+// utility function, no UI, not a callback
 function _nycc_rides_clone_ride($onode, $datetime = null, $ride_status = "Submitted") {
   global $user;
 
@@ -1067,6 +1066,7 @@ function _nycc_rides_clone_ride($onode, $datetime = null, $ride_status = "Submit
   return true;
 } // _nycc_rides_clone_ride
 
+// form callback
 function nycc_rides_ride_cancel_confirm($ride = NULL, &$form_state ) {
 //// to do: check node type = rides
   if (!$ride)
@@ -1098,6 +1098,7 @@ function nycc_rides_ride_cancel_confirm($ride = NULL, &$form_state ) {
   );
 }
 
+// form callback submit handler
 function nycc_rides_ride_cancel_confirm_submit($form, &$form_state) {
   if ($form_state['values']['confirm']) {
     $ride = nycc_rides_get_ride_object($form_state['values']['nid']);
