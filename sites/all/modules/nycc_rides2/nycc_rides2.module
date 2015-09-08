@@ -188,6 +188,8 @@ function nycc_rides2_theme($existing, $type, $theme, $path) {
 
     // MORE? add user links?  nycc_user_link or nycc_user_profile_link?
     
+    // add datepicker? for additional rides?
+    
   );
 }
 
