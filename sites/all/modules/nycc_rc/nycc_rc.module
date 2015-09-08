@@ -15,7 +15,7 @@ function nycc_rc_menu() {
 
 
 function nycc_rc_perm() {
-  return array('send emails to riders & leaders');
+  return array('email riders & leaders');
 }
 
 
