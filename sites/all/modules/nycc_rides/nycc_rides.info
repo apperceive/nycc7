@@ -13,6 +13,7 @@ files[] = nycc_rides.ride_coordinators.inc
 files[] = nycc_rides.pages.inc
 files[] = nycc_rides.output.inc
 files[] = nycc_rides.theme.inc
+files[] = nycc_rides.blocks.inc
 configure = admin/config/nycc/rides
 
 

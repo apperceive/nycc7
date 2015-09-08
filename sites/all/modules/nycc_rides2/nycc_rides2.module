@@ -40,7 +40,6 @@ return false;
 */
 
 
-// TODO: factor out links into theme - goal: no ui in this module
 function nycc_rides2_output_ride_buttons($ride) {
   global $user;
 
