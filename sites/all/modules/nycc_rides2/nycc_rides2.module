@@ -1,21 +1,18 @@
 <?php
 
-// rename to nycc_rides.theme.inc
+// move to nycc_rides.theme.inc
 // move theme hook to nycc_rides.module
-// add to info file
 
 
 
 
 
+// todo: rename to _nycc_rides_ride_buttons
+// return array of ride button links 
 function nycc_rides2_output_ride_buttons($ride) {
   global $user;
-
   $buttons = array();
 
-  // ride time as binary
-  //$ridetime = strtotime(nycc_rides_get_ride_time_as_text($ride));
-  
   // user ride properties used for button display logic
   $is_leader = nycc_rides_is_leader($ride, $user);
   $is_rider = nycc_rides_is_rider($ride, $user);
@@ -43,12 +40,12 @@ function nycc_rides2_output_ride_buttons($ride) {
   $is_revised = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Revised' ) ? true : FALSE;
   $is_flagged = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Flagged' ) ? true : FALSE;
 
-  // refactor (has_spots not used here)
+  // todo: refactor (has_spots not used here)
   $has_spots = isset($ride->field_ride_spots) && is_array($ride->field_ride_spots) && array_key_exists('und', $ride->field_ride_spots);
   $no_of_spots = $has_spots && is_numeric($ride->field_ride_spots['und'][0]['value']) ? $ride->field_ride_spots['und'][0]['value'] : 0;
   $available_spots = $no_of_spots ? $no_of_spots - $no_of_riders : 0;
 
-  // ride node properties using in building button links
+  // ride node properties used in building button links
   $nid = $ride->nid;
   $title = $ride->title;
   $path = "node/$nid";
@@ -106,6 +103,7 @@ function nycc_rides2_output_ride_buttons($ride) {
   return $buttons;
 }
 
+// todo: rename to nycc_rides_theme
 function nycc_rides2_theme($existing, $type, $theme, $path) {
   return array(
 
@@ -162,20 +160,24 @@ function nycc_rides2_theme($existing, $type, $theme, $path) {
 
 // why do we need these? for overrides?
 
+// todo: rename to _nycc_rides_ride_users
 function nycc_rides2_nycc_ride_users() {
   return theme('nycc_ride_users');
 }
 
 //function nycc_rides2_nycc_ride_link($text, $path, $title = '', $attributes=array('class' => 'nycc-link nycc-ride-link')) {
+// todo: rename to _nycc_rides_nycc_ride_link
 function nycc_rides2_nycc_ride_link($text, $path, $title = '', $classes='nycc-link nycc-ride-link') {
   //return theme('nycc_ride_link', array('text' => $text, 'path' => $path, 'title' => $title, 'attributes' => $attributes));
   return theme('nycc_ride_link', array('text' => $text, 'path' => $path, 'title' => $title, 'classes' => $classes));
 }
 
+// todo: rename to _nycc_rides_process_ride_link
 function nycc_rides2_process_nycc_ride_link(&$variables) {
   //$variables['classes'] = 'nycc-link nycc-rides-link';
 }
 
+// todo: rename to _nycc_rides_process_ride_users
 function nycc_rides2_process_nycc_ride_users(&$variables) {
   // case $variables['type'] to determine fieldname and path, or use array
   $type = $variables['type'];
@@ -199,11 +201,6 @@ function nycc_rides2_process_nycc_ride_users(&$variables) {
 
 // override in theme, adding bootstrap classes there?
 function theme_nycc_ride_link($variables) {
-  // $arr = array();
-  // foreach $variables['attributes'] as $key => $value
-  //  $arr[$key] = $value
-  // l($variables['text'], $variables['path'], array('attributes' => $arr)); 
-  
   return l($variables['text'], $variables['path'], array('attributes' => array('title' => $variables['title'], 'class' => array($variables['classes'])))); 
 }
 
@@ -217,7 +214,7 @@ function theme_nycc_ride_users($variables) {
 // todo: set additional date date format from ride timestamp field format
 // TODO: move js to nycc_rides.js, add to module.info
 // reference: https://api.jqueryui.com/datepicker/#option-onSelect
-// change to theme_nycc_datepicker?
+// change to theme_nycc_datepicker? add to hook_theme
 function _nycc_rides2_custom_form_uidatepicker($element, $form_state) {
   $jsdatefmt = 'M d yy';
   drupal_add_library('system', 'ui.datepicker');
