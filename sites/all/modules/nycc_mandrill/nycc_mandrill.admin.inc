@@ -51,7 +51,7 @@ function nycc_mandrill_admin() {
 			);	
 		
 		} catch(Mandrill_Exception $e) {
-			drupal_set_message("Error connecting to Mandrill: " . $e->getMessage());
+			drupal_set_message(check_plain("Error connecting to Mandrill: " . $e->getMessage()));
 		}
 	}
 		$form['#submit'][] = 'nycc_mandrill_admin_submit';

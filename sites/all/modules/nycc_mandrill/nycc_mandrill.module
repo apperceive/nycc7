@@ -14,9 +14,15 @@ function nycc_mandrill_menu() {
 	return $items;
 }
 
-function nycc_mandrill_perm() {
-	return array('administer nycc_mandrill');
-} 
+function nycc_mandrill_permission() {
+  return array(
+    'administer nycc mandrill' => array(
+      'title' => t('administer nycc mandrill'),
+      'description' => t('administer nycc mandrill'),
+        ), 
+    );
+}
+
 function nycc_mandrill_email_alter(&$args) {
   // Cleanup message bellow. 
 

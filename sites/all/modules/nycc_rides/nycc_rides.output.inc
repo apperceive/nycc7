@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <?php
 
 /*
@@ -2239,3 +2240,15 @@ function nycc_rides_ride_has_attachments($data) {
 //  drupal_set_title($title);
 //  return $output;
 //}
+=======
+<?php
+
+/*
+ * Ride related output data functions
+ *
+ * All functions should return a datastructure suitable for theming 
+ * as a table, list, link, etc
+ *
+*/
+
+>>>>>>> 81328e88fd85c9028003f95e037936928b285d25

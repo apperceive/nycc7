@@ -15,6 +15,13 @@
 
 User-agent: *
 Crawl-delay: 10
+
+# no crawl on development system
+Disallow: /
+Disallow: *
+
+
+
 # Directories
 Disallow: /includes/
 Disallow: /misc/

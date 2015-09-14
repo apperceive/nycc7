@@ -1,5 +1,5 @@
-name = NYCC Organic Groups Email Integration
-description = integrates OG with Mandrill so that groups can be used as distribution lists
+name = NYCC Mandrill Integration
+description = provides integration with Mandrill, to be used by other modules
 package = NYCC
 core = 7.x
 dependencies[] = mandrill
