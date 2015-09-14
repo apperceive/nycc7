@@ -1,0 +1,9 @@
+name = NYCC Organic Groups Email Integration
+description = integrates OG with Mandrill so that groups can be used as distribution lists
+package = NYCC
+core = 7.x
+dependencies[] = mandrill
+files[]=nycc_mandrill.module
+files[]=nycc_mandrill.admin.inc
+configure=admin/settings/nycc_mandrill
+
