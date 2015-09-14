@@ -9,6 +9,7 @@ function nycc_rides_inbound_callback() {
 	else
 		$email_debug = false;
   	
+		
   	// Check signature.
 	if(nycc_mandrill_isValid_signature('nycc_rides/inbound')) {
 		//iterate through the messages
