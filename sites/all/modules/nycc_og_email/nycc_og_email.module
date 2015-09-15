@@ -42,7 +42,7 @@ function nycc_og_email_group_email_callback() {
   
 //  if ($email_debug ) watchdog('nycc_email', 'processing inbound group email callback', array(), WATCHDOG_NOTICE) ;
 
-  if (nycc_mandrill_isValid_signature('nycc/group_email', $_POST)) {
+  if (nycc_mandrill_signature_is_valid('nycc/group_email', $_POST)) {
     //iterate through the messages
       foreach (json_decode($_POST['mandrill_events']) as $event) {
 
@@ -65,7 +65,8 @@ function nycc_og_email_group_email_callback() {
             
             if (nycc_email_is_member_of_group($gid, $user->uid)) {
               
-              if ($email_debug ) watchdog('nycc_og_email', '<pre><a href="/user/@username">@username</a> is member or captain of group <a href="/node/@grp_id">@grp_id</a>. Processing email', 
+              if ($email_debug ) watchdog('nycc_og_email',
+                                          '<pre><a href="/user/@username">@username</a> is member or captain of group <a href="/node/@grp_id">@grp_id</a>. Processing email', 
                             array('@username' => $user->name, '@grp_id' => $gid), WATCHDOG_NOTICE) ;
               
               $send_to = nycc_email_get_group_member_emails($gid, $args['to_cc_list']);
@@ -197,7 +198,7 @@ function nycc_og_email_is_member_of_group($gid, $uid) {
 }
 
 function nycc_og_email_get_group_member_emails($gid=NULL, $recipients = array()) {
-  if (isset($gid)) {
+  if (isset($gid)){
     $emails = array();
     $sql = <<<EOS
 select u.mail, cp.field_first_name_value, cp.field_last_name_value 
