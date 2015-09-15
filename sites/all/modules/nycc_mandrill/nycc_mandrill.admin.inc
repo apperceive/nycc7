@@ -8,7 +8,6 @@ function nycc_mandrill_admin() {
     '#default_value' => variable_get('nycc_mandrill_debug_to_log', '')
   );
 
-  
   $key = variable_get('mandrill_api_key', '');  
   if (empty($key)) {
     drupal_set_message(filter_xss("You must configure the Mandrill module with an API key: <a href='/admin/config/services/mandrill' _target='_blank'>/admin/config/services/mandrill</a>"), "error");
