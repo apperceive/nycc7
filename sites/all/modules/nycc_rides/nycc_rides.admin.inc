@@ -74,7 +74,7 @@ function nycc_rides_admin() {
   return system_settings_form($form);
 }
 
-function nycc_rides_admin_validate($form, $form_state) {
+function nycc_rides_admin_validate($form, &$form_state) {
 	if (empty($form_state['values']['nycc_rides_days_before_ride'])) {
     	form_set_error('nycc_rides_days_before_ride', "Days before Ride can not be blank");
 	} else {
