@@ -14,9 +14,7 @@ function bootstrap_login_modal_block_info() {
     'info' => t('Bootstrap Login/Register Menu Modal'),
     'status' => TRUE,
     'region' => 'navigation',
-    'visibility' => BLOCK_VISIBILITY_NOTLISTED,
-    'pages' => '',
-    'cache' => DRUPAL_CACHE_PER_PAGE,
+    'cache' => DRUPAL_CACHE_PER_ROLE,
   );
   return $blocks;
 }
