@@ -93,7 +93,8 @@
   if ($op == 'edit') {
   }
   
-  
+  dpm($form['actions']['submit']);
+  $form['actions']['submit']['#attributes'] = array('class' => array('btn-lg'));
   
   hide($form['actions']);
   
