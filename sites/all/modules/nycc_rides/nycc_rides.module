@@ -430,13 +430,17 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
     $status = nycc_rides_get_ride_status($form['#node']);
     $action = !nycc_rides_can_approve() && in_array($status, array('Approved', 'Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
     
+    /*
     $form['actions']['submit_ride'] = array(
       '#type' => 'submit',
       '#value' => $action,
       '#submit' => '_nycc_rides_form_ride_submit',      
     );
+    */
     
     //$form['actions']['submit']['#value'] = $action; 
+    dpm($form['actions']['submit']['#value']);
+    $form['actions']['submit']['#value'] = $action;
     
     // note: 'group_rides_htabs' key does not yet exist yet. why?
     // dpm($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']);
@@ -447,6 +451,7 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
     $form['#after_build'] = array('_nycc_rides2_custom_form_uidatepicker');
     
     //$form['#cache'] = false;
+    
 
   } // rides_node_form 
 } // nycc_rides_form_alter

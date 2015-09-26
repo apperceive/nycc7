@@ -100,7 +100,7 @@
   $output .= drupal_render_children($form);
   
   $output .= drupal_render($form['actions']['submit']);
-  $output .= drupal_render($form['actions']['submit_ride']);
+  //$output .= drupal_render($form['actions']['submit_ride']);
   
 ?>
 
