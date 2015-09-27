@@ -30,7 +30,8 @@
   $output = '';
   // move to nycc_rides_processor_node_ride_edit()
   $op = (arg(1) == 'add') ? 'add' : ((arg(2) == 'edit') ? 'edit' : 'noop');
-  $can_approve = nycc_rides_can_approve();
+  
+  $can_approve = function_exists('nycc_rides_can_approve') ? nycc_rides_can_approve() : true;
   
   if (!$can_approve) {
     hide($form['group_rides_htabs']['group_ride_rc_info']);
