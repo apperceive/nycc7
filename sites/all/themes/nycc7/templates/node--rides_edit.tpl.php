@@ -74,20 +74,35 @@
   
   $form['group_rides_htabs']['group_ride_attachements']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
   
+  $next =  array(
+    '#type'   => 'submit',
+    '#value'  => 'Next',      // add icon
+    '#weight' => 49,
+    '#attributes' => array('class' => array('btn btn-default btn-lg')),
+    '#submit' => array('jquery_form_submit'),
+  );
+  $form['group_rides_htabs']['group_rides_info']['next'] = $next;
+  $form['group_rides_htabs']['group_ride_info']['next'] = $next;
+  $form['group_rides_htabs']['group_ride_attachements']['next'] = $next;
+
+  $form['actions']['submit']['#attributes'] = array('class' => array('btn btn-lg'));
+  $form['actions']['submit']['#weight'] = 50;
+  
+  $form['group_rides_htabs']['group_ride_attachements']['submit'] = $form['actions']['submit'];
+  $form['group_rides_htabs']['group_ride_participants']['submit'] = $form['actions']['submit'];
+  $form['group_rides_htabs']['group_ride_rc_info']['submit'] = $form['actions']['submit'];
+  
   if ($op == 'add') {
   }
   
   if ($op == 'edit') {
   }
   
-  //dpm($form['actions']['submit']);
-  $form['actions']['submit']['#attributes'] = array('class' => array('btn-lg'));
-  
-  hide($form['actions']);
+ hide($form['actions']);
   
   $output .= drupal_render_children($form);
   
-  $output .= drupal_render($form['actions']['submit']);
+  //$output .= drupal_render($form['actions']['submit']);
 
 ?>
 

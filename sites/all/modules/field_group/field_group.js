@@ -1,4 +1,4 @@
-
+// https://www.drupal.org/node/2416019#comment-9562855
 (function($) {
 
 /**
@@ -20,15 +20,22 @@ Drupal.FieldGroup.Effects.processFieldset = {
   execute: function (context, settings, type) {
     if (type == 'form') {
       // Add required fields mark to any fieldsets containing required fields
+      var $firstErrorItem = false;
       $('fieldset.fieldset', context).once('fieldgroup-effects', function(i) {
         if ($(this).is('.required-fields') && $(this).find('.form-required').length > 0) {
           $('legend span.fieldset-legend', $(this)).eq(0).append(' ').append($('.form-required').eq(0).clone());
         }
         if ($('.error', $(this)).length) {
+          if (!$firstErrorItem) {
+            $firstErrorItem = $(this).data('horizontalTab');
+          }
           $('legend span.fieldset-legend', $(this)).eq(0).addClass('error');
           Drupal.FieldGroup.setGroupWithfocus($(this));
         }
       });
+      if ($firstErrorItem) {
+        $firstErrorItem.focus();
+      }
     }
   }
 }
