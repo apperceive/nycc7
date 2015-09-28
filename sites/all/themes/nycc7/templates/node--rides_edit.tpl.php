@@ -91,14 +91,13 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
   // add prev/next buttons
   $form['group_rides_htabs']['group_rides_info']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-info', 49);
   
-  // undefined is not unique, seems to be first of each tab group
-  $form['group_rides_htabs']['group_ride_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'undefined', 48);
-  $form['group_rides_htabs']['group_ride_info']['next'] = _nycc_rides_form_nav_button('Next', 'group-rides-images', 49);
+  $form['group_rides_htabs']['group_ride_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-rides-info', 48);
+  $form['group_rides_htabs']['group_ride_info']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-attachements', 49);
   
   $form['group_rides_htabs']['group_ride_attachements']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-info', 48);
   $form['group_rides_htabs']['group_ride_attachements']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-participants', 49);
   
-  $form['group_rides_htabs']['group_ride_participants']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-rides-images', 48);  
+  $form['group_rides_htabs']['group_ride_participants']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-attachements', 48);  
   
   if ($can_approve) {
     $form['group_rides_htabs']['group_ride_participants']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-rc-info', 49);
