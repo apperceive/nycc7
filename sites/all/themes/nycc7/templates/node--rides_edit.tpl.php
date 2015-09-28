@@ -96,7 +96,7 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
   
   $form['group_rides_htabs']['group_ride_attachements']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-info', 48);
   $form['group_rides_htabs']['group_ride_attachements']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-participants', 49);
-  
+   
   $form['group_rides_htabs']['group_ride_participants']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-attachements', 48);  
   
   if ($can_approve) {
