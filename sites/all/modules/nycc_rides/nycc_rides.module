@@ -507,10 +507,11 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
 // CALLBACKS
 
 
+/*
 function _nycc_rides_form_ride_submit($form, &$form_state) {
   $form_state['values']['field_ride_status'] = 'Submitted';
 }
-
+*/
 
 function _nycc_rides_additional_dates_submit($form, &$form_state) {
   if (!isset($_POST['additional_dates'])) {

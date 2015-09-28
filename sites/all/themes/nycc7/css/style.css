@@ -146,13 +146,20 @@ header#navbar .menu-collapse ul {
 }*/
 
 /* #rides-node-form  #edit-actions, */
-#rides-node-form  #edit-spamicide,
+/*#rides-node-form  #edit-spamicide,
 #rides-node-form  .vertical-tabs,
 #rides-node-form  #edit-field-ride-description-und-0-format {
   display: none;
-}
+}**/
 
 #rides-node-form  .panel-body .help-block {
   font-weight: bold;
   font-size: 110%;
 }
+
+.btn-lg {
+  font-size: 200%;
+}
+
+
+
