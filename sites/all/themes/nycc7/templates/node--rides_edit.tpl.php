@@ -11,6 +11,20 @@
  *
  */
  
+// make different buttons for different tabs href#
+function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
+  $btn =  array(
+    '#type'   => 'button',
+    '#value'  => $value,      // add icon ?
+    '#weight' => $weight,
+    '#attributes' => array(
+      'class' => array('btn btn-default btn-lg'), 
+      'onclick' => "javascript: jQuery('a[href=\"#$href\"]').click(); return false;"
+    ),
+  );
+  return $btn;
+}
+ 
   // note: customizations in nycc_rides module's 
   // nycc_rides_output_ride_node_form
   // and
@@ -73,22 +87,24 @@
   $form['group_rides_htabs']['group_ride_attachements']['field_ride_image']['und']['#file_upload_title'] = t("Add another image");
   
   $form['group_rides_htabs']['group_ride_attachements']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
-  
-  $next =  array(
-    '#type'   => 'submit',
-    '#value'  => 'Next',      // add icon
-    '#weight' => 49,
-    '#attributes' => array('class' => array('btn btn-default btn-lg')),
-    '#submit' => array('jquery_form_submit'),
-  );
-  $form['group_rides_htabs']['group_rides_info']['next'] = $next;
-  $form['group_rides_htabs']['group_ride_info']['next'] = $next;
-  $form['group_rides_htabs']['group_ride_attachements']['next'] = $next;
 
+  // add prev/next buttons
+  $form['group_rides_htabs']['group_rides_info']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-info', 49);
+  
+  $form['group_rides_htabs']['group_ride_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'undefined', 48);
+  $form['group_rides_htabs']['group_ride_info']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-attachements', 49);
+  
+  $form['group_rides_htabs']['group_ride_attachements']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-info', 48);
+  $form['group_rides_htabs']['group_ride_attachements']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-participants', 49);
+  
+  $form['group_rides_htabs']['group_ride_participants']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-attachements', 49);
+  
+  // alter submit button
   $form['actions']['submit']['#attributes'] = array('class' => array('btn btn-lg'));
   $form['actions']['submit']['#weight'] = 50;
   
-  $form['group_rides_htabs']['group_ride_attachements']['submit'] = $form['actions']['submit'];
+  // copy submit button to last two tabs
+  //$form['group_rides_htabs']['group_ride_attachements']['submit'] = $form['actions']['submit'];
   $form['group_rides_htabs']['group_ride_participants']['submit'] = $form['actions']['submit'];
   $form['group_rides_htabs']['group_ride_rc_info']['submit'] = $form['actions']['submit'];
   
@@ -98,7 +114,8 @@
   if ($op == 'edit') {
   }
   
- hide($form['actions']);
+  // hide buttons
+  hide($form['actions']);
   
   $output .= drupal_render_children($form);
   
