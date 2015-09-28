@@ -1,4 +1,4 @@
-// https://www.drupal.org/node/2416019#comment-9562855
+
 (function($) {
 
 /**
@@ -20,22 +20,15 @@ Drupal.FieldGroup.Effects.processFieldset = {
   execute: function (context, settings, type) {
     if (type == 'form') {
       // Add required fields mark to any fieldsets containing required fields
-      var $firstErrorItem = false;
       $('fieldset.fieldset', context).once('fieldgroup-effects', function(i) {
         if ($(this).is('.required-fields') && $(this).find('.form-required').length > 0) {
           $('legend span.fieldset-legend', $(this)).eq(0).append(' ').append($('.form-required').eq(0).clone());
         }
         if ($('.error', $(this)).length) {
-          if (!$firstErrorItem) {
-            $firstErrorItem = $(this).data('horizontalTab');
-          }
           $('legend span.fieldset-legend', $(this)).eq(0).addClass('error');
           Drupal.FieldGroup.setGroupWithfocus($(this));
         }
       });
-      if ($firstErrorItem) {
-        $firstErrorItem.focus();
-      }
     }
   }
 }
@@ -48,17 +41,9 @@ Drupal.FieldGroup.Effects.processAccordion = {
     $('div.field-group-accordion-wrapper', context).once('fieldgroup-effects', function () {
       var wrapper = $(this);
 
-      // Get the index to set active.
-      var active_index = false;
-      wrapper.find('.accordion-item').each(function(i) {
-        if ($(this).hasClass('field-group-accordion-active')) {
-          active_index = i;
-        }
-      });
-
       wrapper.accordion({
-        heightStyle: "content",
-        active: active_index,
+        autoHeight: false,
+        active: '.field-group-accordion-active',
         collapsible: true,
         changestart: function(event, ui) {
           if ($(this).hasClass('effect-none')) {
@@ -126,9 +111,6 @@ Drupal.FieldGroup.Effects.processHtabs = {
 Drupal.FieldGroup.Effects.processTabs = {
   execute: function (context, settings, type) {
     if (type == 'form') {
-
-      var errorFocussed = false;
-
       // Add required fields mark to any fieldsets containing required fields
       $('fieldset.vertical-tabs-pane', context).once('fieldgroup-effects', function(i) {
         if ($(this).is('.required-fields') && $(this).find('.form-required').length > 0) {
@@ -136,12 +118,8 @@ Drupal.FieldGroup.Effects.processTabs = {
         }
         if ($('.error', $(this)).length) {
           $(this).data('verticalTab').link.parent().addClass('error');
-          // Focus the first tab with error.
-          if (!errorFocussed) {
-            Drupal.FieldGroup.setGroupWithfocus($(this));
-            $(this).data('verticalTab').focus();
-            errorFocussed = true;
-          }
+          Drupal.FieldGroup.setGroupWithfocus($(this));
+          $(this).data('verticalTab').focus();
         }
       });
     }
