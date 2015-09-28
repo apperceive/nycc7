@@ -82,11 +82,11 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
   
   
   // note various spellings of attachments/attachements. ugh!
-  //dpm($form['group_rides_htabs']['group_ride_attachements']);
+  //dpm($form['group_rides_htabs']['group_ride_attachements']['group_rides_attachements']);
   
-  $form['group_rides_htabs']['group_ride_attachements']['field_ride_image']['und']['#file_upload_title'] = t("Add another image");
+  $form['group_rides_htabs']['group_ride_attachements']['group_rides_attachements']['group_rides_images']['field_ride_image']['und']['#file_upload_title'] = t("Add another image");
   
-  $form['group_rides_htabs']['group_ride_attachements']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
+  $form['group_rides_htabs']['group_ride_attachements']['group_rides_attachements']['group_rides_attachments']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
 
   // add prev/next buttons
   $form['group_rides_htabs']['group_rides_info']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-info', 49);
@@ -97,21 +97,35 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
   $form['group_rides_htabs']['group_ride_attachements']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-info', 48);
   $form['group_rides_htabs']['group_ride_attachements']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-participants', 49);
   
-  $form['group_rides_htabs']['group_ride_participants']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-attachements', 49);
+  $form['group_rides_htabs']['group_ride_participants']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-attachements', 48);  
+  
+  if ($can_approve) {
+    $form['group_rides_htabs']['group_ride_participants']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-rc-info', 49);
+    $form['group_rides_htabs']['group_ride_rc_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-participants', 49);
+  }
   
   // alter submit button
   $form['actions']['submit']['#attributes'] = array('class' => array('btn btn-lg'));
   $form['actions']['submit']['#weight'] = 50;
   
-  // copy submit button to last two tabs
-  //$form['group_rides_htabs']['group_ride_attachements']['submit'] = $form['actions']['submit'];
+  // copy submit button to last two tabs 
   $form['group_rides_htabs']['group_ride_participants']['submit'] = $form['actions']['submit'];
   $form['group_rides_htabs']['group_ride_rc_info']['submit'] = $form['actions']['submit'];
+  
+  // add prev/next for rc tab
+  if ($can_approve) {
+    $form['group_rides_htabs']['group_ride_participants']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-rc-info', 49);
+    $form['group_rides_htabs']['group_ride_rc_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-participants', 49);
+  }
   
   if ($op == 'add') {
   }
   
   if ($op == 'edit') {
+    // show submit on all tabs
+    $form['group_rides_htabs']['group_rides_info']['submit'] = $form['actions']['submit'];
+    $form['group_rides_htabs']['group_ride_info']['submit'] = $form['actions']['submit'];
+    $form['group_rides_htabs']['group_ride_attachements']['submit'] = $form['actions']['submit'];
   }
   
   // hide buttons
