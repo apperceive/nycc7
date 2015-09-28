@@ -1,0 +1,50 @@
+* {
+  padding: 0;
+  margin: 0;
+}
+
+/* see http://stackoverflow.com/questions/2703056/body-font-size-100-01-vs-body-font-size-100 */
+html {
+  font-size: 100.01%;
+}
+
+body {
+  font: 12px/150% Arial,Verdana,sans-serif;
+  font: 14px/1.5em Verdana, Arial, sans-serif;
+  background-color: white;
+}
+
+p {
+  padding:0px 0px 18px 0px;
+}
+
+table, td, div, img {
+  border:0;
+  border-collapse:collapse;
+}
+
+td {
+  vertical-align:top;
+}
+
+ol, ul {
+  padding-left: 30px;
+  margin-left:0;  
+}
+
+a {
+  text-decoration: underline;
+  color: #114E91;
+  outline:none;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+h2 {font-size: 20px; font-weight: bold;}
+h3 {font-size: 18px; font-weight: bold;}
+h4 {font-size: 16px; font-weight: bold;}
+h5 {font-size: 14px; font-weight: bold;}
+h6 {font-size: 12px; font-weight: bold;}
+

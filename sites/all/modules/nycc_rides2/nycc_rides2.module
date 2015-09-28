@@ -208,30 +208,3 @@ function theme_nycc_ride_users($variables) {
   return theme_item_list(array('items' => $variables['ride_users'], 'title' => $variables['ride_users_title'], 'type' => 'ul'));  
 } 
 
-
-// callback for adding datepicker to a textfield (not textarea!)
-// todo: create a define for our various date formats (for datepicker here, for php elsewhere)
-// todo: set additional date date format from ride timestamp field format
-// TODO: move js to nycc_rides.js, add to module.info
-// reference: https://api.jqueryui.com/datepicker/#option-onSelect
-// change to theme_nycc_datepicker? add to hook_theme
-function _nycc_rides2_custom_form_uidatepicker($element, $form_state) {
-  $jsdatefmt = 'M d yy';
-  drupal_add_library('system', 'ui.datepicker');
-  $js =<<< EOS
-    (function ($) { 
-      $('#edit-nycc-additional-dates.datepicker').datepicker({
-        dateFormat: '$jsdatefmt',
-        onSelect: function(selectDate, obj) { var w = obj.lastVal;  $('#edit-nycc-additional-dates').val(w.length ? w + ", " + selectDate : selectDate); },
-        //showOn: 'both',
-        //buttonImage: 'sites/all/modules/custom/custom_form/images/calendar.png',
-        //buttonImageOnly: true,
-      });
-      $('.datepicker').datepicker( 'option', 'minDate', 'd' );
-    })(jQuery);
-EOS;
-  $args = array('type' => 'inline', 'scope' => 'footer', 'weight' => 5);
-  drupal_add_js($js, $args);
-
-  return $element;
-}
