@@ -399,13 +399,21 @@ function nycc_rides_node_prepare($node) {
       _nycc_rides_copy_ride($onode, $node);
       
       // change leaders to current user
-      $node->field_ride_current_leaders['und'][0]['uid'] = $user->uid;
-      $node->field_ride_status['und'][0]['value'] = "Pending";
+      //$node->field_ride_current_leaders['und'][0]['uid'] = $user->uid;
+      $node->field_ride_current_leaders = array(LANGUAGE_NONE => array(0 => array('uid' => $user->uid)));
+      // do we need this anymore? it's the default
+      $node->field_ride_status['und'][0]['value'] = "Submitted";
+      
+      drupal_set_message(check_plain("This is a re-listing of ". $node->title . ".  You are set as the leader for this ride."));
+      drupal_set_message(check_plain("Please be sure to select a new date for the ride."));
     } // if onode rides
     
-    drupal_set_message(check_plain("This is a re-listing of ". $node->title . ".  You are set as the leader for this ride."));
-    drupal_set_message(check_plain("Please be sure to select a new date for the ride."));
-  }
+  }  // relist
+  
+  if ($node->type == 'rides' && arg(1) == 'add') {
+    // if no leaders, set to current user
+    $node->field_ride_current_leaders = array(LANGUAGE_NONE => array(0 => array('uid' => $user->uid)));
+  } // add
   
   if ($node->type == 'rides' && arg(2) == 'edit') {
     if (!nycc_rides_can_approve()) {
