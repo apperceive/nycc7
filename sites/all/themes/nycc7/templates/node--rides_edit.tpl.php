@@ -51,8 +51,7 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
     hide($form['group_rides_htabs']['group_ride_rc_info']);
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_riders']);
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_waitlist']);
-      
-    //hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']);
+    hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']);
   } 
   else {
     /*
@@ -72,6 +71,7 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
       
   //dpm($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']);
   
+  // Note: not much point in changing these as they change back when new item added.
   $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_leaders']['field_ride_current_leaders']['und']['add_more']['#value'] = t("Add ride leader");
   
   $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_riders']['field_ride_current_riders']['und']['add_more']['#value'] = t("Add rider");
