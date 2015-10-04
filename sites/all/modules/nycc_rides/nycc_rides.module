@@ -2054,7 +2054,7 @@ function nycc_ride_type_options() {
 }
 
 function nycc_rides_ride_type_options() {
-  return array( "" => "",
+  return array(
     "Cue Sheet Ride" => "Cue Sheet Ride",
     "Training Ride" => "Training Ride");
   //return array("" => "", "Cue Sheet Ride"=>"Cue Sheet Ride", "Training Ride"=>"Training Ride");
