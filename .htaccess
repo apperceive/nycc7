@@ -55,30 +55,7 @@ DirectoryIndex index.php index.html index.htm
 # Various rewrite rules.
 <IfModule mod_rewrite.c>
   RewriteEngine on
-  #redirect missing language file for drupal because, er, i dunno.
-  Redirect /sites/default/files/js/lang/en.js /sites/all/themes/theme429/js/lang/en.js
- 
-  RewriteCond %{HTTP_HOST} ^newyorkcycle.club$ [NC]
-  RewriteRule ^(.*)$ http://nycc.org/$1 [R=301,L]
-  
-  RewriteCond %{HTTP_HOST} ^newyorkcycleclub.info$ [NC]
-  RewriteRule ^(.*)$ http://nycc.org/$1 [R=301,L]
 
-  RewriteCond %{HTTP_HOST} ^newyorkcycleclub.com$ [NC]
-  RewriteRule ^(.*)$ http://nycc.org/$1 [R=301,L]
-
-  RewriteCond %{HTTP_HOST} ^newyorkcycleclub.org$ [NC]
-  RewriteRule ^(.*)$ http://nycc.org/$1 [R=301,L]  
-
-  RewriteCond %{HTTPS} off
-  RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
-  RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
-
-  RewriteCond %{HTTPS} on
-  RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
-  RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
-  
-  
   # Set "protossl" to "s" if we were accessed via https://.  This is used later
   # if you enable "www." stripping or enforcement, in order to ensure that
   # you don't bounce between http and https.
@@ -139,7 +116,6 @@ DirectoryIndex index.php index.html index.htm
   RewriteCond %{REQUEST_URI} !=/favicon.ico
   RewriteRule ^ index.php [L]
 
-
   # Rules to correctly serve gzip compressed CSS and JS files.
   # Requires both mod_rewrite and mod_headers to be enabled.
   <IfModule mod_headers.c>
@@ -165,6 +141,3 @@ DirectoryIndex index.php index.html index.htm
     </FilesMatch>
   </IfModule>
 </IfModule>
-
-# Setting this to avoid errors when setting permissions (3/25/2015)
-php_value max_input_vars 15000

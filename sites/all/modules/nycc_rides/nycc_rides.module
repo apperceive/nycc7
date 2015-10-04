@@ -399,13 +399,21 @@ function nycc_rides_node_prepare($node) {
       _nycc_rides_copy_ride($onode, $node);
       
       // change leaders to current user
-      $node->field_ride_current_leaders['und'][0]['uid'] = $user->uid;
-      $node->field_ride_status['und'][0]['value'] = "Pending";
+      //$node->field_ride_current_leaders['und'][0]['uid'] = $user->uid;
+      $node->field_ride_current_leaders = array(LANGUAGE_NONE => array(0 => array('uid' => $user->uid)));
+      // do we need this anymore? it's the default
+      $node->field_ride_status['und'][0]['value'] = "Submitted";
+      
+      drupal_set_message(check_plain("This is a re-listing of ". $node->title . ".  You are set as the leader for this ride."));
+      drupal_set_message(check_plain("Please be sure to select a new date for the ride."));
     } // if onode rides
     
-    drupal_set_message(check_plain("This is a re-listing of ". $node->title . ".  You are set as the leader for this ride."));
-    drupal_set_message(check_plain("Please be sure to select a new date for the ride."));
-  }
+  }  // relist
+  
+  if ($node->type == 'rides' && arg(1) == 'add') {
+    // if no leaders, set to current user
+    $node->field_ride_current_leaders = array(LANGUAGE_NONE => array(0 => array('uid' => $user->uid)));
+  } // add
   
   if ($node->type == 'rides' && arg(2) == 'edit') {
     if (!nycc_rides_can_approve()) {
@@ -430,13 +438,17 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
     $status = nycc_rides_get_ride_status($form['#node']);
     $action = !nycc_rides_can_approve() && in_array($status, array('Approved', 'Cancelled', 'Flagged')) ? "Re-submit" : "Submit";
     
+    /*
     $form['actions']['submit_ride'] = array(
       '#type' => 'submit',
       '#value' => $action,
       '#submit' => '_nycc_rides_form_ride_submit',      
     );
+    */
     
     //$form['actions']['submit']['#value'] = $action; 
+    //dpm($form['actions']['submit']['#value']);
+    $form['actions']['submit']['#value'] = t("$action Ride");
     
     // note: 'group_rides_htabs' key does not yet exist yet. why?
     // dpm($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']);
@@ -444,9 +456,10 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
     // add handlers for additional dates
     $form['#submit'][] = '_nycc_rides_additional_dates_submit';
     $form['#validate'][] = '_nycc_rides_additional_dates_validate';
-    $form['#after_build'] = array('_nycc_rides2_custom_form_uidatepicker');
+    $form['#after_build'] = array('_nycc_rides_custom_form_uidatepicker');
     
     //$form['#cache'] = false;
+    
 
   } // rides_node_form 
 } // nycc_rides_form_alter
@@ -502,10 +515,11 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
 // CALLBACKS
 
 
+/*
 function _nycc_rides_form_ride_submit($form, &$form_state) {
   $form_state['values']['field_ride_status'] = 'Submitted';
 }
-
+*/
 
 function _nycc_rides_additional_dates_submit($form, &$form_state) {
   if (!isset($_POST['additional_dates'])) {
@@ -1014,7 +1028,7 @@ function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "
     if ((substr($field, 0, 5) == 'field') || ($field == 'title')) {
       if(!in_array($field, array(
                      'field_ride_token',
-                     'field_ride_author_id',
+                     //'field_ride_author_id',
                      'field_ride_dow',
                      'field_ride_timestamp',
                      //'field_ride_attendees',
@@ -2039,6 +2053,9 @@ function nycc_rides_ride_waitlist_js($nid = NULL) {
     print nycc_rides_output_ride_waitlist($nid);
 }
 
+/* note: these two functions are no longer used in the rides cck for allowable values
+ *       so changes here must be reflected in those fields (status and type)
+ */
 function nycc_ride_status_options(){
   return nycc_rides_ride_status_options();
 }
@@ -2063,6 +2080,35 @@ function nycc_rides_ride_type_options() {
 function nycc_rides_ride_level_options() {
   return array("A"=>"A-ride", "B"=>"B-ride", "C"=>"C-ride");
 }
+
+
+// callback for adding datepicker to a textfield (not textarea!)
+// todo: create a define for our various date formats (for datepicker here, for php elsewhere)
+// todo: set additional date date format from ride timestamp field format
+// TODO: move js to nycc_rides.js, add to module.info
+// reference: https://api.jqueryui.com/datepicker/#option-onSelect
+// change to theme_nycc_datepicker? add to hook_theme
+function _nycc_rides_custom_form_uidatepicker($element, $form_state) {
+  $jsdatefmt = 'M d yy';
+  drupal_add_library('system', 'ui.datepicker');
+  $js =<<< EOS
+    (function ($) { 
+      $('#edit-nycc-additional-dates.datepicker').datepicker({
+        dateFormat: '$jsdatefmt',
+        onSelect: function(selectDate, obj) { var w = obj.lastVal;  $('#edit-nycc-additional-dates').val(w.length ? w + ", " + selectDate : selectDate); },
+        //showOn: 'both',
+        //buttonImage: 'sites/all/modules/custom/custom_form/images/calendar.png',
+        //buttonImageOnly: true,
+      });
+      $('.datepicker').datepicker( 'option', 'minDate', 'd' );
+    })(jQuery);
+EOS;
+  $args = array('type' => 'inline', 'scope' => 'footer', 'weight' => 5);
+  drupal_add_js($js, $args);
+
+  return $element;
+}
+
 
 
 //TODO: IF Add Back once everyone else is working

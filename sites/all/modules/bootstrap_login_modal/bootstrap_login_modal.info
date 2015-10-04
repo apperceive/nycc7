@@ -5,9 +5,9 @@ core = 7.x
 
 dependencies[] = ctools
 
-; Information added by Drupal.org packaging script on 2015-06-26
-version = "7.x-3.1"
+; Information added by Drupal.org packaging script on 2015-09-04
+version = "7.x-3.2"
 core = "7.x"
 project = "bootstrap_login_modal"
-datestamp = "1435310584"
+datestamp = "1441365843"
 

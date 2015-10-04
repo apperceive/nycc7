@@ -11,6 +11,20 @@
  *
  */
  
+// make different buttons for different tabs href#
+function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
+  $btn =  array(
+    '#type'   => 'button',
+    '#value'  => $value,      // add icon ?
+    '#weight' => $weight,
+    '#attributes' => array(
+      'class' => array('btn btn-default btn-lg'), 
+      'onclick' => "javascript: jQuery('a[href=\"#$href\"]').click(); return false;"
+    ),
+  );
+  return $btn;
+}
+ 
   // note: customizations in nycc_rides module's 
   // nycc_rides_output_ride_node_form
   // and
@@ -30,78 +44,97 @@
   $output = '';
   // move to nycc_rides_processor_node_ride_edit()
   $op = (arg(1) == 'add') ? 'add' : ((arg(2) == 'edit') ? 'edit' : 'noop');
-  $can_approve = nycc_rides_can_approve();
+  
+  $can_approve = function_exists('nycc_rides_can_approve') ? nycc_rides_can_approve() : false;
   
   if (!$can_approve) {
     hide($form['group_rides_htabs']['group_ride_rc_info']);
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_riders']);
     hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_waitlist']);
-      
-    // hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']);
-  } // can_approve
-
+    hide($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']);
+  } 
   else {
+    /*
     $form['group_rides_htabs']['group_ride_rc_info']['revs'] = array(
       '#markup' => drupal_render($form['revision_information']),
     );    
+    */
   }
+  // hide extra fields from all unless '/admin' is appended to url
+  if (arg(3) != 'admin') {
+    hide($form['group_rides_htabs']['group_rides_advanced']);
+    hide($form['additional_settings']);
+  }
+  
   
   // where is best place to do this? does not work in hook_form_alter as 'group_rides_htabs' key does not yet exist yet
       
   //dpm($form['group_rides_htabs']['group_ride_participants']['group_rides_participants']);
   
-  $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_leaders']['field_ride_current_leaders']['und']['add_more']['#value'] = t("Add another ride leader");
+  // Note: not much point in changing these as they change back when new item added.
+  $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_leaders']['field_ride_current_leaders']['und']['add_more']['#value'] = t("Add ride leader");
   
-  $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_riders']['field_ride_current_riders']['und']['add_more']['#value'] = t("Add another rider");
+  $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_riders']['field_ride_current_riders']['und']['add_more']['#value'] = t("Add rider");
   
   $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_waitlist']['field_ride_waitlist']['und']['add_more']['#value'] = t("Add to waitlist");
   
-  /*
-  $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']['field_ride_attendees']['und']['add_more']['#value'] = t("Add another attendee");
-  */
+  $form['group_rides_htabs']['group_ride_participants']['group_rides_participants']['group_rides_attendees']['field_ride_attendees']['und']['add_more']['#value'] = t("Add attendee");
   
-  //dpm($form['group_rides_htabs']['group_ride_attachements']);
-  
-  $form['group_rides_htabs']['group_ride_attachements']['field_ride_image']['und']['#file_upload_title'] = t("Add another image");
   
   // note various spellings of attachments/attachements. ugh!
-  $form['group_rides_htabs']['group_ride_attachements']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
+  //dpm($form['group_rides_htabs']['group_ride_attachements']['group_rides_attachements']);
+  
+  $form['group_rides_htabs']['group_ride_attachements']['group_rides_attachements']['group_rides_images']['field_ride_image']['und']['#file_upload_title'] = t("Add another image");
+  
+  $form['group_rides_htabs']['group_ride_attachements']['group_rides_attachements']['group_rides_attachments']['field_ride_attachments']['und']['#file_upload_title'] = t("Add another attachment");
 
-  /*
-  $form['group_rides_htabs']['group_rides_info']['field_ride_timestamp']['und'][0]['value']['additional_dates'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Additional dates',
-    '#description' => 'Optional. Create additional submissions based on this one, but for the list of dates entered here. Separate multiple dates by commas.',
-    '#weight' => 10,
-    '#value' => '',           // why is this is required for node form but not for general form!!!
-    '#prefix' => '',
-    '#suffix' => '',
-    '#id' => 'edit-nycc-additional-dates',
-    '#input' => true,                            // why needed?
-    '#name' => 'additional_dates',
-    '#attributes' => array('class' => array('datepicker')),
-    //'#cols' => 60,
-    //'#rows' => 1,
-    //'#default_value' => 'testing 1 2 3',  // not used? again, diff from general form
-    //'#resizable' => false,  
-  ); 
-  */
+  // add prev/next buttons
+  $form['group_rides_htabs']['group_rides_info']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-info', 49);
+  
+  $form['group_rides_htabs']['group_ride_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-rides-info', 48);
+  $form['group_rides_htabs']['group_ride_info']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-attachements', 49);
+  
+  $form['group_rides_htabs']['group_ride_attachements']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-info', 48);
+  $form['group_rides_htabs']['group_ride_attachements']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-participants', 49);
+   
+  $form['group_rides_htabs']['group_ride_participants']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-attachements', 48);  
+  
+  if ($can_approve) {
+    $form['group_rides_htabs']['group_ride_participants']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-rc-info', 49);
+    $form['group_rides_htabs']['group_ride_rc_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-participants', 49);
+  }
+  
+  // alter submit button
+  $form['actions']['submit']['#attributes'] = array('class' => array('btn btn-lg'));
+  $form['actions']['submit']['#weight'] = 50;
+  
+  // copy submit button to last two tabs 
+  $form['group_rides_htabs']['group_ride_participants']['submit'] = $form['actions']['submit'];
+  $form['group_rides_htabs']['group_ride_rc_info']['submit'] = $form['actions']['submit'];
+  
+  // add prev/next for rc tab
+  if ($can_approve) {
+    $form['group_rides_htabs']['group_ride_participants']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-rc-info', 49);
+    $form['group_rides_htabs']['group_ride_rc_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-participants', 49);
+  }
   
   if ($op == 'add') {
   }
   
   if ($op == 'edit') {
+    // show submit on all tabs
+    $form['group_rides_htabs']['group_rides_info']['submit'] = $form['actions']['submit'];
+    $form['group_rides_htabs']['group_ride_info']['submit'] = $form['actions']['submit'];
+    $form['group_rides_htabs']['group_ride_attachements']['submit'] = $form['actions']['submit'];
   }
   
-  
-  
+  // hide buttons
   hide($form['actions']);
   
   $output .= drupal_render_children($form);
   
-  $output .= drupal_render($form['actions']['submit']);
-  $output .= drupal_render($form['actions']['submit_ride']);
-  
+  //$output .= drupal_render($form['actions']['submit']);
+
 ?>
 
 <?php print $output;  ?>
