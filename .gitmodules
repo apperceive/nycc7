@@ -1,0 +1,3 @@
+[submodule "sites/all/libraries/smartmenus"]
+	path = sites/all/libraries/smartmenus
+	url = https://github.com/vadikom/smartmenus
