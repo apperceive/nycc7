@@ -126,11 +126,11 @@
       </div>
       
       
-      <div class="main-menu-collapse collapse">
+      <!-- div class="main-menu-collapse collapse">
         <nav role="navigation" class='clearfix'>
-          <?php print $main_menu_expanded; ?>
+          <?php /*print $main_menu_expanded;*/ ?>
         </nav>
-      </div>
+      </div -->
 
       <?php if ($logged_in) : ?>
         <div class="user-menu-collapse collapse">
@@ -169,31 +169,42 @@
     <?php print render($page['header']); ?>
   </header> <!-- /#page-header -->
   
-  <div class="row">
-     <div class='col-xs-12'>
-      <?php print $messages; ?>
+  <?php if (!empty($messages)): ?>
+    <div class="row row-messages">
+       <div class='col-xs-12'>
+        <?php print $messages; ?>
+      </div>
     </div>
-  </div>
+  <?php endif; ?>
   
-  <div class="row">
-     <div class='col-xs-12'>
-     <?php if (!empty($page['help'])): ?>
-        <?php print render($page['help']); ?>
-      <?php endif; ?>
-    </div>
-  </div>
 
-  <div class="row">
-    <div class='col-xs-12'>
-      <?php if (!empty($page['highlighted'])): ?>
-        <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
-      <?php endif; ?>
+  <?php if (!empty($page['help'])): ?>
+    <div class="row row-help">
+       <div class='col-xs-12'>
+          <?php print render($page['help']); ?>
+      </div>
     </div>
-  </div>
+  <?php endif; ?>
+
+  <?php if (!empty($main_menu_expanded)): ?>
+    <div class="row row-main-menu">
+      <div class='col-xs-12'>
+      <?php print $main_menu_expanded; ?>
+      </div>
+    </div>
+  <?php endif; ?>
+  
+  <?php if (!empty($page['highlighted'])): ?>
+    <div class="row">
+      <div class='col-xs-12'>
+          <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
+      </div>
+    </div>
+  <?php endif; ?>
 
   <div class="row">
     <?php if (!empty($page['sidebar_first'])): ?>
-      <aside class="col-sm-3 col-md-2" role="complementary">
+      <aside class="col-xs-12 col-sm-4" role="complementary">
         <?php print render($page['sidebar_first']); ?>
       </aside>  <!-- /#sidebar-first -->
     <?php endif; ?>
@@ -228,7 +239,7 @@
     </section>
 
     <?php if (!empty($page['sidebar_second'])): ?>
-      <aside class="col-sm-3 col-md-4" role="complementary">
+      <aside class="col-xs-12 col-sm-5 col-md-4" role="complementary">
         <?php print render($page['sidebar_second']); ?>
       </aside>  <!-- /#sidebar-second -->
     <?php endif; ?>
@@ -238,6 +249,8 @@
 
 <?php if (!empty($page['footer'])): ?>
   <footer class="footer <?php print $container_class; ?>">
-    <?php print render($page['footer']); ?>
+    <div class='row'>
+      <?php print render($page['footer']); ?>
+    </div>
   </footer>
 <?php endif; ?>

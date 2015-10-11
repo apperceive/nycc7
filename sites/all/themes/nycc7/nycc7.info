@@ -28,3 +28,11 @@ regions[page_bottom]    = 'Page bottom'
 ;;;;;;;;;;;;;;;;;;;;;
 
 stylesheets[all][] = css/style.css
+;;stylesheets[all][] = /sites/all/libraries/smartmenus/dist/sm-core-css.css
+;;stylesheets[all][] = /sites/all/libraries/smartmenus/dist/sm-blue/sm-blue.css
+;;stylesheets[all][] = /sites/all/libraries/smartmenus/dist/addins/bootstrap/jquery.smartmenus.bootstrap.css
+
+;;scripts[] = /sites/all/libraries/smartmenus/dist/jquery.smartmenus.min.js
+;;scripts[] = /sites/all/libraries/smartmenus/dist/addins/bootstrap/jquery.smartmenus.min.js
+scripts[] = js/scripts.js
+

@@ -28,14 +28,29 @@ function nycc7_preprocess_page(&$variables) {
 
   // Add information about the number of sidebars.
   if (!empty($variables['page']['sidebar_first']) && !empty($variables['page']['sidebar_second'])) {
-    $variables['content_column_class'] = ' class="col-sm-6 col-md-5"';
+    $variables['content_column_class'] = ' class="col-xs-12 col-sm-6 "';
   }
   elseif (!empty($variables['page']['sidebar_first']) || !empty($variables['page']['sidebar_second'])) {
-    $variables['content_column_class'] = ' class="col-sm-9 col-md-8"';
+    $variables['content_column_class'] = ' class="col-xs-12 col-sm-7 col-md-8"';
   }
   else {
-    $variables['content_column_class'] = ' class="col-sm-12"';
+    $variables['content_column_class'] = ' class="col-xs-12 col-sm-12 "';
   }
+
+  $css = array (
+    //"http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css",
+    //"http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css",
+    "sites/all/libraries/smartmenus/dist/css/sm-core-css.css",      
+    "sites/all/libraries/smartmenus/dist/css/sm-blue/sm-blue.css",      
+    "sites/all/libraries/smartmenus/dist/addins/bootstrap/jquery.smartmenus.bootstrap.css ",      
+  );
+  
+  foreach ($css as $file) {
+    $type = (stripos($file, 'http') === 0) ? "external" : "file";
+    $options = array('type' => $type, 'weight' => 100, 'group' => JS_THEME, );
+    drupal_add_css($file, $options);
+  }
+ 
   
   $search_form = drupal_get_form('search_form');
   $search_form_box = drupal_render($search_form);
@@ -45,15 +60,15 @@ function nycc7_preprocess_page(&$variables) {
   // unset effect of drupal_render for now
   //$variables['tabs']['#primary']['#printed'] = FALSE;
   
-  $variables['main_menu_expanded'] = _nycc7_menu(menu_tree('main-menu'));
+  $variables['main_menu_expanded'] = _nycc7_menu('main-menu', false, 'sm sm-blue' );
   
   // make these drop downs? they only have one level of depth
   // add a title, bold but not a link?
   // how toggle menus off when another opened?
-  $variables['user_menu_expanded'] = _nycc7_menu(menu_tree('user-menu'), true);
+  $variables['user_menu_expanded'] = _nycc7_menu('user-menu', true);
   
   // navigation and other menus can have several levels e.g add content | type 
-  $variables['navigation_menu_expanded'] = _nycc7_menu(menu_tree('navigation'), true);
+  $variables['navigation_menu_expanded'] = _nycc7_menu('navigation', true);
 } // nycc7_preprocess_page
 
 function nycc7_preprocess_node(&$variables) {
@@ -73,29 +88,47 @@ function nycc7_nycc_ride_link($variables) {
 }
 
 // note: only handles two levels of menu
-function _nycc7_menu($menu, $flat = false) {
+function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = true, $ulclasses = "") {
+  $menu = menu_tree($menuname);
+  $id = $id ? $id : $menuname;
+  $litopclass = $flat ? '' : 'top-item';
   $tree = array();
-  //$i = 0;
-  $liclass = $flat ? '' : 'top-item';
-  $ulclass = $flat ? 'col-xs-12' : 'col-xs-12 col-sm-6 col-md-3 col-lg-2';
+  
   foreach ($menu as $key => $item) {
     if (!is_numeric($key))
-      break;
+      continue;
     
+
+    // note: one level processing here only
     $leaf = array();
-    $leaf[] = "<li class='$liclass'>" . l($item['#title'], $item['#href']) . "</li>";
-    
-    foreach ($item['#below'] as $child_key => $child) {
-      if (!is_numeric($child_key))
-        break;
- 
-      $leaf[] = '<li>' . l($child['#title'], $child['#href']) . '</li>';
+    if (is_array($item['#below'])) {
+      foreach ($item['#below'] as $child_key => $child) {
+        if (!is_numeric($child_key))
+          continue;
+        if (drupal_strlen(trim($child['#title']))) {
+          $cl = l($child['#title'], $child['#href']);
+          $leaf[] = "<li id='menu-item-$child_key'>$cl</li>";
+        }
+      }
     }
+    $submenuul ="";
+    if (count($leaf)) {
+      $submenu = implode('', $leaf);
+      if (drupal_strlen(trim($submenu)))
+        $submenuul = "<ul zzzclass='sub-menu'>$submenu</ul>";
+    }
+    //dpm($item['#href']);
+    $homeclass = ($item['#href'] == "<front>") ? "home" : "";
+    $title = ($item['#href'] == "<front>") ? "&nbsp;" : $item['#title'];
+    $l = l($title, $item['#href'], array('html' => true, 'attributes' => array('class' => array($homeclass, $litopclass))));
+    $ulclasess = drupal_strlen($ulclasses) ? "class='$ulclasses'" : "";
+    $t = "<li id='menu-item-$key' $ulclasses>$l$submenuul</li>";
+    if (!($item['#href'] == "<front>") || (($item['#href'] == "<front>") && $front))
+      $tree[]  = $t;
     
-    $tree[] = "<ul class='$ulclass'>" . implode('', $leaf) . "</ul>";
-    //$i++;
-  }
-  return implode('', $tree);
+  } // for
+  $s = "<ul id='$id' class='$class'>" . implode('', $tree) . "</ul>";
+ return $s;
 } // _nycc7_menu
 
 

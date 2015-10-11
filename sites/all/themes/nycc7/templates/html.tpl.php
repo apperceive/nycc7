@@ -69,7 +69,6 @@
   <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
   <![endif]-->
-  <?php print $scripts; ?>
 </head>
 <body<?php print $body_attributes; ?>>
   <div id="skip-link">
@@ -77,6 +76,9 @@
   </div>
   <?php print $page_top; ?>
   <?php print $page; ?>
+  <?php print $scripts; ?>
+  <script src="/sites/all/libraries/smartmenus/dist/jquery.smartmenus.min.js" type="text/javascript"></script>
+  <!-- script src="/sites/all/libraries/smartmenus/dist/addons/bootstrap/jquery.smartmenus.bootstrap.min.js" type="text/javascript"></script -->
   <?php print $page_bottom; ?>
 </body>
 </html>

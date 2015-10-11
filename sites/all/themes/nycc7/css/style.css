@@ -163,4 +163,45 @@ header#navbar .menu-collapse ul {
 }
 
 
+ul#main-menu {
+  margin-bottom: 20px;
+}
+
+#footer-main-menu .top-item,
+#main-menu .top-item {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+#main-menu .home {
+  background-image: url(../logo.png);
+  background-repeat: no-repeat;
+  background-size: 70%;
+  background-position: 20px 8px;
+  width: 120px;
+  display: inline-block;
+}
+
+#footer-main-menu  {
+  height: 900px;
+}
+
+#footer-main-menu > li {
+  display: block;
+  /*float: left;*/
+  margin: 0 20px;
+}
+
+#footer-main-menu ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+
+.container .jumbotron,
+.container-fluid .jumbotron {
+  padding: 0;
+  margin: 0;
+}
 
