@@ -5,6 +5,7 @@
 body {
   margin-bottom: 50px;
   padding-bottom: 25px;
+  font-family: 'Lato', sans-serif; 
 }
 
 /*div.navbar-header a.navbar-brand {
@@ -218,4 +219,8 @@ ul#main-menu {
 */
 #main-menu ul {
   /*width:12em;*/ /* fixed width only please - you can use the "subMenusMinWidth"/"subMenusMaxWidth" script options to override this if you like */
+}
+
+h1, h2, h3, h4, h5, h6, .btn {
+  font-family: 'Roboto Slab', serif;
 }

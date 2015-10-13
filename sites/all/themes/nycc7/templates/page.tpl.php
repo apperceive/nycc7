@@ -190,40 +190,12 @@
 
   </div> <!-- row -->
 
-  
-  <style>
-    .row-join { margin-top: 20px;  }
-    .row-join a.btn { height: 120px; padding: 40px 0 0 0; }
-  </style>
-  
-  <div class='row row-join'>
-    <div class='col-xs-12'>
-      <a class='center-block btn btn-danger btn-lg' href='/join'>Join or Renew your NYCC Membership!</a>
-    </div>
-  </div> <!-- row -->
-  
-  <?php if ($is_front): ?>
-  <style>
-    .row-community { margin-top: 20px;  }
-    .row-community a.btn { height: 120px; padding: 40px 0 0 0; }
-  </style>
-  
-  <div class='row row-community'>
-    <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-warning btn-lg' href='/volunteer'>Volunteer</a>
-    </div>
-    <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-info btn-lg' href='/join'>Escape</a>
-    </div>
-    <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-success btn-lg' href='/support'>Support</a>
-    </div>
-  </div> <!-- row -->
-  
+   <?php if ($is_front): ?>
+
   <style>
     .row-upcoming { margin-top: 20px;  }
     .row-upcoming div div { border-radius: 5px; margin-bottom: 20px; background-repeat: no-repeat; background-size: cover; }
-    .row-upcoming div div div { overflow: auto; background-color: rgba(255,255,255,0.7); max-height: 240px;  }
+    .row-upcoming div div div { overflow: auto; background-color: rgba(255,255,255,0.7); xmax-height: 240px;  }
     .row-upcoming div div p { padding: 10px; font-weight: bold; }
     .row-upcoming h2 { padding: 20px 0 0 0; margin: 0; height: 80px; text-align: center; color: rgba(255,255,255,0.6); }
     .row-upcoming .rides { background-image: url(/sites/all/themes/nycc7/images/8701161794_02c1243f4f_z.jpg); }
@@ -261,7 +233,43 @@
     </div>
   </div> <!-- row -->
 
-  <?php endif; ?>
+  <style>
+    .row-join { margin-top: 20px;  }
+    .row-join a.btn { height: 120px; padding: 40px 0 0 0; }
+  </style>
+  
+  <div class='row row-join'>
+    <div class='col-xs-12'>
+      <a class='center-block btn btn-danger btn-lg' href='/join'>Join or Renew your NYCC Membership!</a>
+    </div>
+  </div> <!-- row -->
+  
+  <style>
+    .row-community { margin-top: 20px;  }
+    .row-community a.btn { height: 120px; padding: 40px 0 0 0; }
+  </style>
+  
+  <div class='row row-community'>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-warning btn-lg' href='/volunteer'>Volunteer</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-info btn-lg' href='/eny15'>Escape</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-success btn-lg' href='/sponsorship'>Sponsorship</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-warning btn-lg' href='/resources'>Resources</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-info btn-lg' href='/message-board/forums/message-board'>Message Board</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-success btn-lg' href='/about'>About</a>
+    </div>
+  </div> <!-- row -->
+  
   
   <style>
     .row-navs { margin-top: 20px;  }
@@ -279,6 +287,8 @@
       <a class='center-block btn btn-primary btn-lg' href='/eny'>Credits & Org Links</a>
     </div>
   </div> <!-- row -->
+  
+  <?php endif; ?>
   
   <style>
     .row-colophon { margin-top: 20px;  text-align: center; }

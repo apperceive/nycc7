@@ -42,6 +42,8 @@ function nycc7_preprocess_page(&$variables) {
     //"http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css",
     //"http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css",
     "http://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css",
+    "http://fonts.googleapis.com/css?family=Lato:400,700,400italic",
+    "http://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300",
     "sites/all/libraries/smartmenus/dist/css/sm-core-css.css",      
     "sites/all/libraries/smartmenus/dist/css/sm-blue/sm-blue.css",      
     // TODO: reinstate this?
