@@ -7,9 +7,9 @@ body {
   padding-bottom: 25px;
 }
 
-div.navbar-header a.navbar-brand {
+/*div.navbar-header a.navbar-brand {
  display: none;
-}
+}*/
 
 article.node-rides div.item-list ul  {
   list-style-type: none;
@@ -205,3 +205,17 @@ ul#main-menu {
   margin: 0;
 }
 
+.navbar-header {
+  width: 100%;
+}
+
+/*
+#main-menu {
+  position:relative;
+  z-index:9999;
+  width:auto;
+}
+*/
+#main-menu ul {
+  /*width:12em;*/ /* fixed width only please - you can use the "subMenusMinWidth"/"subMenusMaxWidth" script options to override this if you like */
+}

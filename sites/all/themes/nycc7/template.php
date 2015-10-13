@@ -17,15 +17,16 @@ function nycc7_theme($existing, $type, $theme, $path) {
 
 function nycc7_preprocess_block(&$variables) {
   if ($variables['block']->region != 'navigation') {
-    $variables['classes_array'][] = 'well';
-    $variables['classes_array'][] = 'well-lg';
+    //$variables['classes_array'][] = 'well';
+    //$variables['classes_array'][] = 'well-lg';
   } else {
     $variables['content'] = str_replace('Login</a>', '<button type="button" class="navbar-toggle" title="Sign In"><span class="glyphicon glyphicon-user"></span></button></a>', $variables['content']);   
   }
 } // nycc7_preprocess_block
  
 function nycc7_preprocess_page(&$variables) {
-
+  global $user;
+  
   // Add information about the number of sidebars.
   if (!empty($variables['page']['sidebar_first']) && !empty($variables['page']['sidebar_second'])) {
     $variables['content_column_class'] = ' class="col-xs-12 col-sm-6 "';
@@ -40,18 +41,18 @@ function nycc7_preprocess_page(&$variables) {
   $css = array (
     //"http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css",
     //"http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css",
+    "http://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css",
     "sites/all/libraries/smartmenus/dist/css/sm-core-css.css",      
     "sites/all/libraries/smartmenus/dist/css/sm-blue/sm-blue.css",      
+    // TODO: reinstate this?
     "sites/all/libraries/smartmenus/dist/addins/bootstrap/jquery.smartmenus.bootstrap.css ",      
   );
-  
   foreach ($css as $file) {
     $type = (stripos($file, 'http') === 0) ? "external" : "file";
     $options = array('type' => $type, 'weight' => 100, 'group' => JS_THEME, );
     drupal_add_css($file, $options);
   }
  
-  
   $search_form = drupal_get_form('search_form');
   $search_form_box = drupal_render($search_form);
   $variables['search_box'] = $search_form_box;
@@ -69,6 +70,9 @@ function nycc7_preprocess_page(&$variables) {
   
   // navigation and other menus can have several levels e.g add content | type 
   $variables['navigation_menu_expanded'] = _nycc7_menu('navigation', true);
+  
+  $variables['navbar_nav_links'] = _nycc7_navbar_nav_links();
+
 } // nycc7_preprocess_page
 
 function nycc7_preprocess_node(&$variables) {
@@ -88,16 +92,16 @@ function nycc7_nycc_ride_link($variables) {
 }
 
 // note: only handles two levels of menu
-function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = true, $ulclasses = "") {
+function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = true, $submenuclasses = "") {
   $menu = menu_tree($menuname);
   $id = $id ? $id : $menuname;
   $litopclass = $flat ? '' : 'top-item';
+  $ulclasess = drupal_strlen($submenuclasses) ? " class='$submenuclasses'" : "";
   $tree = array();
   
   foreach ($menu as $key => $item) {
     if (!is_numeric($key))
       continue;
-    
 
     // note: one level processing here only
     $leaf = array();
@@ -107,6 +111,7 @@ function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = t
           continue;
         if (drupal_strlen(trim($child['#title']))) {
           $cl = l($child['#title'], $child['#href']);
+          // TODO: set active?
           $leaf[] = "<li id='menu-item-$child_key'>$cl</li>";
         }
       }
@@ -115,22 +120,78 @@ function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = t
     if (count($leaf)) {
       $submenu = implode('', $leaf);
       if (drupal_strlen(trim($submenu)))
-        $submenuul = "<ul zzzclass='sub-menu'>$submenu</ul>";
+        $submenuul = "<ul>$submenu</ul>";
     }
-    //dpm($item['#href']);
+    // TODO: set active?
     $homeclass = ($item['#href'] == "<front>") ? "home" : "";
     $title = ($item['#href'] == "<front>") ? "&nbsp;" : $item['#title'];
-    $l = l($title, $item['#href'], array('html' => true, 'attributes' => array('class' => array($homeclass, $litopclass))));
-    $ulclasess = drupal_strlen($ulclasses) ? "class='$ulclasses'" : "";
-    $t = "<li id='menu-item-$key' $ulclasses>$l$submenuul</li>";
+    $attributes = array('class' => array($homeclass, $litopclass));
+    $l = l($title, $item['#href'], array('html' => true, 'attributes' => $attributes));
+    // skip home link if $front is true, for footer menu
     if (!($item['#href'] == "<front>") || (($item['#href'] == "<front>") && $front))
-      $tree[]  = $t;
+      $tree[] = "<li id='menu-item-$key'$submenuclasses>$l$submenuul</li>";
     
   } // for
   $s = "<ul id='$id' class='$class'>" . implode('', $tree) . "</ul>";
  return $s;
 } // _nycc7_menu
 
+function _nycc7_navbar_nav_links() {
+  global $user;
+  $output = "";
+  if (!$user->uid) {
+    // TODO: make this a single line form
+    $form = drupal_get_form('user_login_block'); // TODO: check this in D7
+    $output = drupal_render($form);
+    
+    // buttons: join, password, register, contact?
+    // TODO: add social logins? also join
+  }
+  else {
+    $uid = $user->uid;
+    $user = user_load($uid); // load to get $user->realname
+    $username = isset($user->realname) ? $user->realname : $user->name;
+    $can_approve = function_exists('nycc_rides_can_approve') ? nycc_rides_can_approve() : false;
+    $arr = array();  // build array of nav items
+    
+    $arr[] = _nycc7_navbar_button("Sign out as $username", 'fa-sign-out', '/user/logout');
+
+    $arr[] = _nycc7_navbar_button("Account settings for $username", 'fa-user', '/user');
+    
+    $arr[] = _nycc7_navbar_button('Notifications', 'fa-envelope-o', "/user/$uid/messages");
+        
+    if ($can_approve) 
+      $arr[] = _nycc7_navbar_button('Approve rides', 'fa-thumbs-o-up', '/approve-rides');       
+
+    // groups
+    if (isset($user->og_user_node) && is_array($user->og_user_node) && array_key_exists('und', $user->og_user_node) && is_array($user->og_user_node['und'])) {
+      foreach($user->og_user_node['und'] as $ndx => $g) {
+        $gid = $g['target_id'];
+        $gp = node_load($gid);
+        $gtitle = 'Group: ' . $gp->title;
+        $icon = 'fa-users';
+        //$icon = stripos($gtitle, 'group') ? 'fa-user-plus' : $icon;
+        //$icon = stripos($gtitle, 'sts') ? 'fa-user-plus' : $icon;
+        $icon = stripos($gtitle, 'volunteer') ? 'fa-heart' : $icon;
+        $icon = stripos($gtitle, 'sig') ? 'fa-bicycle' : $icon;
+        $icon = stripos($gtitle, 'sts') ? 'fa-cogs' : $icon;
+        $arr[] = _nycc7_navbar_button($gtitle, $icon, "/node/$gid");
+      } // for
+    } // array
+    
+    $output = implode("\n", $arr);
+  }
+  return $output;
+} // _nycc7_navbar_nav_links
+
+function _nycc7_navbar_button($title, $icon, $href) {
+  $button = "
+    <a class='navbar-btn btn navbar-right' title='$title' onclick='location.href = \"$href\"; return false;'>
+      <span class='sr-only'>$title</span>
+      <span class='fa $icon fa-2x'></span>
+    </a>";    
+  return $button;
+} // _nycc7_button
 
 /*
 
