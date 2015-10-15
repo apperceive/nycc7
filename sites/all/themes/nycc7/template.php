@@ -160,7 +160,10 @@ function _nycc7_navbar_nav_links() {
 
     $arr[] = _nycc7_navbar_button("Account settings for $username", 'fa-user', '/user');
     
-    $arr[] = _nycc7_navbar_button('Notifications', 'fa-envelope-o', "/user/$uid/messages");
+    srand();
+    $rand = rand(-2,12);
+    $badge = $rand > -1 ? $rand : "";
+    $arr[] = _nycc7_navbar_button("You have $badge unread notifications", 'fa-envelope-o', "/user/$uid/messages", $badge);
         
     if ($can_approve) 
       $arr[] = _nycc7_navbar_button('Approve rides', 'fa-thumbs-o-up', '/approve-rides');       
@@ -186,14 +189,23 @@ function _nycc7_navbar_nav_links() {
   return $output;
 } // _nycc7_navbar_nav_links
 
-function _nycc7_navbar_button($title, $icon, $href) {
+function _nycc7_navbar_button($title, $icon, $href, $badge = '') {
   $button = "
     <a class='navbar-btn btn navbar-right' title='$title' onclick='location.href = \"$href\"; return false;'>
       <span class='sr-only'>$title</span>
       <span class='fa $icon fa-2x'></span>
+      <span class='badge'>$badge</span>
     </a>";    
   return $button;
 } // _nycc7_button
+
+function _nycc_block_render($module, $block_id) {
+  $block = block_load($module, $block_id);
+  $block_content = _block_render_blocks(array($block));
+  $build = _block_get_renderable_array($block_content);
+  $block_rendered = drupal_render($build);
+  return $block_rendered;
+} // _nycc_block_render
 
 /*
 
@@ -219,3 +231,31 @@ function nycc7_preprocess_field(&$variables) {
   }
 }
 */
+
+
+// output timestamp as a small 'calendar page'
+function _nycc7_output_datetime($date) {
+  $parts = getdate(strtotime($date)); // 'Y-m-d H:i:s', 
+  $year = $parts['year'];
+  $yearclasses = ($year == date("Y")) ? "year thisyear" : "year";
+  $yearspan ="<span class='$yearclasses'>$year</span>";
+  $dow = $parts['weekday'];
+  $month = $parts['month'];
+  $day = $parts['mday'];
+  if (!$parts['hours'] && !$parts['minutes'])
+    $timediv = "";
+  else {
+    $time = ($parts['hours'] > 12 ? $parts['hours'] - 12 : $parts['hours']) . ':' . ($parts['minutes'] < 10 ? '0' : '') . $parts['minutes'] . ' ' . ($parts['hours'] > 12 ? "pm" : "am");
+    $timediv = "<div class='time'>$time</div>";
+  }
+  $output =<<<EOS
+  <div class="nycc7-cal-datetime">
+    <!-- time datetime="$date" class="icon"></time -->
+    <div class='month'>$month$yearspan</div>
+    <div class='day'>$day</div>
+    <div class='dow'>$dow</div>
+    $timediv
+  </div>
+EOS;
+  return $output;  
+}  // _nycc7_output_datetime

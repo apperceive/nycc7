@@ -75,9 +75,9 @@
  global $user;
  //dpm(get_defined_vars());
 ?>
-<nav id="navbar" role="banner" class="<?php print $navbar_classes; ?>" data-sm-skip="true"  aria-expanded="false" aria-controls="navbar">
+<nav id="navbar" role="banner" class="<?php print $navbar_classes; ?> navbar-custom" data-sm-skip="true"  aria-expanded="false" aria-controls="navbar">
   <div class="<?php print $container_class; ?>">
-    
+
     <div class="navbar-header">
       <!-- button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
@@ -85,12 +85,16 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button -->  
-      
       <?php print $navbar_nav_links ; ?>
+      
+      <div class='navbar-brand'>
+        <a class="navbar-link" title="<?php print t('NYCC Home'); ?>" href="<?php print $front_page; ?>"><em>NYCC</em></a>
+      </div>
+      
+      <h1 class='navbar-text visible-md-inline visible-lg-inline'>New York Cycle Club</h1>
+    </div> <!-- navbar-header -->
 
-      <a class="navbar-brand navbar-link" title="<?php print t('NYCC Home'); ?>" href="<?php print $front_page; ?>"><em>NYCC</em></a>
-    </div>
-  </div>
+  </div> <!-- container -->
 
 </nav>
 
@@ -190,91 +194,67 @@
 
   </div> <!-- row -->
 
-   <?php if ($is_front): ?>
+  <?php if ($is_front): ?>
 
-  <style>
-    .row-upcoming { margin-top: 20px;  }
-    .row-upcoming div div { border-radius: 5px; margin-bottom: 20px; background-repeat: no-repeat; background-size: cover; }
-    .row-upcoming div div div { overflow: auto; background-color: rgba(255,255,255,0.7); xmax-height: 240px;  }
-    .row-upcoming div div p { padding: 10px; font-weight: bold; }
-    .row-upcoming h2 { padding: 20px 0 0 0; margin: 0; height: 80px; text-align: center; color: rgba(255,255,255,0.6); }
-    .row-upcoming .rides { background-image: url(/sites/all/themes/nycc7/images/8701161794_02c1243f4f_z.jpg); }
-    .row-upcoming .events { background-image: url(/sites/all/themes/nycc7/images/13887859536_5a03449b5d_z.jpg); }
-    .row-upcoming .groups { background-image: url(/sites/all/themes/nycc7/images/10168927906_11e3535ecb_z.jpg); }
-  </style>
-  
   <div class='row row-upcoming'>
     <div class='col-xs-12 col-sm-4 '>
       <div class='rides'>
-        <h2>Rides</h2>
+        <h2><a href='/upcoming-rides' title='Upcoming rides'>Rides</a></h2>
         <div>
           <p>Where winds have selectively removed low specific gravity minerals from sand, the grain size of the thin veneer or residue of heavy constituents that remains as blacksand is very much finer than that of light-colored surrounding sand on which the winnowing process is not far advanced.</p>
-          <p>The relative frequencies of the heavy minerals present in a number of representative assemblages after removal of magnetite and ilmenite are shown in table 1 and, by and large, these data are averages of counts of at least 300 grains for each of several preparations from specific localities. <a href='#'>More ...</a></p>
+          <p>The relative frequencies of the heavy minerals present in a number of representative assemblages after removal of magnetite and ilmenite are shown in table 1 and, by and large, these data are averages of counts of at least 300 grains for each of several preparations from specific localities. <a href='/upcoming-rides' title='Upcoming rides'>More ...</a></p>
         </div>
       </div>
     </div>
     <div class='col-xs-12 col-sm-4 '>
       <div class='events'>
-        <h2>Events</h2>
+        <h2><a href='/upcoming-events' title='Upcoming events'>Events</a></h2>
         <div>
-          <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='#'>More ...</a></p>
+          <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='/upcoming-events' title='Upcoming events'>More ...</a></p>
         </div>
       </div>
     </div>
     <div class='col-xs-12 col-sm-4 '>
       <div class='groups'>
-        <h2>Groups</h2>
+        <a href='/groups' title='NYCC groups'><h2>Groups</a></h2>
         <div>
           <p>The relative frequencies of the heavy minerals present in a number of representative assemblages after removal of magnetite and ilmenite are shown in table 1 and, by and large, these data are averages of counts of at least 300 grains for each of several preparations from specific localities.</p>
           <p>Where winds have selectively removed low specific gravity minerals from sand, the grain size of the thin veneer or residue of heavy constituents that remains as blacksand is very much finer than that of light-colored surrounding sand on which the winnowing process is not far advanced. </p>
-          <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='#'>More ...</a></p>
+          <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='/groups' title='NYCC groups'>More ...</a></p>
         </div>
       </div>
     </div>
   </div> <!-- row -->
 
-  <style>
-    .row-join { margin-top: 20px;  }
-    .row-join a.btn { height: 120px; padding: 40px 0 0 0; }
-  </style>
-  
+   
   <div class='row row-join'>
     <div class='col-xs-12'>
       <a class='center-block btn btn-danger btn-lg' href='/join'>Join or Renew your NYCC Membership!</a>
     </div>
   </div> <!-- row -->
   
-  <style>
-    .row-community { margin-top: 20px;  }
-    .row-community a.btn { height: 120px; padding: 40px 0 0 0; }
-  </style>
   
   <div class='row row-community'>
     <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-warning btn-lg' href='/volunteer'>Volunteer</a>
+      <a class='center-block btn btn-lg' href='/volunteer'>Volunteer</a>
     </div>
     <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-info btn-lg' href='/eny15'>Escape</a>
+      <a class='center-block btn btn-lg' href='/eny15'>Escape NY 2015</a>
     </div>
     <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-success btn-lg' href='/sponsorship'>Sponsorship</a>
+      <a class='center-block btn btn-lg' href='/sponsorship'>Sponsorship</a>
     </div>
     <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-warning btn-lg' href='/resources'>Resources</a>
+      <a class='center-block btn btn-lg' href='/resources'>Resources</a>
     </div>
     <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-info btn-lg' href='/message-board/forums/message-board'>Message Board</a>
+      <a class='center-block btn btn-lg' href='/message-board/forums/message-board'>Message Board</a>
     </div>
     <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-success btn-lg' href='/about'>About</a>
+      <a class='center-block btn btn-lg' href='/about'>About</a>
     </div>
   </div> <!-- row -->
   
-  
-  <style>
-    .row-navs { margin-top: 20px;  }
-    .row-navs a.btn { height: 200px; vertical-align: middle; /*padding: 20px 0 0 0;*/ }
-  </style>
   
   <div class='row row-navs'>
     <div class='col-xs-12 col-sm-4'>
@@ -286,13 +266,9 @@
     <div class='col-xs-12 col-sm-4'>
       <a class='center-block btn btn-primary btn-lg' href='/eny'>Credits & Org Links</a>
     </div>
-  </div> <!-- row -->
+  </div> <!-- row --> 
   
   <?php endif; ?>
-  
-  <style>
-    .row-colophon { margin-top: 20px;  text-align: center; }
-  </style>
   
   <div class='row row-colophon'>
     <div class='col-xs-12'>
@@ -300,10 +276,7 @@
     </div>
   </div> <!-- row -->
   
-  
-  
-  
-  
+   
 </div> <!-- main-container -->
 
 <?php if (!empty($page['footer'])): ?>
