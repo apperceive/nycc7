@@ -66,7 +66,7 @@
   
   <?php print $scripts; ?>
   <script src="/sites/all/libraries/smartmenus/dist/jquery.smartmenus.js" type="text/javascript"></script>
-  <!-- script src="/sites/all/libraries/smartmenus/dist/addons/bootstrap/jquery.smartmenus.bootstrap.js" type="text/javascript"></script -->
+  <script src="/sites/all/libraries/smartmenus/dist/addons/bootstrap/jquery.smartmenus.bootstrap.js" type="text/javascript"></script>
   <script>
   /* smartmenus*/
   jQuery(function() {

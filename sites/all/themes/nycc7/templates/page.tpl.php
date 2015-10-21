@@ -207,16 +207,8 @@
           <p>Where winds have selectively removed low specific gravity minerals from sand, the grain size of the thin veneer or residue of heavy constituents that remains as blacksand is very much finer than that of light-colored surrounding sand on which the winnowing process is not far advanced.</p>
           <p>The relative frequencies of the heavy minerals present in a number of representative assemblages after removal of magnetite and ilmenite are shown in table 1 and, by and large, these data are averages of counts of at least 300 grains for each of several preparations from specific localities. <a href='/upcoming-rides' title='Upcoming rides'>More ...</a></p>
         </div>
-      </div>
-    </div>
-    <div class='col-xs-12 col-sm-4 '>
-      <div class='events'>
-        <h2><a href='/upcoming-events' title='Upcoming events'>Events</a></h2>
-        <div>
-          <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='/upcoming-events' title='Upcoming events'>More ...</a></p>
-        </div>
-      </div>
-    </div>
+      </div> <!-- rides -->
+    </div> <!-- col -->
     <div class='col-xs-12 col-sm-4 '>
       <div class='groups'>
         <a href='/groups' title='NYCC groups'><h2>Groups</a></h2>
@@ -225,15 +217,23 @@
           <p>Where winds have selectively removed low specific gravity minerals from sand, the grain size of the thin veneer or residue of heavy constituents that remains as blacksand is very much finer than that of light-colored surrounding sand on which the winnowing process is not far advanced. </p>
           <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='/groups' title='NYCC groups'>More ...</a></p>
         </div>
-      </div>
-    </div>
+      </div> <!-- groups -->
+    </div> <!-- col -->
+    <div class='col-xs-12 col-sm-4 '>
+      <div class='events'>
+        <h2><a href='/upcoming-events' title='Upcoming events'>Events</a></h2>
+        <div>
+          <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='/upcoming-events' title='Upcoming events'>More ...</a></p>
+        </div>
+      </div> <!-- events -->
+    </div> <!-- col -->
   </div> <!-- row -->
 
    
   <div class='row row-join'>
     <div class='col-xs-12'>
       <a class='center-block btn btn-danger btn-lg' href='/join-nycc'>Join or Renew your NYCC Membership!</a>
-    </div>
+    </div> <!-- col -->
   </div> <!-- row -->
   
   
