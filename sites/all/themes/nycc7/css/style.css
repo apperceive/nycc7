@@ -304,35 +304,36 @@ h1, h2, h3, h4, h5, h6, .btn {
 }
 
 .front .region-content {
-  background-color: #e6e8e7;
+  /*background-color: #e6e8e7;*/
   padding: 20px;
   margin: 20px 0;
-  border-radius: 5px; 
+  /*border-radius: 5px; */
 }
 
 
 /* photo of the week */
 #block-block-207 {
-  background-color: #4f99b1; /* ny blue */
-  color: white;
+  /*background-color: #4f99b1;*/ /* ny blue */
+  /*color: white;*/
   padding: 20px;
   margin: 20px 0;
-  border-radius: 5px; 
+  /*border-radius: 5px; */
 }
 
 /* renew your membership */
 #block-block-211 {
-  background-color: #05254E;
-  color: white;
+  /*background-color: #05254E;
+  color: white;*/
   padding: 20px;
   margin: 20px 0;
-  border-radius: 5px; 
+  /*border-radius: 5px; */
 }
 
 /* lifetime members */
 #block-block-179 {
-  background-color: #4f99b1; /* ny blue */
-  color: white;
+  /*background-color: #4f99b1;*/ /* ny blue */
+  background-color: #e6e8e7;
+  /*color: white;*/
   padding: 20px;
   margin: 20px 0;
   border-radius: 5px; 
@@ -554,7 +555,7 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
 
 .row-upcoming { margin-top: 20px;  }
 .row-upcoming > div > div { border-radius: 5px; margin-bottom: 20px; background-repeat: no-repeat; background-size: cover; }
-.row-upcoming div div div { overflow: auto; background-color: rgba(255,255,255,0.9); xmax-height: 240px;  }
+.row-upcoming div div div { overflow: auto; background-color: rgba(255,255,255,0.9); xxxmax-height: 240px;  }
 .row-upcoming div div p { padding: 10px; font-weight: bold; }
 .row-upcoming h2 { padding: 20px 0 0 0; margin: 0; height: 80px; text-align: center; color: rgba(255,255,255,0.1); font-weight: bold; font-size: 300%; }
 .row-upcoming .rides { background-image: url(/sites/all/themes/nycc7/images/8701161794_02c1243f4f_z.jpg); }
