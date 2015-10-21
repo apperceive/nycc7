@@ -170,9 +170,9 @@ header#navbar .menu-collapse ul {
 
 
 #main-menu {
-  position:relative;
-  z-index:9999;
-  width:auto;
+  position: relative;
+  z-index: 800;  /* 1600 is admin_menu */
+  width: auto;
 }
 
 #main-menu ul {
