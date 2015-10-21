@@ -142,9 +142,16 @@ function _nycc7_navbar_nav_links() {
   global $user;
   $output = "";
   if (!$user->uid) {
-    // TODO: make this a single line form
+    // TODO: make this a single line form - css done
+    // placeholders too
+    
     $form = drupal_get_form('user_login_block'); // TODO: check this in D7
     $output = drupal_render($form);
+    
+    /*if (module_exists('hybridauth') && !user_is_logged_in()) {
+      $element['#type'] = 'hybridauth_widget';
+      $output .= drupal_render($element);
+    }*/
     
     // buttons: join, password, register, contact?
     // TODO: add social logins? also join

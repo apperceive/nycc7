@@ -1,4 +1,4 @@
-/*
+
 (function($) {
   // You pass-in jQuery and then alias it with the $-sign
   // So your internal code doesn't change
@@ -7,9 +7,10 @@
   $(function() {
     $('#main-menu').smartmenus(); 
   });
+
   
 })(jQuery);
-*/
+
 
 
  /*
@@ -22,8 +23,13 @@ jQuery.noConflict();
       //subMenusSubOffsetY: -8
   });
   
+  
   $('#main-menu').bind('activate.smapi', function(e, item) {
     console.log('activate.smapi');
+  });
+  
+  $('#main-menu').bind('show.smapi', function(e, menu) {
+    console.log('show.smapi');
   });
   
   $('#main-menu').bind('show.smapi', function(e, menu) {

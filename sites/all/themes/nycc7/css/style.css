@@ -168,8 +168,15 @@ header#navbar .menu-collapse ul {
 }
 
 
-ul#main-menu {
-  margin-bottom: 20px;
+
+#main-menu {
+  position:relative;
+  z-index:9999;
+  width:auto;
+}
+
+#main-menu ul {
+  /*width:12em;*/ /* fixed width only please - you can use the "subMenusMinWidth"/"subMenusMaxWidth" script options to override this if you like */
 }
 
 #footer-main-menu .top-item,
@@ -184,8 +191,13 @@ ul#main-menu {
   background-size: 70%;
   background-position: 20px 8px;
   width: 120px;
-  display: inline-block;
+  display: block;
 }
+
+ul#main-menu {
+  margin-bottom: 20px;
+}
+
 
 #footer-main-menu  {
   height: 900px;
@@ -212,17 +224,6 @@ ul#main-menu {
 
 .navbar-header {
   width: 100%;
-}
-
-/*
-#main-menu {
-  position:relative;
-  z-index:9999;
-  width:auto;
-}
-*/
-#main-menu ul {
-  /*width:12em;*/ /* fixed width only please - you can use the "subMenusMinWidth"/"subMenusMaxWidth" script options to override this if you like */
 }
 
 h1, h2, h3, h4, h5, h6, .btn {
@@ -312,7 +313,7 @@ h1, h2, h3, h4, h5, h6, .btn {
 
 /* photo of the week */
 #block-block-207 {
-  background-color: #4f99b1;
+  background-color: #4f99b1; /* ny blue */
   color: white;
   padding: 20px;
   margin: 20px 0;
@@ -321,7 +322,7 @@ h1, h2, h3, h4, h5, h6, .btn {
 
 /* renew your membership */
 #block-block-211 {
-  background-color: #794044;
+  background-color: #05254E;
   color: white;
   padding: 20px;
   margin: 20px 0;
@@ -330,7 +331,7 @@ h1, h2, h3, h4, h5, h6, .btn {
 
 /* lifetime members */
 #block-block-179 {
-  background-color: #c1936d;
+  background-color: #4f99b1; /* ny blue */
   color: white;
   padding: 20px;
   margin: 20px 0;
@@ -368,10 +369,6 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
   padding: 0 0 0 10px;
 }
 
-.navbar-custom .navbar-brand h1 {
-  display: inline-block;
-}
-
 .navbar-custom .navbar-brand a {
   display: inline-block;
   height: 48px;
@@ -395,9 +392,19 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
   color: #041420;
   background-color: transparent;
 }
+
 .navbar-custom .navbar-text {
   color: #09304e;
 }
+
+.navbar-custom h1.navbar-text  {
+  display: inline-block;
+  margin: 16px 0 0 0;
+  font-size: 2em;
+}
+
+
+
 .navbar-custom .navbar-nav > li:last-child > a {
   border-right: 1px solid #94be18;
 }
@@ -522,12 +529,16 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
 #user-login-form .form-group button {
 }
 
+#user-login-form  .hybridauth-widget-wrapper h3,
 #user-login-form ul {
   display: none;
   /*padding: 0;
   margin: 0;
   vertical-align: middle;
   margin: 5px 10px;*/
+}
+#user-login-form  .hybridauth-widget {
+  display: inline-block;
 }
 
 #user-login-form label {
@@ -553,7 +564,7 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
 .row-join { margin-top: 20px;  }
 .row-join a.btn { height: 120px; padding: 40px 0 0 0; }
 
-.row-community { background-image: url(/sites/all/themes/nycc7/images/15715065351_4691373c9c_k-cropped.jpg); background-repeat: no-repeat; background-size: cover; margin: 20px 0; padding: 20px 0 0 0; border-radius: 5px; }
+.row-community { background-image: url(/sites/all/themes/nycc7/images/15715065351_4691373c9c_k-cropped60.jpg); background-repeat: no-repeat; background-size: cover; margin: 20px 0; padding: 20px 0 0 0; border-radius: 5px; }
 
 .row-community a.btn { xheight: 120px; xpadding: 40px 0 0 0; margin-bottom: 10px; background-color: rgba(0,0,0,.1); color: rgba(255,255,255,.8); border-color: black; }
 

@@ -79,13 +79,16 @@
   <div class="<?php print $container_class; ?>">
 
     <div class="navbar-header">
-      <!-- button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-nav-links" aria-expanded="true">
         <span class="sr-only">Toggle navigation</span>
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
-      </button -->  
-      <?php print $navbar_nav_links ; ?>
+      </button>
+      
+      <div id='navbar-nav-links' class='navbar-nav-links'>
+        <?php print $navbar_nav_links ; ?>
+      </div>
       
       <div class='navbar-brand'>
         <a class="navbar-link" title="<?php print t('NYCC Home'); ?>" href="<?php print $front_page; ?>"><em>NYCC</em></a>
@@ -127,8 +130,8 @@
   <?php endif; ?>
 
   <?php if (!empty($main_menu_expanded)): ?>
-    <div class="xrow row-main-menu">
-      <div class = 'xcol-xs-12'>
+    <div class="row row-main-menu">
+      <div class = 'col-xs-12'>
         <?php print $main_menu_expanded; ?>
       </div>
     </div>
@@ -229,7 +232,7 @@
    
   <div class='row row-join'>
     <div class='col-xs-12'>
-      <a class='center-block btn btn-danger btn-lg' href='/join'>Join or Renew your NYCC Membership!</a>
+      <a class='center-block btn btn-danger btn-lg' href='/join-nycc'>Join or Renew your NYCC Membership!</a>
     </div>
   </div> <!-- row -->
   
