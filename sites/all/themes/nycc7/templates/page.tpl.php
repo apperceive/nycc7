@@ -73,91 +73,33 @@
  * @ingroup themeable
  */
  global $user;
+ //dpm(get_defined_vars());
 ?>
-<header id="navbar" role="banner" class="<?php print $navbar_classes; ?>">
+<nav id="navbar" role="banner" class="<?php print $navbar_classes; ?> navbar-custom" data-sm-skip="true"  aria-expanded="false" aria-controls="navbar">
   <div class="<?php print $container_class; ?>">
-    <div class="navbar-header row">
-    
-      <a class="logo navbar-btn" href="<?php print $front_page; ?>" title="<?php print t('Home'); ?>">
-          <img src="<?php print $logo; ?>" alt="<?php print t('Home'); ?>" />
-      </a>
+
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-nav-links" aria-expanded="true">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
       
-      <div class="btn-group" role="group">
-      
-        <?php if (!empty($page['navigation'])): ?>
-          <?php print render($page['navigation']); ?>
-        <?php endif; ?>      
-   
-        <?php if ($logged_in) : ?>
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".user-menu-collapse" title='User Menu'>
-            <span class="glyphicon glyphicon-wrench"></span>
-          </button>
-        <?php endif ?>
-        
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".main-menu-collapse" title='Main Menu'>
-          <span class="sr-only"><?php print t('Toggle navigation'); ?></span>
-          <span class="glyphicon glyphicon-menu-hamburger"></span>
-        </button>
-
-        <!-- button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navigation-menu-collapse" title='Navigation Menu'>
-          <span class="fa fa-bicycle"></span>
-        </button -->
-
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".search-collapse" title='Search'>
-          <span class="glyphicon glyphicon-search"></span>
-        </button>
-
-        <?php if (!$logged_in) : ?>
-          <button class="btn navbar-toggle dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-            <span class="glyphicon glyphicon-cog"></span>
-            <span class="caret"></span>
-          </button>
- 
-          <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-            <!-- li><a href="/user">Sign In</a></li -->
-            <li><a href="/user/password">Request new password</a></li>
-            <li><a href="/join">Become a member</a></li>
-            <li><a href="/user/register">Create an account</a></li>
-            <!-- li role="separator" class="divider"></li -->
-            <?php /*print $settings_box;*/ ?>
-          </ul>
-        <?php endif ?>
-        
+      <div id='navbar-nav-links' class='navbar-nav-links'>
+        <?php print $navbar_nav_links ; ?>
       </div>
       
-      
-      <!-- div class="main-menu-collapse collapse">
-        <nav role="navigation" class='clearfix'>
-          <?php /*print $main_menu_expanded;*/ ?>
-        </nav>
-      </div -->
-
-      <?php if ($logged_in) : ?>
-        <div class="user-menu-collapse collapse">
-          <h4><?php print $user->name; ?></h4>
-          <nav role="navigation" class='clearfix'>
-            <?php print $user_menu_expanded; ?>
-          </nav>
-        </div>
-      <?php endif ?>
-
-     <!-- div class="navigation-menu-collapse collapse">
-        <nav role="navigation" class='clearfix'>
-          <?php print $navigation_menu_expanded; ?>
-        </nav>
-      </div -->
-
-      <div class="search-collapse collapse">
-        <nav role="navigation" class='well'>
-          <?php print $search_box; ?>
-        </nav>
+      <div class='navbar-brand'>
+        <a class="navbar-link" title="<?php print t('NYCC Home'); ?>" href="<?php print $front_page; ?>"><em>NYCC</em></a>
       </div>
+      
+      <h1 class='navbar-text visible-md-inline visible-lg-inline'>New York Cycle Club</h1>
+    </div> <!-- navbar-header -->
 
-    </div>
+  </div> <!-- container -->
 
-  </div>
-
-</header>
+</nav>
 
 <div class="main-container <?php print $container_class; ?>">
 
@@ -170,14 +112,15 @@
   </header> <!-- /#page-header -->
   
   <?php if (!empty($messages)): ?>
-    <div class="row row-messages">
-       <div class='col-xs-12'>
-        <?php print $messages; ?>
+    <div class='container'>
+      <div class="row row-messages">
+        <div class='col-xs-12'>
+          <?php print $messages; ?>
+        </div>
       </div>
     </div>
   <?php endif; ?>
   
-
   <?php if (!empty($page['help'])): ?>
     <div class="row row-help">
        <div class='col-xs-12'>
@@ -188,21 +131,29 @@
 
   <?php if (!empty($main_menu_expanded)): ?>
     <div class="row row-main-menu">
-      <div class='col-xs-12'>
-      <?php print $main_menu_expanded; ?>
-      </div>
-    </div>
-  <?php endif; ?>
-  
-  <?php if (!empty($page['highlighted'])): ?>
-    <div class="row">
-      <div class='col-xs-12'>
-          <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
+      <div class = 'col-xs-12'>
+        <?php print $main_menu_expanded; ?>
       </div>
     </div>
   <?php endif; ?>
 
-  <div class="row">
+  <div class="row row-search">
+    <div class='col-xs-12'>
+      <div id='search'>
+        <?php print $search_box; ?>
+      </div>
+    </div>
+  </div>
+
+  <?php if (!empty($page['highlighted'])): ?>
+    <div class="row">
+      <div class='col-xs-12 col-md-8'>
+        <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
+      </div>
+    </div>
+  <?php endif; ?>
+
+  <div class="row row-content-sidebars">
     <?php if (!empty($page['sidebar_first'])): ?>
       <aside class="col-xs-12 col-sm-4" role="complementary">
         <?php print render($page['sidebar_first']); ?>
@@ -244,8 +195,92 @@
       </aside>  <!-- /#sidebar-second -->
     <?php endif; ?>
 
-  </div>
-</div>
+  </div> <!-- row -->
+
+  <?php if ($is_front): ?>
+
+  <div class='row row-upcoming'>
+    <div class='col-xs-12 col-sm-4 '>
+      <div class='rides'>
+        <h2><a href='/upcoming-rides' title='Upcoming rides'>Rides</a></h2>
+        <div>
+          <p>Where winds have selectively removed low specific gravity minerals from sand, the grain size of the thin veneer or residue of heavy constituents that remains as blacksand is very much finer than that of light-colored surrounding sand on which the winnowing process is not far advanced.</p>
+          <p>The relative frequencies of the heavy minerals present in a number of representative assemblages after removal of magnetite and ilmenite are shown in table 1 and, by and large, these data are averages of counts of at least 300 grains for each of several preparations from specific localities. <a href='/upcoming-rides' title='Upcoming rides'>More ...</a></p>
+        </div>
+      </div>
+    </div>
+    <div class='col-xs-12 col-sm-4 '>
+      <div class='events'>
+        <h2><a href='/upcoming-events' title='Upcoming events'>Events</a></h2>
+        <div>
+          <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='/upcoming-events' title='Upcoming events'>More ...</a></p>
+        </div>
+      </div>
+    </div>
+    <div class='col-xs-12 col-sm-4 '>
+      <div class='groups'>
+        <a href='/groups' title='NYCC groups'><h2>Groups</a></h2>
+        <div>
+          <p>The relative frequencies of the heavy minerals present in a number of representative assemblages after removal of magnetite and ilmenite are shown in table 1 and, by and large, these data are averages of counts of at least 300 grains for each of several preparations from specific localities.</p>
+          <p>Where winds have selectively removed low specific gravity minerals from sand, the grain size of the thin veneer or residue of heavy constituents that remains as blacksand is very much finer than that of light-colored surrounding sand on which the winnowing process is not far advanced. </p>
+          <p>Although the products of the winnowing action of prevailing on-shore winds are quite evident at many points on the coastline they are of small volume; production of larger quantities of black-sand by these means was observed particularly in the sand-dunes both to the north and south of the mouth of Pajaro River. <a href='/groups' title='NYCC groups'>More ...</a></p>
+        </div>
+      </div>
+    </div>
+  </div> <!-- row -->
+
+   
+  <div class='row row-join'>
+    <div class='col-xs-12'>
+      <a class='center-block btn btn-danger btn-lg' href='/join-nycc'>Join or Renew your NYCC Membership!</a>
+    </div>
+  </div> <!-- row -->
+  
+  
+  <div class='row row-community'>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-lg' href='/volunteer'>Volunteer</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-lg' href='/eny15'>Escape NY 2015</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-lg' href='/sponsorship'>Sponsorship</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-lg' href='/resources'>Resources</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-lg' href='/message-board/forums/message-board'>Message Board</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-lg' href='/about'>About</a>
+    </div>
+  </div> <!-- row -->
+  
+  
+  <div class='row row-navs'>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-primary btn-lg' href='/upcoming_rides'>Social Media Links</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-primary btn-lg' href='/upcoming_events'>Top Level Menu</a>
+    </div>
+    <div class='col-xs-12 col-sm-4'>
+      <a class='center-block btn btn-primary btn-lg' href='/eny'>Credits & Org Links</a>
+    </div>
+  </div> <!-- row --> 
+  
+  <?php endif; ?>
+  
+  <div class='row row-colophon'>
+    <div class='col-xs-12'>
+      <p>Copyright © 2015 - New York Cycle Club. No images, text, graphics or design may be reproduced without permission. All rights reserved.</p>
+    </div>
+  </div> <!-- row -->
+  
+   
+</div> <!-- main-container -->
 
 <?php if (!empty($page['footer'])): ?>
   <footer class="footer <?php print $container_class; ?>">
