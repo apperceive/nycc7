@@ -65,13 +65,14 @@
  */
  
   // hide info
-  $info = "";
+  //$info = "";
  
   $icons = array(
     'forum' => 'commenting-o',   // 'bullhorn',
     'rides' => 'bicycle',
     'event' => 'calendar',   
     'page' => 'file-o',   
+    'block_page' => 'file-text-o',   
     'story' => 'file-text',   
     'group' => 'users',   
     'gpforumpost' => 'list-alt',
@@ -116,7 +117,7 @@
 
   <?php print render($title_prefix); ?>
   <h3 class="title"<?php print $title_attributes; ?>>
-    &nbsp; <?php print $fa; ?> &nbsp; <a href="<?php print $url; ?>" title="<?php print $type; ?>"><?php print $title; ?></a>
+    &nbsp; <a href="<?php print $url; ?>" title="<?php print $type; ?>"><?php print $fa; ?> &nbsp; <?php print $title; ?></a>
   </h3>
   <?php print render($title_suffix); ?>
   <div class="search-snippet-info">
