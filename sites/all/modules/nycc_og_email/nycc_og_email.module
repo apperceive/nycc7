@@ -5,7 +5,7 @@ function nycc_og_email_menu() {
 
     //DO WE NEED A SETTINGS PAGE?
     //YES: need to specify signing domain and domain_suffix
-    $items['admin/settings/nycc_og_email'] = array(
+    $items['admin/config/nycc/nycc_og_email'] = array(
       'title' => 'NYCC Organic Groups Email Settings',
       'page callback' => 'drupal_get_form',
       'page arguments' => array('nycc_og_email_admin'),

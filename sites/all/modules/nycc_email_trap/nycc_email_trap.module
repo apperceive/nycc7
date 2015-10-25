@@ -1,26 +1,52 @@
 <?php
-
+function nycc_email_trap_menu() {
+  $items = array();
+    $items['admin/config/nycc/nycc_email_trap'] = array(
+      'title' => 'NYCC Email Trap Configuration',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('nycc_email_trap_admin'),
+      'access arguments' => array('administer nycc_email_trap'),
+      'description' => 'configure nycc email trap',
+      'file' => 'nycc_email_trap.admin.inc',
+      'type' => MENU_NORMAL_ITEM,
+    );
+  return $items;
+}
 function nycc_email_trap_mail_alter(&$message){
-  $trap_address = "test_mailbox@nycc.org";
-  $user = user_load_by_mail($message['to']);
-  if (isset($user) && in_array("tester", $user->roles)) {
-    //drupal_set_message("sending email to " . $user->mail);
-  }
-  else {
-    $message['to']=$trap_address;
-    //drupal_set_message("sending email to " . $message['to']);
-  }
+  if (variable_get('nycc_email_trap_enabled', FALSE)) {
+    $debug_to_log = variable_get('nycc_email_trap_exclude_roles', TRUE);
+    $trap_address = variable_get('nycc_email_trap_exclude_roles', "test_mailbox@nycc.org");
+    $user = user_load_by_mail($message['to']);
+    
+    if (isset($user)) {
+      $excluded_roles = explode(',', variable_get('nycc_email_trap_exclude_roles', 'tester'));
+      
+      if ($debug_to_log)
+        watchdog('nycc_email_trap', 'Found: '. $user->name . ' from email address ' . $message['to'] . ' Checking if user has excluded roles') ;  
 
+      //dpm(array_intersect($excluded_roles, $user->roles));  
+      if (count(array_intersect($excluded_roles, $user->roles)) > 0 ) {
+        if ($debug_to_log)
+          watchdog('nycc_email_trap', 'Excluded role found. Sending message to: ' . $user->mail) ;  
+      }
+      else {
+        if ($debug_to_log)
+          watchdog('nycc_email_trap', 'Trapping message addressed to: ' . $user->mail) ;  
+      
+        $message['to']=$trap_address;
+        //drupal_set_message("sending email to " . $message['to']);
+      }
+    }
+  
     // Unset Bcc and Cc fields to prevent emails from going to those addresses.
     if (isset($message['headers']) && is_array($message['headers'])) {
-
       // Ensure we catch all Cc and Bcc headers, regardless of case,
       // and protecting against multiple instances of the "same" header.
       $header_keys = array();
       foreach (array_keys($message['headers']) as $key) {
         $header_keys[strtolower($key)][] = $key;
       }
-
+  
       if (!empty($header_keys['cc'])) {
         foreach ($header_keys['cc'] as $header) {
           $message['headers']['X-Rerouted-Original-Cc'] = $message['headers'][$header];
@@ -33,7 +59,8 @@ function nycc_email_trap_mail_alter(&$message){
           unset($message['headers'][$header]);
         }
       }
-    }  
+    }      
+  }
 }
 
 
