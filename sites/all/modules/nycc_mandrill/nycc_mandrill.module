@@ -2,7 +2,7 @@
 function nycc_mandrill_menu() {
   $items = array();
 
-    $items['admin/settings/nycc_mandrill'] = array(
+    $items['admin/config/nycc/nycc_mandrill'] = array(
       'title' => 'NYCC Mandrill Integration',
       'page callback' => 'drupal_get_form',
       'page arguments' => array('nycc_mandrill_admin'),

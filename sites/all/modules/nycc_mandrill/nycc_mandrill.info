@@ -5,5 +5,5 @@ core = 7.x
 dependencies[] = mandrill
 files[]=nycc_mandrill.module
 files[]=nycc_mandrill.admin.inc
-configure=admin/settings/nycc_mandrill
+configure=admin/config/nycc/nycc_mandrill
 
