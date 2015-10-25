@@ -3,4 +3,8 @@ description = traps outbound emails and redirects them to test users
 package = NYCC
 core = 7.x 
 files[]=nycc_email_trap.module
+files[]=nycc_email_trap.admin.inc
+configure=admin/config/nycc/nycc_email_trap
+
+
 
