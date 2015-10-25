@@ -6,6 +6,7 @@ function nycc_email_trap_admin() {
     '#type' => 'checkbox', 
     '#title' => t('Trap all Emails (excluding those sent to users with the specified role'),
     '#default_value' => variable_get('nycc_email_trap_enabled', '')
+  
   );
   $form['nycc_email_trap_debug'] = array(
     '#type' => 'checkbox', 
