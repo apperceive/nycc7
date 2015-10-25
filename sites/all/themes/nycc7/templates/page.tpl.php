@@ -137,13 +137,15 @@
     </div>
   <?php endif; ?>
 
-  <div class="row row-search">
-    <div class='col-xs-12'>
-      <div id='search'>
-        <?php print $search_box; ?>
+  <?php if (!empty($search_box)): ?>
+    <div class="row row-search">
+      <div class='col-xs-12'>
+        <div id='search'>
+          <?php print $search_box; ?>
+        </div>
       </div>
     </div>
-  </div>
+  <?php endif; ?>
 
   <?php if (!empty($page['highlighted'])): ?>
     <div class="row">
