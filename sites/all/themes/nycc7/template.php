@@ -55,8 +55,11 @@ function nycc7_preprocess_page(&$variables) {
     drupal_add_css($file, $options);
   }
  
-  $search_form = drupal_get_form('search_form');
-  $search_form_box = drupal_render($search_form);
+  $search_form_box = "";
+  if (arg(0) != 'search') {
+    $search_form = drupal_get_form('search_form');
+    $search_form_box = drupal_render($search_form);
+  }
   $variables['search_box'] = $search_form_box;
   
   //$variables['settings_box'] = drupal_render($variables['tabs']['#primary']);
