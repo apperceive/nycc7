@@ -16,6 +16,7 @@
 User-agent: *
 Crawl-delay: 10
 # Directories
+Disallow: /
 Disallow: /includes/
 Disallow: /misc/
 Disallow: /modules/
@@ -23,6 +24,7 @@ Disallow: /profiles/
 Disallow: /scripts/
 Disallow: /themes/
 # Files
+Disallow: *
 Disallow: /CHANGELOG.txt
 Disallow: /cron.php
 Disallow: /INSTALL.mysql.txt
