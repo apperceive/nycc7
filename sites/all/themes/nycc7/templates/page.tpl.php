@@ -263,7 +263,7 @@
   
   <div class='row row-navs'>
     <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-primary btn-lg' href='/upcoming_rides'>Social Media Links</a>
+      <a class='center-block btn btn-primary btn-lg' href='/upcoming_rides'>This space for rent</a>
     </div>
     <div class='col-xs-12 col-sm-4'>
       <a class='center-block btn btn-primary btn-lg' href='/upcoming_events'>Top Level Menu</a>
@@ -275,12 +275,6 @@
   
   <?php endif; ?>
   
-  <div class='row row-colophon'>
-    <div class='col-xs-12'>
-      <p>Copyright © 2015 - New York Cycle Club. No images, text, graphics or design may be reproduced without permission. All rights reserved.</p>
-    </div>
-  </div> <!-- row -->
-  
    
 </div> <!-- main-container -->
 
@@ -291,3 +285,11 @@
     </div>
   </footer>
 <?php endif; ?>
+
+
+<div class='row row-colophon'>
+  <div class='col-xs-12'>
+    <p>Copyright © 2015 - New York Cycle Club. No images, text, graphics or design may be reproduced without permission. All rights reserved.</p>
+  </div>
+</div> <!-- row -->
+

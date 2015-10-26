@@ -581,3 +581,7 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
 
 .row-colophon { margin-top: 20px;  text-align: center; }
 
+/* social media links */
+#block-block-246 { margin: 0 0 0 20px; }
+ul.social-media-links { list-style: none; margin-top: 20px; padding-left: 0;}
+ul.social-media-links li { display: inline-block; width: 50px; }
