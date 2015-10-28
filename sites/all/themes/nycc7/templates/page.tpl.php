@@ -183,8 +183,12 @@
       <?php endif; ?>
       
       <?php print render($page['content_top']); ?>
+      
       <?php print render($page['content']); ?>
+      
+      <div class='container'>
       <?php print render($page['content_bottom']); ?>
+      </div>
       
       <?php if (!empty($page['content_aside'])): ?>
         <?php print render($page['content_aside']); ?>
