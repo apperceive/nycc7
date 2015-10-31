@@ -13,13 +13,13 @@
 
       $ride = node_load($row->entity_id);
       if ($ride) {
-		foreach (nycc_rides_field_get_value($ride->field_ride_leaders)  as $ndx => $leader) {
+		foreach (nycc_field_get_value($ride->field_ride_leaders)  as $ndx => $leader) {
             $leader_cnt++;
 			$cp = node_load($leader['nid']);
 			if($cp) {
               $leader_cp_cnt++;
               if(! nycc_rides_is_leader($ride, $cp->uid)) {
-                if (nycc_rides_field_has_value($ride->field_ride_current_leaders)){
+                if (nycc_field_has_value($ride->field_ride_current_leaders)){
         			$ride->field_ride_current_leaders['und'][]['uid'] = $cp->uid;
                 } else {
                   $ride->field_ride_current_leaders['und'][0]['uid'] = $cp->uid;

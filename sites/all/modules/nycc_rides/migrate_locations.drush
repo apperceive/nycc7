@@ -54,11 +54,11 @@ $sql = "select n.nid, fr.field_ride_from_value, frs.field_ride_from_select_value
         drush_print("Warning - for NID: " . $ride->nid . " Skipping because old_loc_select and old_loc have no value");
       }
       
-      if(nycc_rides_field_has_value($ride->field_ride_from_select) && $value_was_set){
+      if(nycc_field_has_value($ride->field_ride_from_select) && $value_was_set){
         if ($debug_print) drush_print("Unsetting field_ride_from_select");
         unset($ride->field_ride_from_select['und'][0]);  
       }
-      if(nycc_rides_field_has_value($ride->field_ride_from) && $value_was_set){
+      if(nycc_field_has_value($ride->field_ride_from) && $value_was_set){
         if ($debug_print) drush_print("Unsetting field_ride_from");
         unset($ride->field_ride_from['und'][0]);
       }
