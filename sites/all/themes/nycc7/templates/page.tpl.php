@@ -75,7 +75,7 @@
  global $user;
  //dpm(get_defined_vars());
 ?>
-<nav id="navbar" role="banner" class="<?php print $navbar_classes; ?> navbar-custom" data-sm-skip="true"  aria-expanded="false" aria-controls="navbar">
+<nav id="navbar" class="<?php print $navbar_classes; ?> navbar-custom" data-sm-skip="true"  aria-expanded="false" aria-controls="navbar">
   <div class="<?php print $container_class; ?>">
 
     <div class="navbar-header">
@@ -103,7 +103,7 @@
 
 <div class="main-container <?php print $container_class; ?>">
 
-  <header role="banner" id="page-header">
+  <header id="page-header">
     <?php if (!empty($site_slogan)): ?>
       <p class="lead"><?php print $site_slogan; ?></p>
     <?php endif; ?>
@@ -137,13 +137,15 @@
     </div>
   <?php endif; ?>
 
-  <div class="row row-search">
-    <div class='col-xs-12'>
-      <div id='search'>
-        <?php print $search_box; ?>
+  <?php if (!empty($search_box)): ?>
+    <div class="row row-search">
+      <div class='col-xs-12'>
+        <div id='search'>
+          <?php print $search_box; ?>
+        </div>
       </div>
     </div>
-  </div>
+  <?php endif; ?>
 
   <?php if (!empty($page['highlighted'])): ?>
     <div class="row">
@@ -155,7 +157,7 @@
 
   <div class="row row-content-sidebars">
     <?php if (!empty($page['sidebar_first'])): ?>
-      <aside class="col-xs-12 col-sm-4" role="complementary">
+      <aside class="col-xs-12 col-sm-4">
         <?php print render($page['sidebar_first']); ?>
       </aside>  <!-- /#sidebar-first -->
     <?php endif; ?>
@@ -181,8 +183,12 @@
       <?php endif; ?>
       
       <?php print render($page['content_top']); ?>
+      
       <?php print render($page['content']); ?>
+      
+      <div class='container'>
       <?php print render($page['content_bottom']); ?>
+      </div>
       
       <?php if (!empty($page['content_aside'])): ?>
         <?php print render($page['content_aside']); ?>
@@ -190,7 +196,7 @@
     </section>
 
     <?php if (!empty($page['sidebar_second'])): ?>
-      <aside class="col-xs-12 col-sm-5 col-md-4" role="complementary">
+      <aside class="col-xs-12 col-sm-5 col-md-4">
         <?php print render($page['sidebar_second']); ?>
       </aside>  <!-- /#sidebar-second -->
     <?php endif; ?>
@@ -211,7 +217,7 @@
     </div> <!-- col -->
     <div class='col-xs-12 col-sm-4 '>
       <div class='groups'>
-        <a href='/groups' title='NYCC groups'><h2>Groups</a></h2>
+        <h2><a href='/groups' title='NYCC groups'>Groups</a></h2>
         <div>
           <p>The relative frequencies of the heavy minerals present in a number of representative assemblages after removal of magnetite and ilmenite are shown in table 1 and, by and large, these data are averages of counts of at least 300 grains for each of several preparations from specific localities.</p>
           <p>Where winds have selectively removed low specific gravity minerals from sand, the grain size of the thin veneer or residue of heavy constituents that remains as blacksand is very much finer than that of light-colored surrounding sand on which the winnowing process is not far advanced. </p>
@@ -261,7 +267,7 @@
   
   <div class='row row-navs'>
     <div class='col-xs-12 col-sm-4'>
-      <a class='center-block btn btn-primary btn-lg' href='/upcoming_rides'>Social Media Links</a>
+      <a class='center-block btn btn-primary btn-lg' href='/upcoming_rides'>This space for rent</a>
     </div>
     <div class='col-xs-12 col-sm-4'>
       <a class='center-block btn btn-primary btn-lg' href='/upcoming_events'>Top Level Menu</a>
@@ -273,12 +279,6 @@
   
   <?php endif; ?>
   
-  <div class='row row-colophon'>
-    <div class='col-xs-12'>
-      <p>Copyright © 2015 - New York Cycle Club. No images, text, graphics or design may be reproduced without permission. All rights reserved.</p>
-    </div>
-  </div> <!-- row -->
-  
    
 </div> <!-- main-container -->
 
@@ -289,3 +289,11 @@
     </div>
   </footer>
 <?php endif; ?>
+
+
+<div class='row row-colophon'>
+  <div class='col-xs-12'>
+    <p>Copyright © 2015 - New York Cycle Club. No images, text, graphics or design may be reproduced without permission. All rights reserved.</p>
+  </div>
+</div> <!-- row -->
+

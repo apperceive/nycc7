@@ -560,7 +560,7 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
 .row-upcoming h2 { padding: 20px 0 0 0; margin: 0; height: 80px; text-align: center; color: rgba(255,255,255,0.1); font-weight: bold; font-size: 300%; }
 .row-upcoming .rides { background-image: url(/sites/all/themes/nycc7/images/8701161794_02c1243f4f_z.jpg); }
 .row-upcoming .events { background-image: url(/sites/all/themes/nycc7/images/13887859536_5a03449b5d_z.jpg); }
-.row-upcoming .groups { background-image: url(/sites/all/themes/nycc7/images/10168927906_11e3535ecb_z.jpg); }
+.row-upcoming .groups { background-image: url(/sites/all/themes/nycc7/images/10168927906_11e3535ecb_z.jpg); } 
 
 .row-join { margin-top: 20px;  }
 .row-join a.btn { height: 120px; padding: 40px 0 0 0; }
@@ -581,3 +581,8 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
 
 .row-colophon { margin-top: 20px;  text-align: center; }
 
+/* social media links */
+#block-block-245 { margin: 0 0 0 20px; } /* markus TODO: remove */
+#block-block-246 { margin: 0 0 0 20px; } /* d7 */
+ul.social-media-links { list-style: none; margin-top: 20px; padding-left: 0;}
+ul.social-media-links li { display: inline-block; width: 50px; }
