@@ -1,5 +1,6 @@
 <?php
 module_load_include('inc', 'nycc_rides', 'nycc_rides.email_approvals');
+module_load_include('inc', 'nycc_rides', 'nycc_rides.ride_coordinators');
 
 /*
 TODO List:
