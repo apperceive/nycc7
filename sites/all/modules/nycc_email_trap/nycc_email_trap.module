@@ -19,7 +19,7 @@ function nycc_email_trap_mail_alter(&$message){
     $trap_address = variable_get('nycc_email_trap_email', "test_mailbox@nycc.org");
     $user = user_load_by_mail($message['to']);
     
-    if (isset($user)) {
+    if (!empty($user)) {
       $excluded_roles = explode(',', variable_get('nycc_email_trap_exclude_roles', 'tester'));
       
       if ($debug_to_log)
