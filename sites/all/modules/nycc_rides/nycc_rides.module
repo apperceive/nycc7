@@ -1,5 +1,4 @@
 <?php
-module_load_include('inc', 'nycc_rides', 'nycc_rides.email_approvals');
 
 /*
 TODO List:
@@ -276,6 +275,12 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
   }  // ride
 } // nycc_rides_node_view
 
+      
+function nycc_rides_node_insert($node) {
+  if (($node->type == 'rides') && !$node->status)
+    $node->status = 1;      // TODO: why is this necessary - default is set to published
+} // nycc_rides_node_view
+
 function nycc_rides_node_update($node) {
   $r_debug = variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
@@ -339,7 +344,7 @@ function nycc_rides_node_presave($node) {
   $r_debug =   variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
     if($node->is_new) {
-      $node->field_ride_token['und'][0]['value'] =nycc_rides_random_text('alnum', 60 );
+      $node->ield_ride_token['und'][0]['value'] =_nycc_rides_random_text('alnum', 60 );
     } // new
     
     if(!nycc_field_has_value($node->field_ride_open_signup_days))
