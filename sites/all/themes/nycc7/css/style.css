@@ -144,17 +144,17 @@ header#navbar .menu-collapse ul {
 #field-ride-current-leaders-values,
 #field-ride-current-leaders-add-more-wrapper,
 */
+
 /*
 #edit-field-ride-current-leaders  {
   min-height: 600px;
   padding-bottom: 100px;
 }*/
 
-/* #rides-node-form  #edit-actions, */
-/*#rides-node-form  #edit-spamicide,
-#rides-node-form  .vertical-tabs,**/
+
 /* hide formatting help */
-#rides-node-form  #edit-field-ride-description-und-0-format {
+#rides-node-form  #edit-field-ride-description-und-0-format,
+#rides-node-form  .vertical-tabs {
   display: none;
 }
 
@@ -162,6 +162,8 @@ header#navbar .menu-collapse ul {
   font-weight: bold;
   font-size: 110%;
 }
+
+
 
 .btn-lg {
   font-size: 200%;

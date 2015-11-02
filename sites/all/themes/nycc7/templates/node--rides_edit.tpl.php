@@ -63,7 +63,9 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
   // hide extra fields from all unless '/admin' is appended to url
   if (arg(3) != 'admin') {
     hide($form['group_rides_htabs']['group_rides_advanced']);
-    hide($form['additional_settings']);
+    
+    // TODO: why does this cause node status to not be set to default?
+    //hide($form['additional_settings']);
   }
   
   

@@ -281,11 +281,6 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
 } // nycc_rides_node_view
 
       
-function nycc_rides_node_insert($node) {
-  if (($node->type == 'rides') && !$node->status)
-    $node->status = 1;      // TODO: why is this necessary - default is set to published
-} // nycc_rides_node_view
-
 function nycc_rides_node_update($node) {
   $r_debug = variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
@@ -299,6 +294,7 @@ function nycc_rides_node_update($node) {
 function nycc_rides_node_insert($node) {
   $r_debug = variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
+
     if($node->is_new) {
       //if is_new then status will either be submitted or approved
       global $user;
@@ -311,6 +307,10 @@ function nycc_rides_node_insert($node) {
 		//}else if((arg(3)=="resubmit") && (nycc_rides_get_ride_status($node) =="Cancelled")) {
     //    nycc_rides_update_ride_status($node, "Submitted");
     } // new
+    
+    // TODO: this has no effect - why??
+    $node->status = NODE_PUBLISHED;      // TODO: why is this necessary - default is set to published
+      
   } // rides
 } //node_insert
 
@@ -1089,9 +1089,9 @@ function _nycc_rides_clone_ride($onode, $datetime = null, $ride_status = "Submit
   $newnode = new StdClass();
   $newnode->type = 'rides';
   $newnode->is_new = true;
-  $newnode->status = 1;   // (1 or 0): published or unpublished
-  $node->promote = 0;  // (1 or 0): promoted to front page or not
-  $newnode->sticky = 0;  // (1 or 0): sticky at top of lists or not
+  $newnode->status = NODE_PUBLISHED;
+  $node->promote = NODE_NOT_PROMOTED;
+  $newnode->sticky = NODE_NOT_STICKY;
   $newnode->comment_count = 0;
   $newnode->comment = 0;  // 2 = comments open, 1 = comments closed, 0 = comments hidden
   $newnode->uid = $user->uid;  // Add author of the node
