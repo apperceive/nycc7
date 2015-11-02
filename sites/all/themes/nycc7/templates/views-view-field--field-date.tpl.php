@@ -29,6 +29,6 @@
     $output .= _nycc7_output_datetime($date);
   } // foreach
   
-  /*
+  */
   print $output;
 ?>
