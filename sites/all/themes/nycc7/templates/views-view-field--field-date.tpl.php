@@ -21,12 +21,14 @@
  * regardless of any changes in the aliasing that might happen if
  * the view is modified.
  */
-
+/*
   $output = "";
   $itms = $row->field_field_date;  // field is $element['#items'];
   foreach ($itms as $itm) {
     $date = $itm['raw']['value'];  // field is $itm['value'];
     $output .= _nycc7_output_datetime($date);
   } // foreach
+  
+  /*
   print $output;
 ?>
