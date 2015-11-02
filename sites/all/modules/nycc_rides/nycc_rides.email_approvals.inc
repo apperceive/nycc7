@@ -134,7 +134,7 @@ function nycc_rides_get_ride_from_token($token='') {
 
 
 
-function _nycc_rides_random_text( $type = 'alnum', $length = 60 )
+function nycc_rides_random_text( $type = 'alnum', $length = 60 )
 {
 	switch ( $type ) {
 		case 'all':

@@ -1,4 +1,5 @@
 <?php
+module_load_include('inc', 'nycc_rides', 'nycc_rides.email_approvals');
 
 /*
 TODO List:
@@ -338,7 +339,7 @@ function nycc_rides_node_presave($node) {
   $r_debug =   variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
     if($node->is_new) {
-      $node->field_ride_token['und'][0]['value'] =_nycc_rides_random_text('alnum', 60 );
+      $node->field_ride_token['und'][0]['value'] =nycc_rides_random_text('alnum', 60 );
     } // new
     
     if(!nycc_field_has_value($node->field_ride_open_signup_days))
