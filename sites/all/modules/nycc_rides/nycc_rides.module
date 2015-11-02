@@ -332,6 +332,8 @@ function nycc_rides_node_validate($node, $form = NULL, $form_state = NULL) {
 } // nycc_rides_node_validate
 
 function nycc_rides_node_presave($node) {
+  global $user;
+  
   //dpm($node);
   $r_debug =   variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {

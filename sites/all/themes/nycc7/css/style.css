@@ -232,7 +232,7 @@ h1, h2, h3, h4, h5, h6, .btn {
 }
 
 
-.nycc7-cal-datetime {
+.front .nycc7-cal-datetime {
   display: inline-block;
   overflow: hidden;
   width: 8em;
@@ -247,12 +247,12 @@ h1, h2, h3, h4, h5, h6, .btn {
   transform-origin: 50% 10%;
 }
 
-.nycc7-cal-datetime div {
+.front .nycc7-cal-datetime div {
   width: 100%;
   text-align: center;
 }
 
-.nycc7-cal-datetime .month {
+.front .nycc7-cal-datetime .month {
   padding: 0.4em 0;
   color: #fff;
   background-color: #337ab7;
@@ -260,29 +260,29 @@ h1, h2, h3, h4, h5, h6, .btn {
   box-shadow: 0 2px 0 #337ab7;
 }
 
-.nycc7-cal-datetime .year { 
+.front .nycc7-cal-datetime .year { 
   display: inline-block;
   margin-left: 5px;
 }
 
-.nycc7-cal-datetime .thisyear {
+.front .nycc7-cal-datetime .thisyear {
   display: none;
 }
 
-.nycc7-cal-datetime .dow {
+.front .nycc7-cal-datetime .dow {
   font-size: 1.2em;
   color: #337ab7;
   font-weight: bold;
 }
 
-.nycc7-cal-datetime .day {
+.front .nycc7-cal-datetime .day {
   font-size: 2em;
   letter-spacing: 0.05em;
   padding-top: 0.1em;
   color: #2f2f2f;
 }
 
-.nycc7-cal-datetime  .time {
+.front .nycc7-cal-datetime  .time {
 }
 
 
