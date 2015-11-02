@@ -300,6 +300,23 @@ function nycc_rides_node_update($node) {
   } // rides
 } // nycc_rides_node_update
 
+function nycc_rides_node_insert($node) {
+  $r_debug = variable_get("nycc_rides_debug", TRUE);
+  if ($node->type == 'rides') {
+    if($node->is_new) {
+      //if is_new then status will either be submitted or approved
+      global $user;
+      if (nycc_rides_get_ride_status($node) == 'Submitted') {
+        rules_invoke_event('nycc_rides_ride_is_submitted', $user, $node);
+      } else {
+        rules_invoke_event('nycc_rides_ride_is_approved', $user, $node);
+      }
+    }
+		//else if((arg(3)=="resubmit") && (nycc_rides_get_ride_status($node) =="Cancelled")) {
+        nycc_rides_update_ride_status($node, "Submitted");
+    } // new
+  } // rides
+} // nycc_rides_node_insert
 function nycc_rides_node_validate($node, $form = NULL, $form_state = NULL) {
   if ($node->type == 'rides') {
     global $user;
@@ -390,8 +407,14 @@ function nycc_rides_node_presave($node) {
         //nycc_rides_log_action($node, $waiter['uid'], "Auto-Join From Waitlist");
       }
       drupal_set_message(check_plain($num_new_spots ." ". ($num_new_spots == 1 ? "person" : "people") ." on waitlist moved to participant list."));
-    }
-  }
+    } //allows signups
+		
+		if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')))
+      drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
+
+    if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')) && !nycc_rides_can_approve())
+      drupal_set_message("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).");
+  }//is type rides
 } // nycc_rides_node_presave
 
 function nycc_rides_node_prepare($node) {
