@@ -1612,7 +1612,7 @@ function nycc_rides_get_all_leader_names($ride) {
   $names ="";
   $ride = nycc_rides_get_ride_object($ride);
   $leaders = nycc_rides_get_all_users($ride, 'field_ride_current_leaders');
-  if (is_empty($leaders))
+  if (empty($leaders))
     return $names;
   
   foreach ($leaders as $leader) {
