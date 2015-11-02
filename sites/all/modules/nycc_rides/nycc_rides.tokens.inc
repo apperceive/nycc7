@@ -19,6 +19,10 @@ function nycc_rides_token_info() {
       'name' => t('nycc_rides_leaders_names_as_links'),
       'description' => t('Returns leaders Names as clickable mailto:links'),
     );
+    $info['tokens']['node']['nycc_rides_leaders_names'] = array(
+      'name' => t('nycc_rides_leaders_names'),
+      'description' => t('Returns leaders Names separated by commas'),
+    );    
     $info['tokens']['node']['nycc_rides_ride_location'] = array(
       'name' => t('nycc_rides_ride_location'),
       'description' => t('Returns location of Ride Start'),
@@ -59,9 +63,12 @@ function nycc_rides_tokens($type, $tokens, array $data = array(), array $options
           break;
         
         case 'nycc_rides_leaders_names_as_links':
-          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_leader_names_emails($node)) : nycc_rides_get_all_leader_names_emails($node) ;
+          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_leader_names($node)) : nycc_rides_get_all_leader_names($node) ;
           break;
         
+        case 'nycc_rides_leaders_names_as_links':
+          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_leader_names_emails($node)) : nycc_rides_get_all_leader_names_emails($node) ;
+          break;        
         case 'nycc_rides_ride_location':
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_location($node)) : nycc_rides_get_ride_location($node) ;
           break;
