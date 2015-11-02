@@ -1,6 +1,0 @@
-[submodule "sites/all/libraries/smartmenus"]
-	path = sites/all/libraries/smartmenus
-	url = https://github.com/vadikom/smartmenus
-[submodule "sites/all/libraries/hybridauth"]
-	path = sites/all/libraries/hybridauth
-	url = https://github.com/hybridauth/hybridauth.git
