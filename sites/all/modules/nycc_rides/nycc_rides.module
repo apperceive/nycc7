@@ -282,7 +282,7 @@ function nycc_rides_node_update($node) {
     if($node->is_new) {
       //if is_new then status will either be submitted or approved
       global $user;
-      if ($ride_status == 'Submitted') {
+      if (nycc_rides_get_ride_status($node) == 'Submitted') {
         rules_invoke_event('nycc_rides_ride_is_submitted', $user, $node);
       } else {
         rules_invoke_event('nycc_rides_ride_is_approved', $user, $node);
