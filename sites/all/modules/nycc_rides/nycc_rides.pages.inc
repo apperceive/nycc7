@@ -11,7 +11,7 @@ function nycc_rides_copy_ride_form($form, &$form_state, $node) {
   
   // TODO: better instructions
   $form['instructions'] = array(
-    '#markup' => "<h3>Use this form to 'clone' a ride you like to additional dates.  All ride information, except the date and riders, will be copied to the new rides. This will create new rides with the same title, leaders, descrition, cue sheets, times and other settings.</h3>",
+    '#markup' => "<p>Use this form to 'clone' a ride you like to additional dates.  All ride information, except the date and riders, will be copied to the new rides. This will create new rides with the same title, leaders, descrition, cue sheets, times and other settings.</p>",
   );
   
   // text field - copy from additional_dates
