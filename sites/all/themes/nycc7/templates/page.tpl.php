@@ -186,7 +186,7 @@
       
       <?php print render($page['content']); ?>
       
-      <div class='container'>
+      <div class='xxxcontainer'>
       <?php print render($page['content_bottom']); ?>
       </div>
       
