@@ -353,8 +353,12 @@ function nycc_rides_node_presave($node) {
   $r_debug =   variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
     if($node->is_new) {
-      $node->ield_ride_token['und'][0]['value'] =_nycc_rides_random_text('alnum', 60 );
-    } // new
+      $node->field_ride_token['und'][0]['value'] =_nycc_rides_random_text('alnum', 60 );
+    } else {
+      if (!nycc_field_has_value($node->field_ride_token)) {
+        $node->field_ride_token['und'][0]['value'] =_nycc_rides_random_text('alnum', 60 );
+      }
+    }
     
     if(!nycc_field_has_value($node->field_ride_open_signup_days))
       $node->field_ride_open_signup_days['und'][0]['value'] = variable_get("nycc_rides_days_before_ride", 10);
