@@ -67,7 +67,7 @@ function nycc_rides_tokens($type, $tokens, array $data = array(), array $options
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_leader_emails($node)) : nycc_rides_get_all_leader_emails($node) ;
           break;
         
-        case 'nycc_rides_leaders_names_as_links':
+        case 'nycc_rides_leaders_names':
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_all_leader_names($node)) : nycc_rides_get_all_leader_names($node) ;
           break;
         
