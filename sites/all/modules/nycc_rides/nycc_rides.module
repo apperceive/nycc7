@@ -405,12 +405,13 @@ function nycc_rides_node_presave($node) {
       }
       drupal_set_message(check_plain($num_new_spots ." ". ($num_new_spots == 1 ? "person" : "people") ." on waitlist moved to participant list."));
     } //allows signups
-		
-		if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')))
-      drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
 
-    if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')) && !nycc_rides_can_approve())
-      drupal_set_message("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).");
+//	MOVED TO RULES	
+//		if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')))
+//      drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
+//
+//    if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')) && !nycc_rides_can_approve())
+//      drupal_set_message("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).");
   }//is type rides
 } // nycc_rides_node_presave
 
