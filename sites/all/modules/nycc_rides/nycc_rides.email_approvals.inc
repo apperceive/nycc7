@@ -11,7 +11,8 @@ function nycc_rides_inbound_callback() {
   	
 		
   	// Check signature.
-	if(nycc_mandrill_isValid_signature('nycc_rides/inbound')) {
+		 
+	if(nycc_mandrill_signature_is_valid('nycc_rides/inbound')) {
 		//iterate through the messages
     	foreach (json_decode($_POST['mandrill_events']) as $event) {
       		$args = array(
