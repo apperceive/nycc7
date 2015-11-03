@@ -43,6 +43,7 @@
  * @ingroup themeable
  */
 
+/*
   $output = "";
   $itms = $element['#items']; // view is $itms = $row->field_field_date;
   foreach ($itms as $itm) {
@@ -51,7 +52,10 @@
   } // foreach
   print $output;
 
-/*
+*/
+
+ 
+ ?>
 <div class="<?php print $classes; ?>"<?php print $attributes; ?>>
   <?php if (!$label_hidden): ?>
     <div class="field-label"<?php print $title_attributes; ?>><?php print $label ?>:&nbsp;</div>
@@ -62,8 +66,4 @@
     <?php endforeach; ?>
   </div>
 </div>
-
-*/
- 
- ?>
 
