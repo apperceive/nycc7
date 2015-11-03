@@ -106,8 +106,46 @@ function nycc_rides_rules_event_info() {
       ),
     ),
   );
-
 }
+
+/**
+ * Implementation of hook_rules_condition_info().
+ */
+function nycc_rides_rules_condition_info() {
+  // Conditions, like actions, are described by an array with keys
+  // representing the machine name of the condition (which also by default is
+  // the name of the callback function).
+  $conditions['nycc_rides_signup_is_enabled'] = array(
+    'label' => t('Signup for Ride is Enabled'),
+    'module' => 'nycc_rides',
+    'group' => t('NYCC Rides'),
+    // Parameters are described identically to how they work for actions.
+    'parameter' => array(
+      '$ride' => array(
+        'type' => 'node',
+        'label' => t('Ride to check'),
+      ),
+    ),
+  );
+  return $conditions;
+}
+
+
+/**
+ * The callback for the condition 'nycc_rides_signup_is_enabled'.
+ * @param <node> $ride
+ 
+ * @return <boolean>
+ *   TRUE or FALSE depending on if the given view has the given base table or
+ *   not.
+ */
+function nycc_rides_signup_is_enabled($ride) {
+  $ride_status = nycc_rides_ride_should_be_enabled($ride);
+
+  // All conditions return TRUE or FALSE.
+  return ($ride_status['value']);
+}
+
 
 
 ?>
