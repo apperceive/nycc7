@@ -115,6 +115,19 @@ function nycc_rides_rules_condition_info() {
   // Conditions, like actions, are described by an array with keys
   // representing the machine name of the condition (which also by default is
   // the name of the callback function).
+  $conditions['nycc_rides_ride_is_approved'] = array(
+    'label' => t('Ride is Approved'),
+    'module' => 'nycc_rides',
+    'group' => t('NYCC Rides'),
+    // Parameters are described identically to how they work for actions.
+    'parameter' => array(
+      '$ride' => array(
+        'type' => 'node',
+        'label' => t('Ride to check'),
+      ),
+    ),
+  );
+  
   $conditions['nycc_rides_signup_is_enabled'] = array(
     'label' => t('Signup for Ride is Enabled'),
     'module' => 'nycc_rides',
@@ -136,12 +149,25 @@ function nycc_rides_rules_condition_info() {
  * @param <node> $ride
  
  * @return <boolean>
- *   TRUE or FALSE depending on if the given view has the given base table or
+ *   TRUE or FALSE depending on if the given ride is approved AND the time signup will be enabled is past now. If the ride is not approved or the signup window is not yet open then returns false
  *   not.
  */
 function nycc_rides_signup_is_enabled($ride) {
-  return nycc_rides_get_ride_status($ride) == 'Approved' && nycc_rides_ride_enable_time($ride) >= REQUEST_TIME;
+  return nycc_rides_get_ride_status($ride) == 'Approved' && nycc_rides_ride_enable_time($ride) <= REQUEST_TIME;
 }
+
+/**
+ * The callback for the condition 'nycc_rides_ride_is_approved'.
+ * @param <node> $ride
+ 
+ * @return <boolean>
+ *   TRUE or FALSE depending on if the given ride has a status of Approved
+ *   not.
+ */
+function nycc_rides_ride_is_approved($ride) {
+  return nycc_rides_get_ride_status($ride) == 'Approved';
+}
+
 
 
 
