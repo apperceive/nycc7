@@ -83,6 +83,7 @@ function nycc_mandrill_parse_email($email = '') {
 //nycc_mandrill_isValid_signature
 //WAS _nycc_rides_isValid_signature
 function nycc_mandrill_signature_is_valid($url_suffix='') {
+  global $_POST ;
   if (!empty($url_suffix) && !empty($_POST)) {
     $url = url($url_suffix, array('absolute' => TRUE));  
     try {
@@ -100,7 +101,7 @@ function nycc_mandrill_signature_is_valid($url_suffix='') {
   }
   else {
     watchdog('nycc_mandrill', "nycc_mandrill_signature_is_valid. recieved invalid parameters " ,
-             array('url' => $url, '_POST' => $_POST),  WATCHDOG_WARNING) ;  
+             array('url' => $url_suffix, '_POST' => $_POST),  WATCHDOG_WARNING) ;  
     return FALSE;
   }
 }
