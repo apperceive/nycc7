@@ -39,6 +39,10 @@ function nycc_rides_token_info() {
     $info['tokens']['node']['nycc_rides_ride_token_address'] = array(
       'name' => t('nycc_rides_ride_token_address'),
       'description' => t('Returns the email address of the ride for email approvals'),
+    );
+    $info['tokens']['node']['nycc_rides_ride_description_formatted'] = array(
+      'name' => t('nycc_rides_ride_description_formatted'),
+      'description' => t('Returns the ride description in html format'),
     );     
   return $info;
 }
@@ -87,7 +91,9 @@ function nycc_rides_tokens($type, $tokens, array $data = array(), array $options
         case 'nycc_rides_ride_token_address':
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_token_email($node)) : nycc_rides_get_ride_token_email($node) ;
           break;
-                
+        case 'nycc_rides_ride_description_formatted':
+          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_description_formatted($node)) : nycc_rides_get_ride_description_formatted($node) ;
+          break;                
         
       } //switch
     }//for each
