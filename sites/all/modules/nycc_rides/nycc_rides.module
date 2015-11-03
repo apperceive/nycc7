@@ -1457,6 +1457,7 @@ function nycc_rides_get_ride_description_formatted($ride) {
       return null;  
   
   $val = nycc_field_get_value($ride->field_ride_description);
+  dpm($val);
   return $val[0]['safe_value'];
   
 }
