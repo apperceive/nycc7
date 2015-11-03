@@ -70,7 +70,7 @@ function nycc_email_admin_settings(&$form_state) {
 	return system_settings_form($form);
 }
 
-function nycc_email_admin_settings_validate($form, $form_state) {
+function nycc_email_admin_settings_validate($form, &$form_state) {
 	if (empty($form_state['values']['nycc_email_mandrill_api_key'])) {
     	form_set_error('from', "Error: Mandrill API key can not be blank.");
 	} else {

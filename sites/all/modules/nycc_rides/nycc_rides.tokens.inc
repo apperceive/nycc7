@@ -1,5 +1,6 @@
 <?php
 
+
 function nycc_rides_token_info() { 
     $info['tokens']['node']['nycc_rides_leader_emails_csv'] = array(
       'name' => t('nycc_rides_leader_emails_csv'),
@@ -34,7 +35,11 @@ function nycc_rides_token_info() {
     $info['tokens']['node']['nycc_rides_ride_coordinator_email'] = array(
       'name' => t('nycc_rides_ride_coordinator_email'),
       'description' => t('Returns the email address of Ride Coordinator based on the ride level'),
-    );  
+    );
+    $info['tokens']['node']['nycc_rides_ride_token_address'] = array(
+      'name' => t('nycc_rides_ride_token_address'),
+      'description' => t('Returns the email address of the ride for email approvals'),
+    );     
   return $info;
 }
 
@@ -78,7 +83,12 @@ function nycc_rides_tokens($type, $tokens, array $data = array(), array $options
           break;  
         case 'nycc_rides_ride_coordinator_email':
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_emails($node)) : nycc_rides_get_ride_coordinator_emails($node) ;
-          break;  
+          break;
+        case 'nycc_rides_ride_token_address':
+          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_token_email($node)) : nycc_rides_get_ride_token_email($node) ;
+          break;
+                
+        
       } //switch
     }//for each
   }//if $node

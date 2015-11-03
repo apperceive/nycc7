@@ -303,7 +303,7 @@ function nycc_rides_node_insert($node) {
       } else {
         rules_invoke_event('nycc_rides_ride_is_approved', $user, $node);
       }
-    
+      
 		//}else if((arg(3)=="resubmit") && (nycc_rides_get_ride_status($node) =="Cancelled")) {
     //    nycc_rides_update_ride_status($node, "Submitted");
     } // new
@@ -353,8 +353,12 @@ function nycc_rides_node_presave($node) {
   $r_debug =   variable_get("nycc_rides_debug", TRUE);
   if ($node->type == 'rides') {
     if($node->is_new) {
-      $node->ield_ride_token['und'][0]['value'] =_nycc_rides_random_text('alnum', 60 );
-    } // new
+      $node->field_ride_token['und'][0]['value'] =_nycc_rides_random_text('alnum', 60 );
+    } else {
+      if (!nycc_field_has_value($node->field_ride_token)) {
+        $node->field_ride_token['und'][0]['value'] =_nycc_rides_random_text('alnum', 60 );
+      }
+    }
     
     if(!nycc_field_has_value($node->field_ride_open_signup_days))
       $node->field_ride_open_signup_days['und'][0]['value'] = variable_get("nycc_rides_days_before_ride", 10);
@@ -405,12 +409,13 @@ function nycc_rides_node_presave($node) {
       }
       drupal_set_message(check_plain($num_new_spots ." ". ($num_new_spots == 1 ? "person" : "people") ." on waitlist moved to participant list."));
     } //allows signups
-		
-		if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')))
-      drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
 
-    if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')) && !nycc_rides_can_approve())
-      drupal_set_message("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).");
+//	MOVED TO RULES	
+//		if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')))
+//      drupal_set_message(filter_xss(t("Please Note: If your ride includes the use of a train you must also complete a <a href=\"https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform\" target=\"_blank\">Train Request</a> here." )));
+//
+//    if (in_array($node->field_ride_status['und'][0]['value'], array('Submitted', 'Revised')) && !nycc_rides_can_approve())
+//      drupal_set_message("Please Note: Approval may take 24 to 48 hours (usually, we get to it sooner).");
   }//is type rides
 } // nycc_rides_node_presave
 
@@ -1222,6 +1227,12 @@ function nycc_rides_can_modify_ride($ride, $account = NULL) {
 //   if (nycc_is_captain($ride, $account))
 //     return true;
   return nycc_rides_can_approve($account);
+}
+
+function nycc_rides_can_approve_rides($sender='') {
+	$approvers = explode(",",nycc_rides_get_ride_coordinator_emails("all"));
+  array_push($approvers, "a-rides@nycc.org",  "b-rides@nycc.org",  "c-rides@nycc.org",  "vp-rides@nycc.org",  "webmaster@nycc.org");
+  return in_array($sender, $approvers);
 }
 
 function nycc_rides_can_approve($account = NULL) {

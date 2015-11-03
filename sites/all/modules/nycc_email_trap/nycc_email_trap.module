@@ -14,16 +14,19 @@ function nycc_email_trap_menu() {
 }
 
 function nycc_email_trap_mail_alter(&$message){
+  
   if (variable_get('nycc_email_trap_enabled', FALSE)) {
     $debug_to_log = variable_get('nycc_email_trap_exclude_roles', TRUE);
-    $trap_address = variable_get('nycc_email_trap_email', "test_mailbox@nycc.org");
-    $user = user_load_by_mail($message['to']);
+    $trap_address = variable_get('nycc_email_trap_email', "testuser@nycc.org");
+     
+    foreach (explode(",", $message['to']) as $recipient)
+    $user = user_load_by_mail($recipient);
     
     if (!empty($user)) {
       $excluded_roles = explode(',', variable_get('nycc_email_trap_exclude_roles', 'tester'));
       
       if ($debug_to_log)
-        watchdog('nycc_email_trap', 'Found: '. $user->name . ' from email address ' . $message['to'] . ' Checking if user has excluded roles') ;  
+        watchdog('nycc_email_trap', 'Found: '. $user->name . ' from email address ' . $recipient . ' Checking if user has excluded roles') ;  
 
       //dpm(array_intersect($excluded_roles, $user->roles));  
       if (count(array_intersect($excluded_roles, $user->roles)) > 0 ) {

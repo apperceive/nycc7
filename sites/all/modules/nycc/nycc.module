@@ -283,9 +283,9 @@ function nycc_field_get_value($field) {
 function nycc_field_get_text_value($field) {
   /*
    *possible values are:
-   *  null or  empty array (checked for by nycc_field_has_value) -> return  array with empty string in 'value'
-   *  array inside of ['und'] -> return values under ['und']
-   *  non-array value stored in either #value or #default_value -> return as array with value element
+   *  null or  empty array (checked for by nycc_field_has_value) -> return empty string
+   *  array inside of ['und'] -> return first value string  under ['und']
+   *  non-array value stored in either #value or #default_value -> return string value
    */
   if(nycc_field_has_value($field)) {
     if(is_string($field))
