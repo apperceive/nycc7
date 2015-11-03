@@ -2,6 +2,12 @@
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //Ride Coordinator RELATED FUNCTIONS
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+function nycc_rides_get_ride_coordinator_email($ride) {
+  $ride = nycc_rides_get_ride_object($ride);
+  if (isset($ride)){
+    return nycc_field_get_text_value($ride->field_ride_select_level) . '-rides@nycc.org';
+  }
+}
 
 function nycc_rides_get_ride_coordinator_emails($data) {
   return _nycc_rides_get_ride_coordinator_info($data, 'mail');

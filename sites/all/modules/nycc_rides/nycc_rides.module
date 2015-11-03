@@ -61,7 +61,7 @@ function nycc_rides_menu() {
       'page callback' => 'drupal_get_form',
       'file' => 'nycc_rides.admin.inc', 
       'access arguments' => array('administer nycc rides'),
-      'type' => MENU_LOCAL_TASK,
+      'type' => MENU_NORMAL_ITEM,
       'access callback' => TRUE,
       'page arguments' => array('nycc_rides_admin'),  
   );
@@ -1827,7 +1827,7 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 
 }
 
-function nycc_rides_ride_enable_time($ride){
+function nycc_rides_ride_enable_time($ride, $formatted = false){
     if (is_numeric($ride))
       $ride = node_load($ride);
 
@@ -1844,7 +1844,8 @@ function nycc_rides_ride_enable_time($ride){
     return REQUEST_TIME;
 
   $ride_time = strtotime(nycc_rides_get_ride_time_as_text($ride));
-  return $ride_time - ($days_before_ride * 60 * 60 * 24);
+  $return_time = $ride_time - ($days_before_ride * 60 * 60 * 24);
+  return $formatted ? date('l, F jS, Y \@ h:i A', $return_time) : $return_time;
 
 }
 

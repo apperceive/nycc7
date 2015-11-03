@@ -19,28 +19,34 @@ function nycc_email_trap_mail_alter(&$message){
     $debug_to_log = variable_get('nycc_email_trap_exclude_roles', TRUE);
     $trap_address = variable_get('nycc_email_trap_email', "testuser@nycc.org");
      
-    foreach (explode(",", $message['to']) as $recipient)
-    $user = user_load_by_mail($recipient);
-    
-    if (!empty($user)) {
-      $excluded_roles = explode(',', variable_get('nycc_email_trap_exclude_roles', 'tester'));
+    foreach (explode(",", $message['to']) as $recipient) {
+      $user = user_load_by_mail($recipient);
       
-      if ($debug_to_log)
-        watchdog('nycc_email_trap', 'Found: '. $user->name . ' from email address ' . $recipient . ' Checking if user has excluded roles') ;  
-
-      //dpm(array_intersect($excluded_roles, $user->roles));  
-      if (count(array_intersect($excluded_roles, $user->roles)) > 0 ) {
+      if (!empty($user)) {
+        $excluded_roles = explode(',', variable_get('nycc_email_trap_exclude_roles', 'tester'));
+        
         if ($debug_to_log)
-          watchdog('nycc_email_trap', 'Excluded role found. Sending message to: ' . $user->mail) ;  
+          watchdog('nycc_email_trap', 'Found: '. $user->name . ' from email address ' . $recipient . ' Checking if user has excluded roles') ;  
+  
+        //dpm(array_intersect($excluded_roles, $user->roles));  
+        if (count(array_intersect($excluded_roles, $user->roles)) > 0 ) {
+          if ($debug_to_log)
+            watchdog('nycc_email_trap', 'Excluded role found. Sending message to: ' . $user->mail) ;  
+        }
+        else {
+          if ($debug_to_log)
+            watchdog('nycc_email_trap', 'Trapping message addressed to: ' . $user->mail) ;  
+        
+          $message['to']=$trap_address;
+          //drupal_set_message("sending email to " . $message['to']);
+        }
       }
-      else {
-        if ($debug_to_log)
-          watchdog('nycc_email_trap', 'Trapping message addressed to: ' . $user->mail) ;  
-      
+      else { //user not found
         $message['to']=$trap_address;
-        //drupal_set_message("sending email to " . $message['to']);
-      }
-    }
+        if ($debug_to_log)
+          watchdog('nycc_email_trap', 'Could not find user account. Trapping message addressed to: ' . $recipient) ;  
+      } //IF user found
+    } //foreach recipient
   
     // Unset Bcc and Cc fields to prevent emails from going to those addresses.
     if (isset($message['headers']) && is_array($message['headers'])) {

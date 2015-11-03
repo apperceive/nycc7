@@ -43,7 +43,11 @@ function nycc_rides_token_info() {
     $info['tokens']['node']['nycc_rides_ride_description_formatted'] = array(
       'name' => t('nycc_rides_ride_description_formatted'),
       'description' => t('Returns the ride description in html format'),
-    );     
+    );
+    $info['tokens']['node']['nycc_rides_ride_enable_time_formatted'] = array(
+      'name' => t('nycc_rides_ride_enable_time_formatted'),
+      'description' => t('Returns the date & time a ride will be enabled'),
+    );         
   return $info;
 }
 
@@ -86,14 +90,17 @@ function nycc_rides_tokens($type, $tokens, array $data = array(), array $options
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_names($node)) : nycc_rides_get_ride_coordinator_names($node) ;
           break;  
         case 'nycc_rides_ride_coordinator_email':
-          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_emails($node)) : nycc_rides_get_ride_coordinator_emails($node) ;
+          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_coordinator_email($node)) : nycc_rides_get_ride_coordinator_email($node) ;
           break;
         case 'nycc_rides_ride_token_address':
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_token_email($node)) : nycc_rides_get_ride_token_email($node) ;
           break;
         case 'nycc_rides_ride_description_formatted':
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_description_formatted($node)) : nycc_rides_get_ride_description_formatted($node) ;
-          break;                
+          break;
+        case 'nycc_rides_ride_enable_time_formatted':
+          $replacements[$original] = $sanitize ? filter_xss(nycc_rides_ride_enable_time($node, TRUE)) : nycc_rides_ride_enable_time($node, TRUE) ;
+          break;               
         
       } //switch
     }//for each
