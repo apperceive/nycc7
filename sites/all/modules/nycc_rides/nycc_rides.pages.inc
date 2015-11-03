@@ -40,7 +40,7 @@ function nycc_rides_copy_ride_form($form, &$form_state, $node) {
     '#value' => 'Submit Copies',
   );
   
-  $form['#after_build'] = array('_nycc_rides2_custom_form_uidatepicker');
+  $form['#after_build'] = array('_nycc_rides_custom_form_uidatepicker');
   
   if (!array_key_exists('#node', $form))
     $form['#node'] = $node;
