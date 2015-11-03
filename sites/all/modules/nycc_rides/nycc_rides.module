@@ -303,7 +303,7 @@ function nycc_rides_node_insert($node) {
       } else {
         rules_invoke_event('nycc_rides_ride_is_approved', $user, $node);
       }
-    
+      
 		//}else if((arg(3)=="resubmit") && (nycc_rides_get_ride_status($node) =="Cancelled")) {
     //    nycc_rides_update_ride_status($node, "Submitted");
     } // new
