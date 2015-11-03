@@ -5,6 +5,7 @@ module_load_include('inc', 'nycc_rides', 'nycc_rides.email_approvals');
 module_load_include('inc', 'nycc_rides', 'nycc_rides.ride_coordinators');
 
 
+
 /*
 TODO List:
 
@@ -67,11 +68,12 @@ function nycc_rides_menu() {
   );
   $items['nycc_rides/inbound'] = array(
     	'title' => t('NYCC Inbound Email'),
+      'file' => 'nycc_rides.email_approvals.inc',
     	'description' => t('Inbound email'),
-      	'type' => MENU_CALLBACK,
-      	'page callback' => 'nycc_rides_inbound_callback',
-      	'access callback' => TRUE,
-    );
+      'type' => MENU_CALLBACK,
+    	'page callback' => 'nycc_rides_inbound_callback',
+    	'access callback' => TRUE,
+  );
   $items['nycc-ride-coordinators-email'] = array(
     'page callback' => 'drupal_get_form',
     'file' => 'nycc_rides.ride_coordinators.inc',

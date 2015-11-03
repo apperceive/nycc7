@@ -13,6 +13,8 @@ function nycc_email_trap_menu() {
   return $items;
 }
 
+
+
 function nycc_email_trap_mail_alter(&$message){
   
   if (variable_get('nycc_email_trap_enabled', FALSE)) {
