@@ -1456,10 +1456,9 @@ function nycc_rides_get_ride_description_formatted($ride) {
   if (!is_object($ride))
       return null;  
   
-  dpm($ride);
+
   $val = nycc_field_get_value($ride->field_ride_description);
-  dpm($val);
-  return $val[0]['safe_value'];
+  return $val[0]['value'];
   
 }
 function nycc_rides_get_ride_time($ride) {
