@@ -97,7 +97,10 @@ function nycc_rides2_output_ride_buttons($ride) {
 
   if ((arg(0) == 'node') && arg(1) && !arg(2) && $is_approved) {
     $buttons[] = nycc_rides2_nycc_ride_link('Re-list This Ride', "node/add/rides/relist/$nid");
-    $buttons[] = nycc_rides2_nycc_ride_link('Copy This Ride', "node/$nid/copy");
+  }
+  
+  if ((arg(0) == 'node') && arg(1) && !arg(2) && $is_approved) {
+    $buttons[] = nycc_rides2_nycc_ride_link('Clone Ride (Multiple)', "node/$nid/copy");
   }
   
   return $buttons;
