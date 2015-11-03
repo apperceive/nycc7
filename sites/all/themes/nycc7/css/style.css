@@ -588,3 +588,21 @@ http://twitterbootstrap3navbars.w3masters.nl/?color=%23abdb1c&linkcolor=%2309304
 #block-block-246 { margin: 0 0 0 20px; } /* d7 */
 ul.social-media-links { list-style: none; margin-top: 20px; padding-left: 0;}
 ul.social-media-links li { display: inline-block; width: 50px; }
+
+/* no overflow in autocomplete user refs to make select visible */
+.field-type-user-reference .table-responsive {
+  overflow: visible;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
