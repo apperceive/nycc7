@@ -61,7 +61,7 @@ function nycc_rides_menu() {
       'page callback' => 'drupal_get_form',
       'file' => 'nycc_rides.admin.inc', 
       'access arguments' => array('administer nycc rides'),
-      'type' => MENU_LOCAL_TASK,
+      'type' => MENU_NORMAL_ITEM,
       'access callback' => TRUE,
       'page arguments' => array('nycc_rides_admin'),  
   );
