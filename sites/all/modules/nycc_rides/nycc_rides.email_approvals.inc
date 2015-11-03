@@ -102,14 +102,21 @@ function nycc_rides_get_ride_token_email($nid) {
   $ride = nycc_rides_get_ride_object($nid);
   if (!$ride) {
     watchdog("nycc_rides", "nycc_rides_get_ride_token_email - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
-    return;
+    return "";
   }
 	$token = nycc_field_get_text_value($ride->field_ride_token);
-	if (!empty($token)) {
-		
-		
-		
+	if (empty($token)) {
+    watchdog("nycc_rides", "nycc_rides_get_ride_token_email - No approval token specofied for Ride: !nid. Cancelling function.", array('!nid' => $ride->nid), WATCHDOG_WARNING);
+    return "";
 	}
+	
+	$approval_domain = variable_get('nycc_rides_approval_email_domain', '');
+	if ($approval_domain =='') {
+		watchdog("nycc_rides", "nycc_rides_get_ride_token_email - No approval domain specified in nycc rides configuration page. Cancelling function.", array(), WATCHDOG_WARNING);
+		return "";			
+	}
+	
+	return valid_email_address($token . '@' . $approval_domain) ? $token . '@' . $approval_domain: '';
 }
 
 function nycc_rides_get_ride_from_token($token='') {
