@@ -98,14 +98,19 @@ function _nycc_rides_has_approval($text) {
 }
 
 
-
-
-function nycc_rides_can_approve_rides($sender='') {
-	$approvers = explode(",",nycc_rides_get_ride_coordinator_emails("all"));
-  array_push($approvers, "a-rides@nycc.org",  "b-rides@nycc.org",  "c-rides@nycc.org",  "vp-rides@nycc.org",  "webmaster@nycc.org");
-  return in_array($sender, $approvers);
+function nycc_rides_get_ride_token_email($nid) {
+  $ride = nycc_rides_get_ride_object($nid);
+  if (!$ride) {
+    watchdog("nycc_rides", "nycc_rides_get_ride_token_email - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
+    return;
+  }
+	$token = nycc_field_get_text_value($ride->field_ride_token);
+	if (!empty($token)) {
+		
+		
+		
+	}
 }
-
 
 function nycc_rides_get_ride_from_token($token='') {
 	if (variable_get('nycc_rides_debug_to_log', '') == 1)
