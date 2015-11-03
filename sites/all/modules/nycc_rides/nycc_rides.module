@@ -1626,7 +1626,7 @@ function nycc_rides_get_all_leader_names_emails($ride) {
       
     $names .= "<a href='mailto:" . $leader['email'] . "'>". $leader['name'] . "</a>";
   }
-  dpm ($names);
+  //dpm ($names);
   return $names;
 }
 function nycc_rides_get_all_leader_names($ride) {
