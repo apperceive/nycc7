@@ -140,10 +140,7 @@ function nycc_rides_rules_condition_info() {
  *   not.
  */
 function nycc_rides_signup_is_enabled($ride) {
-  $ride_status = nycc_rides_ride_should_be_enabled($ride);
-
-  // All conditions return TRUE or FALSE.
-  return ($ride_status['value']);
+  return nycc_rides_get_ride_status($ride) == 'Approved' && nycc_rides_ride_enable_time($ride) >= REQUEST_TIME;
 }
 
 
