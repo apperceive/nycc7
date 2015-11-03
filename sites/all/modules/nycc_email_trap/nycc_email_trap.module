@@ -14,9 +14,10 @@ function nycc_email_trap_menu() {
 }
 
 function nycc_email_trap_mail_alter(&$message){
+  dpm($message);
   if (variable_get('nycc_email_trap_enabled', FALSE)) {
     $debug_to_log = variable_get('nycc_email_trap_exclude_roles', TRUE);
-    $trap_address = variable_get('nycc_email_trap_email', "test_mailbox@nycc.org");
+    $trap_address = variable_get('nycc_email_trap_email', "testuser@nycc.org");
     $user = user_load_by_mail($message['to']);
     
     if (!empty($user)) {
