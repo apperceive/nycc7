@@ -1693,7 +1693,7 @@ function nycc_rides_get_users_emails($ride, $field_name) {
   $emails = array();
   $ride = nycc_rides_get_ride_object($ride);
   if ($ride) {
-    if(nycc_field_has_value($ride->{$field_name})) {
+    if((property_exists($ride->{$field_name})) && nycc_field_has_value($ride->{$field_name})) {
       foreach(nycc_field_get_value($ride->{$field_name}) as $ref) {
         if(isset($ref['uid'])){
           $account = user_load($ref['uid']);
