@@ -10,12 +10,11 @@ function nycc_rides_inbound_callback() {
 		$email_debug = false;
   	
 		
-  	// Check signature.
-		 
+  // Check signature.	 
 	if(nycc_mandrill_signature_is_valid('nycc_rides/inbound')) {
 		//iterate through the messages
-    	foreach (json_decode($_POST['mandrill_events']) as $event) {
-      		$args = array(
+    foreach (json_decode($_POST['mandrill_events']) as $event) {
+      	$args = array(
         		'from_email' => $event->msg->from_email ?: '',
         		'from_name' => $event->msg->from_name ?: '',
         		'to_mail' => $event->msg->email ?: '',
@@ -81,15 +80,6 @@ function nycc_rides_inbound_callback() {
 			);
 		} //end if ride is loaded
     }//end for each
-  }  else { // if email signature isn't valid.
-    watchdog('nycc_rides', 'Failed signature validation calculated="%calculated", received="%received",
-    md5(mandrill_events)="%md5", strlen(mandrill_events)=%length, post=<pre>@post</pre>', array(
-      '%calculated' => print_r($calculated_signatures, TRUE),
-      '%received' => $_SERVER['HTTP_X_MANDRILL_SIGNATURE'],
-      '%length' => strlen($_POST['mandrill_events']),
-      '%md5' => md5($_POST['mandrill_events']),
-      '@post' => print_r($_POST, TRUE),
-    ), WATCHDOG_WARNING);
   } //end if valid signature
 }
 
