@@ -1689,13 +1689,12 @@ function nycc_rides_get_all_users($ride,  $field_name) {
   return $users;
 }
 
-function nycc_rides_get_users_emails($node, $field_name) {
+function nycc_rides_get_users_emails($ride, $field_name) {
   $emails = array();
-  $node = nycc_rides_get_ride_object($node);
-  
-  if ($node) {
-    if(nycc_field_has_value($node->{$field_name})) {
-      foreach(nycc_field_get_value($node->{$field_name}) as $ref) {
+  $ride = nycc_rides_get_ride_object($ride);
+  if ($ride) {
+    if(nycc_field_has_value($ride->{$field_name})) {
+      foreach(nycc_field_get_value($ride->{$field_name}) as $ref) {
         if(isset($ref['uid'])){
           $account = user_load($ref['uid']);
           if($account){
