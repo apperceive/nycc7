@@ -1097,7 +1097,7 @@ function _nycc_rides_clone_ride($onode, $datetime = null, $ride_status = "Submit
   $newnode->type = 'rides';
   $newnode->is_new = true;
   $newnode->status = NODE_PUBLISHED;
-  $node->promote = NODE_NOT_PROMOTED;
+  $newnode->promote = NODE_NOT_PROMOTED;
   $newnode->sticky = NODE_NOT_STICKY;
   $newnode->comment_count = 0;
   $newnode->comment = 0;  // 2 = comments open, 1 = comments closed, 0 = comments hidden
