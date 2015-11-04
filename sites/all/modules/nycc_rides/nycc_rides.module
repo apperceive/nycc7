@@ -1485,6 +1485,7 @@ function nycc_rides_get_ride_time_as_text($ride) {
 }
 
 function nycc_rides_get_ride_location($ride) {
+  $ride = nycc_rides_get_ride_object($ride);
   if (!$ride || $ride->type != 'rides')
       return "";
    
@@ -1683,9 +1684,7 @@ function nycc_rides_get_all_users($ride,  $field_name) {
 
 function nycc_rides_get_users_emails($node, $field_name) {
   $emails = array();
-  
-  if (is_numeric($node))
-    $node = nycc_rides_get_ride_object($node);
+  $node = nycc_rides_get_ride_object($node);
   
   if ($node) {
     if(nycc_field_has_value($node->{$field_name})) {
