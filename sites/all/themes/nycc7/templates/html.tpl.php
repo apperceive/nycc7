@@ -53,7 +53,10 @@
  *
  * @ingroup themeable
  */
-?><!DOCTYPE html>
+ 
+ 
+?>
+<!DOCTYPE html>
 <html<?php print $html_attributes;?><?php print $rdf_namespaces;?>>
 <head>
   <link rel="profile" href="<?php print $grddl_profile; ?>" />
