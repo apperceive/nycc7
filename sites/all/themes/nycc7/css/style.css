@@ -594,9 +594,33 @@ ul.social-media-links li { display: inline-block; width: 50px; }
   overflow: visible;
 }
 
+.view-ride-related-views .views-exposed-form  {
+  height: 140px;  
+}
+
+
+.view-ride-related-views .views-exposed-widget  {
+  xwidth: 33%; 
+}
 
 
 
+.view-ride-related-views .views-exposed-form .bef-toggle,
+.view-ride-related-views .views-exposed-form .bef-checkboxes * {
+  display: inline-block;  
+}
+
+
+.view-ride-related-views .views-exposed-widget .form-control  {
+  border: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+
+
+.view-ride-related-views .views-exposed-form  .form-item .bef-toggle {
+  xdisplay: none;
+}
 
 
 
