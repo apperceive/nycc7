@@ -1119,6 +1119,8 @@ function _nycc_rides_clone_ride($onode, $datetime = null, $ride_status = "Submit
   $nid = $newnode->nid;
   $date = date("Y-m-d", $datetime);
   
+  $title = $newnode->title;
+  
   drupal_set_message(check_markup("Recurring ride for <a href='/node/$nid' title='View recurring ride in another tab or window...' target='_blank'>$title</a> created with date $date", 'filtered_html', '', FALSE));
   
   return true;
