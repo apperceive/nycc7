@@ -19,7 +19,15 @@
  * @ingroup views_templates
  */
  
- $beftoggle = " <a class='bef-toggle-2' onclick='jQuery(\".view-ride-related-views .views-exposed-form  .form-item .bef-toggle\").click(); return false;' href='#'>Select All</a>";
+ //$beftoggle = " <a class='bef-toggle-2' onclick='jQuery(\".view-ride-related-views .views-exposed-form  .form-item .bef-toggle\").click(); return false;' href='#'>Select All</a>";
+ 
+function _nycc7_modify_widget($widget) {
+  $src = '<div class="bef-checkboxes">';
+  $extra = "<label for='{$widget->id}'>{$widget->label}</label> ";
+  $s = str_replace($src, $extra . $src, $widget->widget);
+  return $s;
+}
+ 
  
 ?>
 <?php if (!empty($q)): ?>
@@ -49,7 +57,7 @@
             </div>
           <?php endif; ?>
           <div class="views-widget">
-            <?php print $widget->widget; ?>
+            <?php print _nycc7_modify_widget($widget); ?>
           </div>
           <?php if (!empty($widget->description)): ?>
             <div class="description">

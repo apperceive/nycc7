@@ -623,7 +623,9 @@ ul.social-media-links li { display: inline-block; width: 50px; }
 }
 
 
-
+.view-ride-related-views .views-exposed-widget > label {
+  display: none;
+}
 
 
 
