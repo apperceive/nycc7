@@ -1491,6 +1491,7 @@ function nycc_rides_get_ride_location($ride) {
    
    if( nycc_field_has_value($ride->field_ride_start_location))
     return nycc_field_get_text_value($ride->field_ride_start_location);
+  
    else if(nycc_field_has_value($ride->field_ride_from)) {
     return nycc_field_get_text_value($ride->field_ride_from);
   }
@@ -1500,24 +1501,20 @@ function nycc_rides_get_ride_location($ride) {
 }
 
 function nycc_rides_get_ride_type($ride) {
-   if (is_numeric($ride))
-      $ride = node_load($ride);
+  $ride = nycc_rides_get_ride_object($ride);
 
-    if (!is_object($ride))
-      return "";
-
-   if(nycc_field_has_value($ride->field_ride_type)) {
-    return $ride->field_ride_type['und'][0]['value'];
-    } else {
+  if (!is_object($ride))
     return "";
-    }
+
+  return nycc_field_get_text_value($ride->field_ride_type);
 }
 
 
-function nycc_rides_get_ride_spots($node){
-  if(is_object($node) && $node->type == 'rides') {
-    $num_waiters = nycc_rides_count_waiters($node);
-    $num_riders = nycc_rides_count_riders($node);
+function nycc_rides_get_ride_spots($ride){
+  $ride = nycc_rides_get_ride_object($ride);
+  if(is_object($ride) && $ride->type == 'rides') {
+    $num_waiters = nycc_rides_count_waiters($ride);
+    $num_riders = nycc_rides_count_riders($ride);
     /*
     Scenario 1: field_ride_spots is null and field_ride_signups 'Signups with waiting list'
       Set value to 100
@@ -1528,14 +1525,14 @@ function nycc_rides_get_ride_spots($node){
     Scenario 4: field_ride_spots is not null and numwaiters == 0
        set value to $spots  -  riders
     */
-    if(empty($node->field_ride_spots) && ($node->field_ride_signups['und'][0]['value'] == "Signups with waiting list" )){
+    if(empty($ride->field_ride_spots) && (nycc_field_get_text_value($ride->field_ride_signups) == "Signups with waiting list" )){
       return 100;
-    } else if ($node->field_ride_signups['und'][0]['value'] == "No signups or waiting list") {
+    } else if (nycc_field_get_text_value($ride->field_ride_signups) == "No signups or waiting list") {
       return -100;
-    } else if(!empty($node->field_ride_spots) && ($num_waiters > 0) ) {
+    } else if(!empty($ride->field_ride_spots) && ($num_waiters > 0) ) {
       return 0;
     } else {
-      return $node->field_ride_spots['und'][0]['value'] - $num_riders ;
+      return $ride->nycc_field_get_text_value(field_ride_spots) - $num_riders ;
     }
   }
 }
@@ -1556,6 +1553,7 @@ function nycc_rides_ride_allows_signups($node) {
 
 // todo: replace with sql query instead of node_load
 function nycc_rides_count_attendees($data) {
+  
   if (is_numeric($data)) {
     $node = node_load($data);
     $attendees = $node->field_ride_attendees['und'];
@@ -1628,41 +1626,48 @@ function nycc_rides_count_waiters($data) {
 
 
 function nycc_rides_get_all_leader_names_emails($ride) {
-  
   $names ="";
   $ride = nycc_rides_get_ride_object($ride);
-  $leaders = nycc_rides_get_all_users($ride, 'field_ride_current_leaders');
-  if (empty($leaders))
-    return $names;
   
-  foreach ($leaders as $leader) {
-    if (drupal_strlen($names))
-      $names .= ", ";
-      
-    $names .= "<a href='mailto:" . $leader['email'] . "'>". $leader['name'] . "</a>";
+  if ($ride) {
+    $leaders = nycc_rides_get_all_users($ride, 'field_ride_current_leaders');
+    if (empty($leaders))
+      return $names;
+    
+    foreach ($leaders as $leader) {
+      if (drupal_strlen($names))
+        $names .= ", ";
+        
+      $names .= "<a href='mailto:" . $leader['email'] . "'>". $leader['name'] . "</a>"; 
+    }  
   }
   //dpm ($names);
   return $names;
 }
+
 function nycc_rides_get_all_leader_names($ride) {
   $names ="";
   $ride = nycc_rides_get_ride_object($ride);
-  $leaders = nycc_rides_get_all_users($ride, 'field_ride_current_leaders');
-  if (empty($leaders))
-    return $names;
+  if ($ride) {  
+    $leaders = nycc_rides_get_all_users($ride, 'field_ride_current_leaders');
+    if (empty($leaders))
+      return $names;
   
-  foreach ($leaders as $leader) {
-    if (drupal_strlen($names))
-      $names .= ", ";
-      
-    $names .= $leader['name'];
+    foreach ($leaders as $leader) {
+      if (drupal_strlen($names))
+        $names .= ", ";
+        
+      $names .= $leader['name'];
+    }
   }
   return $names;
 }
 
 function nycc_rides_get_all_users($ride,  $field_name) {
   $users = array();
-  if ( ($ride->type != 'rides') || (!nycc_field_has_value($ride->{$field_name})))
+  $ride = nycc_rides_get_ride_object($ride);
+  
+  if ( (!$ride) || ($ride->type != 'rides') || (!nycc_field_has_value($ride->{$field_name})))
     return  $users;
  
   foreach(nycc_field_get_value($ride->{$field_name}) as $user) {
@@ -1709,6 +1714,9 @@ function nycc_rides_get_all_leader_emails($ride) {
 
 function nycc_rides_get_all_rider_emails($ride, $include_leaders = true) {
   $ride = nycc_rides_get_ride_object($ride);
+  if (!$ride)
+    return "";
+  
   if ($include_leaders) {
     return implode(", ", array_merge(
       nycc_rides_get_users_emails($ride, 'field_ride_current_riders'),
@@ -1728,8 +1736,10 @@ function nycc_rides_speed2num($str) {
 }
 
 function nycc_rides_spots_remaining($ride) {
-  if (is_numeric($ride))
-    $ride = node_load($ride);
+  $ride = nycc_rides_get_ride_object($ride);
+  if (!$ride)
+    return 0;
+  
   $no_of_spots = trim(nycc_field_get_text_value($ride->field_ride_spots));
   if (!$no_of_spots)
     return "Unlimited";
@@ -1742,18 +1752,18 @@ function nycc_rides_spots_remaining($ride) {
 }
 
 function nycc_rides_has_spots($ride) {
-  if (is_numeric($ride))
-      $ride = node_load($ride);
+  $ride = nycc_rides_get_ride_object($ride);
+  if (!$ride)
+    return 0;
 
   $no_of_riders = nycc_rides_count_riders($ride);
-  $no_of_spots = trim($ride->field_ride_spots['und'][0]['value']);
+  $no_of_spots = trim(nycc_field_get_text_value($ride->field_ride_spots));
   $available_spots = $no_of_spots - $no_of_riders;
   return (!$no_of_spots || ($available_spots > 0));
 }
 
 function nycc_rides_get_ride_status($ride) {
-  if (is_numeric($ride))
-    $ride = node_load($ride);
+  $ride = nycc_rides_get_ride_object($ride);
   
   // test for unsaved $ride which has no ride status field yet
   if (!$ride || !drupal_strlen($ride->title))
@@ -1773,12 +1783,11 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
   if(!$acct)
     $acct= $user;
 
-    if (is_numeric($ride))
-      $ride = node_load($ride);
-
-    if (!is_object($ride)){
+  $ride = nycc_rides_get_ride_object($ride);
+    
+  if (!is_object($ride)){
     $return_value =  array('value'=>false, 'reason'=>"could not load ride", 'display_msg'=>false);
-    }
+  }
 
   if( empty($return_value) && (nycc_rides_get_ride_status($ride) != 'Approved' )){
     $return_value =  array('value'=>false, 'reason'=>"This ride is not Approved", 'display_msg'=>true);
@@ -1829,10 +1838,9 @@ function nycc_rides_ride_should_be_enabled($ride, $acct=null){
 }
 
 function nycc_rides_ride_enable_time($ride, $formatted = false){
-    if (is_numeric($ride))
-      $ride = node_load($ride);
-
-    if (!is_object($ride))
+  $ride = nycc_rides_get_ride_object($ride);
+  
+  if (!$ride)
     return REQUEST_TIME; //if ride can't be loaded return current time to avoid errors caused by null values
 
   if(nycc_field_has_value($ride->field_ride_open_signup_days)){
@@ -1853,8 +1861,10 @@ function nycc_rides_ride_enable_time($ride, $formatted = false){
 function nycc_rides_ride_has_changed($ride, $value_name = null) {
   //compares current version of a ride against the last approved revision.
   //Optionally compares a specific value instead of the entire ride object.
-  if (is_numeric($ride))
-    $ride = node_load($ride);
+  $ride = nycc_rides_get_ride_object($ride);
+  if (!$ride)
+    return true;
+
 
   $rev = nycc_rides_last_approved_revision($ride);
   // title, description, spots, level, distance, speed, date, start time, start time minute, start time, select, from, from_select, leaders?
@@ -1906,13 +1916,15 @@ function nycc_rides_ride_has_changed($ride, $value_name = null) {
   }
 }
 
-function nycc_rides_get_ride_spots_text($node){
-  if (is_numeric($node))
-    $node = node_load($node);
+function nycc_rides_get_ride_spots_text($ride){
+  $ride = nycc_rides_get_ride_object($ride);
+  if (!$ride)
+    return 0;
 
-  if($node->type == 'rides') {
-    $num_waiters = nycc_rides_count_waiters($node);
-    $num_riders = nycc_rides_count_riders($node);
+
+  if($ride->type == 'rides') {
+    $num_waiters = nycc_rides_count_waiters($ride);
+    $num_riders = nycc_rides_count_riders($ride);
     /*
     Scenario 1: field_ride_spots is null and field_ride_signups 'Signups with waiting list'
       Set value to $count 'of unlimited'
@@ -1923,9 +1935,9 @@ function nycc_rides_get_ride_spots_text($node){
     Scenario 4: field_ride_spots is not null and numwaiters == 0
        ($spots-riders) of $spots
     */
-    $signup_value = nycc_field_get_text_value($node->field_ride_signups);
-    $has_spots = nycc_field_has_value($node->field_ride_spots);
-    $ride_spots_value = nycc_field_get_text_value($node->field_ride_spots);
+    $signup_value = nycc_field_get_text_value($ride->field_ride_signups);
+    $has_spots = nycc_field_has_value($ride->field_ride_spots);
+    $ride_spots_value = nycc_field_get_text_value($ride->field_ride_spots);
 
     if($has_spots && $signup_value == "Signups with waiting list" ){
       return $num_riders . t(" of Unlimited");
@@ -1954,7 +1966,9 @@ function nycc_rides_get_ride_spots_text($node){
 
 
 function nycc_rides_update_ride_status($ride, $ride_status) {
-  nycc_rides_get_ride_object($ride);
+  $ride = nycc_rides_get_ride_object($ride);
+  if (!$ride)
+    return;
 
   if ($ride && in_array($ride_status, nycc_rides_ride_status_options())) {
     //$old_status = nycc_rides_get_ride_status($node);
