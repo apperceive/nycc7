@@ -103,8 +103,6 @@ function nycc_rides_copy_ride_form_submit($form, &$form_state) {
         $newnode = _nycc_rides_clone_ride($onode, $d);
         drupal_set_message("Additional ride created for $ds ($d)");
       } // for
-      if (!$errors)
-        form_set_value($form['additional_dates'], $additional_dates, $form_state);  
     } // if array
   } // if additional dates
 } // nycc_rides_copy_ride_form_submit
