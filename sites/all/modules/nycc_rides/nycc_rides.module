@@ -1067,9 +1067,9 @@ function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "
                      //'field_ride_author_id',
                      'field_ride_dow',
                      'field_ride_timestamp',
-                     //'field_ride_attendees',
+                     'field_ride_attendees',
                      'field_ride_current_riders',
-                     'field_ride_current_leaders',
+                     //'field_ride_current_leaders',
                      'field_ride_waitlist',
                      'field_ride_status')))
       { 
@@ -1082,7 +1082,7 @@ function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "
   }
   
   $node->field_ride_timestamp['und'][0]['value'] = date("Y-m-d H:i:s", $datetime);
-  
+  $node->field_ride_status = $ride_status;
   //dpm($node);
   
   return $node;
@@ -1116,8 +1116,8 @@ function _nycc_rides_clone_ride($onode, $datetime = null, $ride_status = "Submit
   watchdog('rides', 'about to save node clone for :onid', array(':onid' => $onode->nid), WATCHDOG_INFO);
   node_save($newnode);
   
-  if ($ride_status == "Submitted")
-    rules_invoke_event('nycc_rides_ride_is_submitted', $user, $newnode);
+//  if ($ride_status == "Submitted")
+//    rules_invoke_event('nycc_rides_ride_is_submitted', $user, $newnode);
   
   $nid = $newnode->nid;
   $date = date("Y-m-d", $datetime);
