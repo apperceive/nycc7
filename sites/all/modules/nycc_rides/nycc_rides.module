@@ -1705,7 +1705,9 @@ function nycc_rides_get_users_emails($ride, $field_name) {
         }
       }
     } else {
-      drupal_set_message(check_plain("nycc_rides_get_users_emails: could not find values for field $field_name" ),"error");
+      watchdog("nycc_rides", "nycc_rides_get_users_emails: Spots is 0: could not find values for field: %field for ride: %nid",
+                 array('%field' => $field_name, '%nid' =>$ride->nid ), WATCHDOG_INFO);      
+      
     }
   }
   return $emails;
