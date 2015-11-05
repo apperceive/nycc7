@@ -624,37 +624,37 @@ function _nycc_rides_additional_dates_validate($form, &$form_state) {
 } // _nycc_rides_additional_dates_validate
 
 //RIDE ROSTER RELATED FUNCTIONS
-function nycc_rides_output_riders_roster_pdf($node = NULL) {
-  // used with printpdf
-  //global $theme_path;
-  if ($node && is_object($node))
-  $nid = $node->nid;
-
-  if (!$nid)
-    $nid = ($_POST['nid'] > 0) ? $_POST['nid'] : ((arg(2) > 0) ? arg(2) : arg(1));
-
-  if (is_numeric($nid) && ($nid > 0)) {
-    $ride = node_load( $nid);
-    if ($ride) {
-      // DONE: change to timestamp
-      //drupal_set_title($ride->title ."-". substr($ride->field_date_ride_first['und'][0]['value'], 0, 10));
-      $datestr = date('Y-m-d', $ride->field_timestamp['und'][0]['value']);
+function nycc_rides_output_riders_roster_pdf($nid = NULL) {
+  $output = "";
+  $ride = node_load($nid);
+  if ($ride) {
+    // ASSERT: all rides have valid dates, titles, leaders and waitlist values
+    $dateval = $ride->field_ride_timestamp[LANGUAGE_NONE][0]['value'];
+    if ($dateval) {
+      // set title
+      $datestr = substr($dateval, 0, 16);
       drupal_set_title($ride->title ."-". $datestr);
+      
+      // first comes the ride details from a view
       $output .= views_embed_view('rides_detail_on_riders_list', 'block_1', $nid, $nid);
-      // display waiver
-      $waiver = node_load('45438');
+      
+      // display waiver text from specific node
+      $waiver = node_load('45438');  
       if ($waiver)
-        $output .= $waiver->body;
-      // display ride participants
-    //TODO:CONFIRM THAT $leaders works! May need to wrap in nycc_field_get_value()
+        $output .= $waiver->body[LANGUAGE_NONE][0]['value'];
+      
+      //TODO:CONFIRM THAT $leaders works! May need to wrap in nycc_field_get_value()
+    
+      // display ride participants using view blocks, passing uids as params
       $leaders = nycc_refs2ids(nycc_field_get_value($ride->field_ride_current_leaders));
       $riders = nycc_refs2ids(nycc_field_get_value($ride->field_ride_current_riders));
       $output .= views_embed_view('ride_participants', 'block_2', implode("+", array_merge($leaders, $riders)));
       $waiters = nycc_refs2ids(nycc_field_get_value($ride->field_ride_waitlist));
       $output .= views_embed_view('ride_participants', 'block_3', implode("+", $waiters));
-      //$output .= var_export(implode("+", $waiters),1);
-    }
-  }
+    } // dateval
+  } else 
+    $output = t("<h2 class='text-danger'>Invalid ride id: !id</h2>", array('!id' => $nid));
+
   return $output;
 }
 
