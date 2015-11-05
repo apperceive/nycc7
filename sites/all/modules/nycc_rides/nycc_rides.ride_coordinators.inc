@@ -1,4 +1,9 @@
 <?php
+/*
+TODO:
+1) Need to fix Profile table since 2 profiles exit - _nycc_rides_get_ride_coordinator_info()
+2) //TODO need to fix this QUERY. Are we pulling the right profile? - nycc_rides_ride_coordinators
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //Ride Coordinator RELATED FUNCTIONS
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -15,7 +20,7 @@ function nycc_rides_get_ride_coordinator_emails($data) {
 
 
 function nycc_rides_get_ride_coordinator_names($data) {
-  return _nycc_rides_get_ride_coordinator_info($data, 'title');
+  return _nycc_rides_get_ride_coordinator_info($data, 'realname');
 }
 
 function _nycc_rides_get_ride_coordinator_info($data, $field_to_get) {
@@ -42,15 +47,14 @@ function _nycc_rides_get_ride_coordinator_info($data, $field_to_get) {
    $level .= "-ride" ;
   }
 
-  
-  $sql = "SELECT u.mail, n.title FROM {users} u, {node} n, {field_data_field_ride_coordinator} c WHERE n.uid = u.uid AND c.entity_id = n.nid AND c.revision_id = n.vid AND c.field_ride_coordinator_value like :level";
+  //TODO: Need to fix Profile table since 2 profiles exist or each user. bringing back old values
+  $sql = "SELECT DISTINCT u.mail, rn.realname,c.field_ride_coordinator_value  FROM {users} u  join {profile} p on p.uid=u.uid join {field_data_field_ride_coordinator} c on c.entity_id = p.pid join {realname} rn on u.uid=rn.uid WHERE  c.field_ride_coordinator_value like :level";
 
   $q = db_query($sql, array(':level'=>$level));
   $ret="";
   foreach($q as $r) {
     if (drupal_strlen($ret))
       $ret .= ",";
-
       $ret .= $r->{$field_to_get};
 
   }
@@ -61,26 +65,16 @@ function _nycc_rides_get_ride_coordinator_info($data, $field_to_get) {
 function nycc_rides_ride_coordinators() {
   $coordinators = array();
   //$sql = 'SELECT c.field_ride_coordinator_value AS level, n.title as name, p.field_phone_value as phone, u.mail, u.uid FROM {content_field_ride_coordinator} c, {content_type_profile} p, {node} n, {users} u WHERE n.nid=c.nid AND p.nid=n.nid AND u.uid=n.uid AND field_ride_coordinator_value IS NOT NULL ORDER BY 1';
+  
+  //TODO need to fix this QUERY. Are we pulling the right profile?
   $sql =<<<EOS
-  SELECT 
-  c.field_ride_coordinator_value AS level,
-  n.title AS name,
-  p.field_phone_value AS phone,
-  u.mail,
-  u.uid
-  FROM 
-  {node} n,
-  {users} u,
-  {field_data_field_phone} p,
-  {field_data_field_ride_coordinator} c
-  WHERE
-  u.uid = n.uid AND 
-  p.entity_id = n.nid AND
-  c.entity_id = n.nid AND
-  p.revision_id = n.vid AND
-  c.revision_id = n.vid AND
-  c.field_ride_coordinator_value IS NOT NULL 
-  ORDER BY 1;
+SELECT DISTINCT u.uid, u.mail, rn.realname as name,c.field_ride_coordinator_value as level, p.field_phone_value AS phone
+FROM {users} u  
+join {profile} pr on pr.uid=u.uid 
+join {field_data_field_ride_coordinator} c on c.entity_id = pr.pid 
+join {realname} rn on u.uid=rn.uid
+join {field_data_field_phone} p on p.entity_id = pr.pid
+ORDER BY 1;
 EOS;
   $results = db_query($sql);
   foreach ($results as $coordinator) {
