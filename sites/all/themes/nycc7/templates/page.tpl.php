@@ -149,7 +149,7 @@
 
   <?php if (!empty($page['highlighted'])): ?>
     <div class="row">
-      <div class='col-xs-12 col-md-8'>
+      <div class='col-xs-12 col-md-10 col-md-offset-1'>
         <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
       </div>
     </div>
