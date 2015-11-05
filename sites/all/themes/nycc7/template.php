@@ -32,6 +32,7 @@ function nycc7_preprocess_html(&$variables) {
   // @see https://www.drupal.org/node/1077566
   // @see https://www.drupal.org/node/1164926
 
+  // NOTE: THIS IS OVERWRITING THE EXISTING ARRAY
   // HTML element attributes.
   $variables['html_attributes_array'] = array(
     'lang' => $variables['language']->language,
@@ -49,6 +50,8 @@ function nycc7_preprocess_html(&$variables) {
     }
     $variables['rdf_namespaces'] = drupal_attributes($rdf);
   }
+
+  // NOTE: THIS IS OVERWRITING THE EXISTING ARRAY
 
   // MSS: W3C check says no to document role 2015-10-28
   // BODY element attributes.
@@ -77,6 +80,8 @@ function nycc7_preprocess_html(&$variables) {
  
 function nycc7_preprocess_page(&$variables) {
   global $user;
+  
+  // TODO: this is not setting: navbar_classes,  container_class , html_attributes , html_attributes 
   
   // Add information about the number of sidebars.
   if (!empty($variables['page']['sidebar_first']) && !empty($variables['page']['sidebar_second'])) {
