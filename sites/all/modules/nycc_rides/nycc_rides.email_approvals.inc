@@ -38,7 +38,7 @@ function nycc_rides_inbound_callback() {
 					if ($email_debug ) watchdog('nycc_rides', 'Ride: ' . $ride->nid . ' needs approval', array(), WATCHDOG_NOTICE) ;
 
 					if (_nycc_rides_has_approval($args['text']['value'])) {
-            nycc_rides_approve_ride($ride);
+            nycc_rides_update_ride_status($ride, 'Approved'); 
 						watchdog('nycc_rides', "Ride: " . $ride->nid . " is Approved via email by: " . $args['from_email'],
 										 array(), WATCHDOG_NOTICE) ;
 
