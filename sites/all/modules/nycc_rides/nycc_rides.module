@@ -1007,8 +1007,11 @@ function nycc_rides_approve_ride($ride = NULL) {
   if (!$ride)
     $ride = arg(1);
 
-  if (is_numeric($ride))
-    $ride = node_load($ride);
+  $ride = nycc_rides_get_ride_object($nid);
+  if (!$ride) {
+    watchdog("nycc_rides", "nycc_rides_approve_ride - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
+    return;
+  }
 
   global $user;
   if (is_object($ride) && nycc_rides_can_approve($user)) {
@@ -1705,7 +1708,7 @@ function nycc_rides_get_users_emails($ride, $field_name) {
         }
       }
     } else {
-      watchdog("nycc_rides", "nycc_rides_get_users_emails: Spots is 0: could not find values for field: %field for ride: %nid",
+      watchdog("nycc_rides", "nycc_rides_get_users_emails: Could not find values for field: %field for ride: %nid",
                  array('%field' => $field_name, '%nid' =>$ride->nid ), WATCHDOG_INFO);      
       
     }
@@ -1972,8 +1975,10 @@ function nycc_rides_get_ride_spots_text($ride){
 
 function nycc_rides_update_ride_status($ride, $ride_status) {
   $ride = nycc_rides_get_ride_object($ride);
-  if (!$ride)
+  if (!$ride) {
+    watchdog("nycc_rides_update_ride_status", "Unable to load ride: $ride.", array(), WATCHDOG_ERROR);
     return;
+  }
 
   if ($ride && in_array($ride_status, nycc_rides_ride_status_options())) {
     //$old_status = nycc_rides_get_ride_status($node);
