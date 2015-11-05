@@ -1,4 +1,9 @@
 <?php
+/*
+TODO:
+1) Need to fix Profile table since 2 profiles exit
+
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //Ride Coordinator RELATED FUNCTIONS
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -42,7 +47,7 @@ function _nycc_rides_get_ride_coordinator_info($data, $field_to_get) {
    $level .= "-ride" ;
   }
 
-  
+  //TODO: Need to fix Profile table since 2 profiles exist or each user. bringing back old values
   $sql = "SELECT DISTINCT u.mail, rn.realname,c.field_ride_coordinator_value  FROM {users} u  join {profile} p on p.uid=u.uid join {field_data_field_ride_coordinator} c on c.entity_id = p.pid join {realname} rn on u.uid=rn.uid WHERE  c.field_ride_coordinator_value like :level";
 
   $q = db_query($sql, array(':level'=>$level));
