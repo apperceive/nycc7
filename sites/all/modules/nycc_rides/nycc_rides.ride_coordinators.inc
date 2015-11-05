@@ -43,14 +43,13 @@ function _nycc_rides_get_ride_coordinator_info($data, $field_to_get) {
   }
 
   
-  $sql = "SELECT u.mail, n.title FROM {users} u, {node} n, {field_data_field_ride_coordinator} c WHERE n.uid = u.uid AND c.entity_id = n.nid AND c.revision_id = n.vid AND c.field_ride_coordinator_value like :level";
+  $sql = "SELECT DISTINCT u.mail, rn.realname,c.field_ride_coordinator_value  FROM {users} u  join {profile} p on p.uid=u.uid join {field_data_field_ride_coordinator} c on c.entity_id = p.pid join {realname} rn on u.uid=rn.uid WHERE  c.field_ride_coordinator_value like :level";
 
   $q = db_query($sql, array(':level'=>$level));
   $ret="";
   foreach($q as $r) {
     if (drupal_strlen($ret))
       $ret .= ",";
-
       $ret .= $r->{$field_to_get};
 
   }
