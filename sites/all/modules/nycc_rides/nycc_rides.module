@@ -1007,7 +1007,7 @@ function nycc_rides_approve_ride($ride = NULL) {
   if (!$ride)
     $ride = arg(1);
 
-  $ride = nycc_rides_get_ride_object($nid);
+  $ride = nycc_rides_get_ride_object($ride);
   if (!$ride) {
     watchdog("nycc_rides", "nycc_rides_approve_ride - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
     return;
