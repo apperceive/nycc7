@@ -1082,7 +1082,10 @@ function _nycc_rides_copy_ride($onode, $node, $datetime = null, $ride_status = "
   }
   
   $node->field_ride_timestamp['und'][0]['value'] = date("Y-m-d H:i:s", $datetime);
+  dpm($node);
+  dpm($ride_status);
   $node->field_ride_status = $ride_status;
+  dpm($node);
   //dpm($node);
   
   return $node;
