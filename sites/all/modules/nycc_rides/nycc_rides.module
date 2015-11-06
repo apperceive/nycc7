@@ -1709,20 +1709,35 @@ function nycc_rides_speed2num($str) {
   return $num ? $matches[0] : 0;
 }
 
-function nycc_rides_spots_remaining($ride) {
+function nycc_rides_spots_remaining($ride, $html = TRUE, $spots = TRUE, $waiting = TRUE) {
+  // todo: factor out theme related formatting, translate strings
+  $s = "";
   $ride = nycc_rides_get_ride_object($ride);
-  if (!$ride)
-    return 0;
-  
+  if (!$ride) return "";
   $no_of_spots = trim(nycc_field_get_text_value($ride->field_ride_spots));
-  if (!$no_of_spots)
-    return "Unlimited";
-  $available_spots = $no_of_spots - nycc_rides_count_riders($ride);
-  $no_of_waiters = nycc_rides_count_waiters($ride);
-  if (!$available_spots && $no_of_waiters) {
-    return  "$available_spots of $no_of_spots<br/>($no_of_waiters on waitlist)";
+  
+  if (!$no_of_spots) {
+    $s = $html ? "<span class='unlimited'>Unlimited</span>" : "Unlimited";
+    $s = $waiting && !$spots ? "" : $s;
   }
-  return "$available_spots of $no_of_spots";
+  else {
+    $available_spots = $no_of_spots - nycc_rides_count_riders($ride);
+    $no_of_waiters = nycc_rides_count_waiters($ride);
+    if ($html) {
+      if ($spots && $no_of_spots)
+        $s .= "<div class='spots'>$available_spots of $no_of_spots</div>";
+      if ($waiting && $no_of_waiters)
+        $s .= "<div class='waitlist'>($no_of_waiters on waitlist)</div>";
+    }
+    else {
+      if ($spots && $no_of_spots)
+        $s .= "$available_spots of $no_of_spots";
+      if ($waiting && $no_of_waiters)
+        $s .= (drupal_strlen($s) ? " " : "") . "($no_of_waiters on waitlist)";
+    } // html
+  } // no_of_spots
+  
+  return $html ? "<div class='ride-spots'>$s</div>" : $s;
 }
 
 function nycc_rides_has_spots($ride) {
