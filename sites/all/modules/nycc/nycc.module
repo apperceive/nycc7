@@ -375,7 +375,7 @@ function nycc_user_is_in_list($node, $account = NULL, $field_name){
       }
     }
   }
-  dpm("returning true");
+  dpm("returning false");
   return FALSE;    
 }
 
