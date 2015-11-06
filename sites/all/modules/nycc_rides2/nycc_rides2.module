@@ -18,6 +18,7 @@ function nycc_rides2_output_ride_buttons($ride) {
   $is_rider = nycc_rides_is_rider($ride, $user);
   $is_waiter = nycc_rides_is_waiting($ride, $user) ;
   
+  //dpm("is rider is: $is_rider");
   // user properties used for button display logic
   $can_approve = nycc_rides_can_approve($user);
   $can_modify = nycc_rides_can_modify_ride($ride, $user);
@@ -61,6 +62,9 @@ function nycc_rides2_output_ride_buttons($ride) {
   // TODO: check that signups are allowed?
   if ($is_waiter && $ride_is_upcoming && $is_approved)
     $buttons[] = nycc_rides2_nycc_ride_link('Withdraw From Waitlist', "node/$nid/withdraw");
+  
+  if ($is_rider && $ride_is_upcoming && $is_approved)
+    $buttons[] = nycc_rides2_nycc_ride_link('Withdraw From Ride', "node/$nid/withdraw");
   
   if ($should_be_enabled['value'] && (!$no_of_spots || ($available_spots > 0)))
     $buttons[] = nycc_rides2_nycc_ride_link('Join Ride', "node/$nid/join");
