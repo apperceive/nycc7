@@ -393,12 +393,12 @@ function nycc_rides_node_presave($node) {
       $node->field_ride_spots = array('und' => array(0 => array('value' => 0)));
     }
 
-    if (!($num_spots > 0)){
-      $node->field_ride_signups['und'][0]['value'] = "No signups or waiting list";
-      if ($r_debug)
-        watchdog("nycc_rides", "Presave: Spots is 0: Setting Ride Signups to No signups or waiting list for Ride: %title",
-                 array('%title' => $node->title), WATCHDOG_INFO);
-    }
+    //if (!($num_spots > 0)){
+    //  $node->field_ride_signups['und'][0]['value'] = "No signups or waiting list";
+    //  if ($r_debug)
+    //    watchdog("nycc_rides", "Presave: Spots is 0: Setting Ride Signups to No signups or waiting list for Ride: %title",
+    //             array('%title' => $node->title), WATCHDOG_INFO);
+    //}
 
     if (nycc_rides_ride_allows_signups($node) && ($num_spots > $num_riders) && ($num_waiters > 0)) {
       $num_new_spots = min($num_spots - $num_riders, $num_waiters);
@@ -1496,8 +1496,7 @@ function nycc_rides_get_ride_location($ride) {
   if (!$ride || $ride->type != 'rides')
       return "";
    
-   if((property_exists($ride, "field_ride_start_location")) && nycc_field_has_value($ride->field_ride_start_location))
-    return nycc_field_get_text_value($ride->field_ride_start_location);
+   if(property_exists($ride, "field_ride_start_location")) return nycc_field_get_text_value($ride->field_ride_start_location);
   
    else if( (property_exists($ride, "field_ride_from")) && nycc_field_has_value($ride->field_ride_from)) {
     return nycc_field_get_text_value($ride->field_ride_from);
