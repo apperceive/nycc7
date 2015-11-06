@@ -1950,7 +1950,7 @@ function nycc_rides_get_ride_spots_text($ride){
     $has_spots = nycc_field_has_value($ride->field_ride_spots);
     $ride_spots_value = nycc_field_get_text_value($ride->field_ride_spots);
 
-    dpm("signup_value is $signup_value. has_spots is $has_spots. ride_spots_value is $ride_spots_value ");
+    //dpm("signup_value is $signup_value. has_spots is $has_spots. ride_spots_value is $ride_spots_value ");
     if(! $has_spots && $signup_value == "Signups with waiting list" ){
       return t("Unlimited");
 
