@@ -1540,7 +1540,7 @@ function nycc_rides_get_ride_spots($ride){
     } else if(!empty($ride->field_ride_spots) && ($num_waiters > 0) ) {
       return 0;
     } else {
-      return $ride->nycc_field_get_text_value($ride->field_ride_spots) - $num_riders ;
+      return nycc_field_get_text_value($ride->field_ride_spots) - $num_riders ;
     }
   }
 }
