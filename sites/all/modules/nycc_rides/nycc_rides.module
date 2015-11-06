@@ -279,7 +279,7 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
         // '#theme' => 'function_name_without_theme',
       );
     } // full
-    dpm(nycc_rides_get_ride_spots_text($node));
+    
     $node->content['field_ride_spots']['#title'] = t("Remaining/Spots");
     $node->content['field_ride_spots'][0]['#markup'] = nycc_rides_get_ride_spots_text($node);
   }  // ride
@@ -1936,6 +1936,7 @@ function nycc_rides_get_ride_spots_text($ride){
   if($ride->type == 'rides') {
     $num_waiters = nycc_rides_count_waiters($ride);
     $num_riders = nycc_rides_count_riders($ride);
+    dpm("Numriders is $num_riders. NumWaiters is $num_riders");
     /*
     Scenario 1: field_ride_spots is null and field_ride_signups 'Signups with waiting list'
       Set value to $count 'of unlimited'
