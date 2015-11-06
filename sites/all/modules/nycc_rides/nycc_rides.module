@@ -262,7 +262,7 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
   global $user;
   if ($node->type == 'rides') {
     if ($view_mode == 'full') {
-      if(in_array("administrator", $user->roles))
+      //if(in_array("administrator", $user->roles))
         dpm($node);
         
       rules_invoke_event('nycc_rides_ride_is_viewed', $user, $node);
