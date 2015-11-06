@@ -1953,7 +1953,7 @@ function nycc_rides_get_ride_spots_text($ride){
 
     dpm("signup_value is $signup_value. has_spots is $has_spots. ride_spots_value is $ride_spots_value ");
     if($has_spots && $signup_value == "Signups with waiting list" ){
-      return $num_riders . t(" of Unlimited");
+      return t("Unlimited");
 
     } else if ($signup_value == "No signups or waiting list") {
       return "Unlimited/No Sign-ups";
