@@ -1936,7 +1936,7 @@ function nycc_rides_get_ride_spots_text($ride){
   if($ride->type == 'rides') {
     $num_waiters = nycc_rides_count_waiters($ride);
     $num_riders = nycc_rides_count_riders($ride);
-    dpm("Numriders is $num_riders. NumWaiters is $num_riders");
+    
     /*
     Scenario 1: field_ride_spots is null and field_ride_signups 'Signups with waiting list'
       Set value to $count 'of unlimited'
@@ -1951,6 +1951,7 @@ function nycc_rides_get_ride_spots_text($ride){
     $has_spots = nycc_field_has_value($ride->field_ride_spots);
     $ride_spots_value = nycc_field_get_text_value($ride->field_ride_spots);
 
+    dpm("signup_value is $signup_value. has_spots is $has_spots. ride_spots_value is $ride_spots_value ");
     if($has_spots && $signup_value == "Signups with waiting list" ){
       return $num_riders . t(" of Unlimited");
 
