@@ -365,17 +365,17 @@ function nycc_user_is_in_list($node, $account = NULL, $field_name){
   }
     
   if ($node && nycc_field_has_value($node->{$field_name}) && is_numeric($uid)) {
-    dpm("field: $field_name. uid: $uid");
-    dpm(nycc_field_get_value($node->{$field_name}));
+//    dpm("field: $field_name. uid: $uid");
+//    dpm(nycc_field_get_value($node->{$field_name}));
     foreach(nycc_field_get_value($node->{$field_name}) as $user_ref)
     {
       if ($user_ref['uid'] == $uid){
-        dpm("returning true");
+//        dpm("returning true");
         return true;
       }
     }
   }
-  dpm("returning false");
+//  dpm("returning false");
   return FALSE;    
 }
 
