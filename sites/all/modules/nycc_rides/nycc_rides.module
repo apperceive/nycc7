@@ -452,6 +452,10 @@ function nycc_rides_node_prepare($node) {
   } // add
   
   if ($node->type == 'rides' && arg(2) == 'edit') {
+    if (!nycc_rides_can_modify_ride($node, $user)){
+      drupal_set_message(filter_xss("<b>Please Note:</b> You do not have permission to edit this ride."));
+      drupal_goto("node/" . $node->nid);
+    }    
     if (!nycc_rides_can_approve()) {
       drupal_set_message(filter_xss("<b>Please Note:</b> If you modify key fields on this ride it will be taken offline until the Ride Coordinator has had a chance to review the changes."));
       drupal_set_message(filter_xss("While we make every effort to approve it  a timely manner, it could take up to 48 hours for the change to be approved."));
