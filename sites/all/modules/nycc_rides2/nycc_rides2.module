@@ -18,6 +18,7 @@ function nycc_rides2_output_ride_buttons($ride) {
   $is_rider = nycc_rides_is_rider($ride, $user);
   $is_waiter = nycc_rides_is_waiting($ride, $user) ;
   
+  dpm("is rider is: $is_rider");
   // user properties used for button display logic
   $can_approve = nycc_rides_can_approve($user);
   $can_modify = nycc_rides_can_modify_ride($ride, $user);
