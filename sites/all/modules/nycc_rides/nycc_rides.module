@@ -1952,13 +1952,17 @@ function nycc_rides_get_ride_spots_text($ride){
     $ride_spots_value = nycc_field_get_text_value($ride->field_ride_spots);
 
     dpm("signup_value is $signup_value. has_spots is $has_spots. ride_spots_value is $ride_spots_value ");
-    if ($signup_value == "No signups or waiting list") {
+    if(! $has_spots && $signup_value == "Signups with waiting list" ){
+      return t("Unlimited");
+
+    } else if ($signup_value == "No signups or waiting list") {
       return "Unlimited/No Sign-ups";
-    }
-    else if($has_spots && ($num_waiters > 0) ) {
+
+    } else if($has_spots && ($num_waiters > 0) ) {
       return t("0 of ") . $ride_spots_value . "( " .  $num_waiters . t(" waiting)");
-    }
-    else {
+
+    } else {
+
       return $ride_spots_value  - $num_riders . t(" of ") . $ride_spots_value   ;
     }
 //  $node->content['field_ride_spots']['field']['items'][0]['#item']['value'] =
