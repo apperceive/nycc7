@@ -281,7 +281,8 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
     } // full
     
     $node->content['field_ride_spots']['#title'] = t("Remaining/Spots");
-    $node->content['field_ride_spots'][0]['#markup'] = nycc_rides_get_ride_spots_text($node);
+    //$node->content['field_ride_spots'][0]['#markup'] = nycc_rides_get_ride_spots_text($node);
+    $node->content['field_ride_spots'][0]['#markup'] = nycc_rides_spots_remaining($node);
   }  // ride
 } // nycc_rides_node_view
 
@@ -1494,7 +1495,7 @@ function nycc_rides_get_ride_type($ride) {
   return nycc_field_get_text_value($ride->field_ride_type);
 }
 
-
+/* TODO: another dup of nycc_rides_spots_remaining - called in join ride and used as case switch so don't simply replace this witn nycc_rides_spots_remaining without consideration */
 function nycc_rides_get_ride_spots($ride){
   $ride = nycc_rides_get_ride_object($ride);
   if(is_object($ride) && $ride->type == 'rides') {
@@ -1919,52 +1920,6 @@ function nycc_rides_ride_has_changed($ride, $value_name = null) {
     return FALSE;
   } else {
     drupal_set_message(check_plain("nycc_rides_ride_has_changed: Could not load last revision for ride", "error"));
-  }
-}
-
-function nycc_rides_get_ride_spots_text($ride){
-  $ride = nycc_rides_get_ride_object($ride);
-  if (!$ride)
-    return 0;
-
-  if($ride->type == 'rides') {
-    $num_waiters = nycc_rides_count_waiters($ride);
-    $num_riders = nycc_rides_count_riders($ride);
-    
-    /*
-    Scenario 1: field_ride_spots is null and field_ride_signups 'Signups with waiting list'
-      Set value to $count 'of unlimited'
-    scenario 2: $node->field_ride_signups is "No signups or waiting list"
-      set value to "Unlimited/No Sign-ups"
-    Scenario 3: field_ride_spots is not null and numwaiters > 0
-       0 of $spots (n waiting)
-    Scenario 4: field_ride_spots is not null and numwaiters == 0
-       ($spots-riders) of $spots
-    */
-    $signup_value = nycc_field_get_text_value($ride->field_ride_signups);
-    $has_spots = nycc_field_has_value($ride->field_ride_spots);
-    $ride_spots_value = nycc_field_get_text_value($ride->field_ride_spots);
-
-    //dpm("signup_value is $signup_value. has_spots is $has_spots. ride_spots_value is $ride_spots_value ");
-    if(! $has_spots && $signup_value == "Signups with waiting list" ){
-      return t("Unlimited");
-
-    } else if ($signup_value == "No signups or waiting list") {
-      return "Unlimited/No Sign-ups";
-
-    } else if($has_spots && ($num_waiters > 0) ) {
-      return t("0 of ") . $ride_spots_value . "( " .  $num_waiters . t(" waiting)");
-
-    } else {
-
-      return $ride_spots_value  - $num_riders . t(" of ") . $ride_spots_value   ;
-    }
-//  $node->content['field_ride_spots']['field']['items'][0]['#item']['value'] =
-//  ($node->field_ride_spots['und'][0]['value'] ? $node->field_ride_spots['und'][0]['value'] - $num_riders .t(" of ").
-//  $node->field_ride_spots['und'][0]['value'] : (t("Unlimited") .
-//  (($node->field_ride_signups['und'][0]['value'] == "No signups or waiting list") ? "/No Sign-ups" : "/".
-//  $num_riders))) . ((($node->field_ride_signups['und'][0]['value'] != "No signups or waiting list")
-//  && $num_waiters) ? " (". $num_waiters ." waiting)":"");
   }
 }
 
