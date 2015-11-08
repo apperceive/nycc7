@@ -317,7 +317,7 @@ function nycc_rides_node_insert($node) {
                                       , 'filtered_html', '', FALSE));
         
       } else {
-        dpm(nycc_rides_get_ride_status($node));
+       // dpm(nycc_rides_get_ride_status($node));
         rules_invoke_event('nycc_rides_ride_is_approved', $user, $node);
       }
       
