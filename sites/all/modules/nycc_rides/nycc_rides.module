@@ -1578,32 +1578,32 @@ function nycc_rides_count_ref($data, $type = 'riders') {
   } else if (is_array($data)) {
       $to_count = $data;
 
-    } else if (is_object($data)) {
+  } else if (! is_object($data)) {
+    return 0;
+  } else {
     switch ($type) {
       case "riders":
-        $to_count = (!empty($data->field_ride_current_riders['und'])) ? $data->field_ride_current_riders['und'] : null;
+        $to_count = nycc_field_get_value($data->field_ride_current_riders);
         break;
       case "waiters":
-        $to_count = (!empty($data->field_ride_waitlist['und'])) ? $data->field_ride_waitlist['und'] : null;
+        $to_count = nycc_field_get_value($data->field_ride_waitlist);
         break;
       case "leaders":
-        $to_count = (!empty($data->field_ride_current_leaders['und'])) ? $data->field_ride_current_leaders['und'] : null;
+        $to_count = nycc_field_get_value($data->field_ride_current_leaders);
         break;
       case "attendees":
-        $to_count = (!empty($data->field_ride_attendees['und'])) ? $data->field_ride_attendees['und'] : null;
+        $to_count = nycc_field_get_value($data->field_ride_attendees);
         break;        
     }
     $no_to_return = 0;
-    if (is_array($to_count)) {
+    if (isset($to_count) && is_array($to_count)) {
       foreach($to_count as $val){
         if (is_numeric($val['uid']))
           $no_to_return = $no_to_return + 1;
       }
     }
     return $no_to_return;
-    } else {
-      return 0;
-    }
+  }
 }
 function nycc_rides_count_riders($data) {
   return nycc_rides_count_ref($data, "riders");
