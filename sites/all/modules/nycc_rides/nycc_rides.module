@@ -476,9 +476,13 @@ function nycc_rides_node_prepare($node) {
       drupal_goto("node/" . $node->nid);
     }    
     if (!nycc_rides_can_approve()) {
+      $ride_level = nycc_rides_get_ride_level($ride);
+      
       drupal_set_message(filter_xss("<b>Please Note:</b> If you modify key fields on this ride it will be taken offline until the Ride Coordinator has had a chance to review the changes."));
+      
       drupal_set_message(filter_xss("While we make every effort to approve it  a timely manner, it could take up to 48 hours for the change to be approved."));
-      drupal_set_message(filter_xss("If you must make changes to the ride within 48 hours of the ride start, we'd suggest that your reach out to <a href='mailto:" . $node->field_ride_select_level['und'][0]['value'] . "-rides@nycc.org?subject=Urgent: I need to make changes to a ride!'>" . $node->field_ride_select_level['und'][0]['value'] . "-rides@nycc.org</a> to confirm that they can approve in a timely manner <b>before you make the changes</b>"));      
+      
+      drupal_set_message(filter_xss("If you must make changes to the ride within 48 hours of the ride start, we'd suggest that your reach out to <a href='mailto:$ride_level-rides@nycc.org?subject=Urgent: I need to make changes to a ride!'>$ride_level-rides@nycc.org</a> to confirm that they can approve in a timely manner <b>before you make the changes</b>"));      
     }//can't approve
   } // ride edit
 } // nycc_rides_node_prepare
@@ -489,6 +493,7 @@ function nycc_rides_form_alter(&$form, &$form_state, $form_id) {
    
     $op = (arg(1) == 'add') ? 'add' : ((arg(2) == 'edit') ? 'edit' : 'noop');
     $can_approve = nycc_rides_can_approve();
+    
     if (arg(1) == 'add')
       drupal_set_title('Submit a Ride');
     else
@@ -1781,6 +1786,15 @@ function nycc_rides_get_ride_status($ride) {
 }
 
 
+function nycc_rides_get_ride_level($ride) {
+  $ride = nycc_rides_get_ride_object($ride);
+
+  return nycc_field_get_text_value($ride->field_ride_select_level);
+//  if ($ride->field_ride_status && drupal_strlen($ride->field_ride_status['und'][0]['value']))
+//    return $ride->field_ride_status['und'][0]['value'];
+}
+
+
 function nycc_rides_ride_should_be_enabled($ride, $acct=null){
   //returns array, first value is true/false (should be enabled), second value is reason, the third value indicates if the reason should be displayed
 
@@ -1865,6 +1879,14 @@ function nycc_rides_ride_enable_time($ride, $formatted = false){
 
 }
 
+/* checks all values
+ *
+ */
+ 
+function nycc_rides_get_ride_changes($ride) {
+  
+  
+}
 function nycc_rides_ride_has_changed($ride, $value_name = null) {
   //compares current version of a ride against the last approved revision.
   //Optionally compares a specific value instead of the entire ride object.
@@ -1872,55 +1894,28 @@ function nycc_rides_ride_has_changed($ride, $value_name = null) {
   if (!$ride)
     return true;
 
-
   $rev = nycc_rides_last_approved_revision($ride);
   // title, description, spots, level, distance, speed, date, start time, start time minute, start time, select, from, from_select, leaders?
 
   if ($rev && $ride) {
     //if testing a specific field then just compare that field and return the result
-    if (isset($value_name))
-      return (property_exists($ride, $value_name)) && nycc_compare_values($ride->{$value_name}, $rev->{$value_name});
+    if (isset($value_name)){
+      return nycc_compare_values($ride, $rev, $value_name);
+    }
 
-
-    if ($ride->title !=  $rev->title) {
-      //dpm("title is different");
-      return true;
+    $fields_to_check = variable_get('nycc_rides_fields_trigger_approval', 'title, field_ride_description, field_ride_spots, field_ride_select_level, field_ride_distance_in_miles, field_ride_speed, field_ride_timestamp');
+    
+    foreach($fields_to_check as $field) {
+      if (nycc_compare_values($ride, $rev, $field)) {
+        watchdog("nycc_rides_ride_has_changed", "Ride with nid !nid has changed. value of field !field was !old_value, now !new_value",
+                 array('!nid'=>$ride->nid, '!field'=>$field, '!old_value'=>$rev->{$field}, '!new_value'=>$ride->{$field}), WATCHDOG_INFO);
+        return true;
+      }
     }
-    if (!nycc_compare_values($ride->field_ride_description['und'][0]['value'], $rev->field_ride_description['und'][0]['value'])) {
-      //dpm("description is different");
-      return true;
-    }
-    if (!nycc_compare_values($ride->field_ride_spots['und'][0]['value'] ,$rev->field_ride_spots['und'][0]['value'])) {
-      //dpm("spots is different");
-      return true;
-    }
-    if (!nycc_compare_values($ride->field_ride_select_level['und'][0]['value'], $rev->field_ride_select_level['und'][0]['value'])) {
-      //dpm("level is different");
-      return true;
-    }
-    if (!nycc_compare_values($ride->field_ride_distance_in_miles['und'][0]['value'], $rev->field_ride_distance_in_miles['und'][0]['value'])) {
-      //dpm("miles is different");
-      return true;
-    }
-    if (!nycc_compare_values($ride->field_ride_speed['und'][0]['value'], $rev->field_ride_speed['und'][0]['value'])) {
-      //dpm("speed is different");
-      return true;
-    }
-    if (!nycc_compare_values($ride->field_ride_timestamp['und'][0]['value'], $rev->field_ride_timestamp['und'][0]['value'])) {
-      //dpm("timestamp is different");
-      return true;
-    }
-    //if (!nycc_compare_values($ride->field_ride_from['und'][0]['value'], $rev->field_ride_from['und'][0]['value'])) {
-    //  //dpm("from is different");
-    //  return true;
-    //}
-    //if (!nycc_compare_values($ride->field_ride_from_select['und'][0]['value'], $rev->field_ride_from_select['und'][0]['value'])) {
-    //  //dpm("from select is different");
-    //  return true;
-    //}
     return FALSE;
   } else {
     drupal_set_message(check_plain("nycc_rides_ride_has_changed: Could not load last revision for ride", "error"));
+    return true;
   }
 }
 

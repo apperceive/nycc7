@@ -279,7 +279,10 @@ function nycc_field_get_value($field) {
   }
 }
 
-
+function nycc_is_admin() {
+  global $user;
+  return user_access('administer', $user);
+}
 function nycc_field_get_text_value($field) {
   /*
    *possible values are:
@@ -329,18 +332,16 @@ function nycc_field_has_value($field) {
   return true;
 }
 
+/*
+ *compares a field value across 2 nodes (generally 2 revisions of the same node)
+ *
+ */
 
-function nycc_compare_values($v1, $v2) {
-  if (nycc_field_has_value($v1) && nycc_field_has_value($v2))
-  {
-    //dpm("$v1 is being compared to $v2");
-    return $v1 == $v2;
+function nycc_compare_values($node1, $node2, $field_name) {
+  if (property_exists($node1, $field_name) && property_exists($node2, $field_name)) {
+    return (nycc_field_get_value($node1->{$field_name}) == nycc_field_get_value($node2->{$field_name}));
   }
-  if ( ( ! nycc_field_has_value($v1)) && (! nycc_field_has_value($v2)))
-    return true;
-
   return FALSE;
-
 }
 
 
