@@ -110,7 +110,7 @@ function nycc_rides_copy_ride_form_submit($form, &$form_state) {
           $title = $new_node->title;
           $datestr = date("Y-m-d", $d);
 
-          drupal_set_message(filter_xss("Recurring ride for $title with date $datestr has been created and can be <a href='/node/$nid' title='View recurring ride in another tab' target='_blank'>viewed here</a>  "));
+          drupal_set_message(filter_xss("Recurring ride for $title with date $datestr has been created and submitted for approval. You can be <a href='/node/$nid' title='View recurring ride in another tab' target='_blank'>viewed here</a>  "));
             
         } else {
           drupal_set_message("Unable to clone the ride. Please contact the webmaster.");
