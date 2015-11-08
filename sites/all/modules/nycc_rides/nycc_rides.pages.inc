@@ -101,7 +101,7 @@ function nycc_rides_copy_ride_form_submit($form, &$form_state) {
         $d = strtotime($ds);
         
         $new_node = _nycc_rides_clone_ride($onode, $d);
-        dpm($new_node);
+        
         if (isset($new_node) && is_object($new_node)) {
           watchdog('nycc_rides', "nycc_rides_copy_ride_form_submit - successfully cloned ride :onid to ride :nnid for date $ds",
                    array(':onid' => $onode->nid, ':nnid' => $new_node->nid), WATCHDOG_INFO);
