@@ -1596,6 +1596,7 @@ function nycc_rides_count_ref($data, $type = 'riders') {
         break;        
     }
     $no_to_return = 0;
+    dpm($to_count);
     if (isset($to_count) && is_array($to_count)) {
       foreach($to_count as $val){
         if (is_numeric($val['uid']))
