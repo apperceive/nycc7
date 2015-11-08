@@ -1879,14 +1879,7 @@ function nycc_rides_ride_enable_time($ride, $formatted = false){
 
 }
 
-/* checks all values
- *
- */
- 
-function nycc_rides_get_ride_changes($ride) {
-  
-  
-}
+
 function nycc_rides_ride_has_changed($ride, $value_name = null) {
   //compares current version of a ride against the last approved revision.
   //Optionally compares a specific value instead of the entire ride object.
