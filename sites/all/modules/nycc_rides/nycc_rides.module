@@ -1103,19 +1103,9 @@ function _nycc_rides_clone_ride($onode, $datetime = REQUEST_TIME, $ride_status =
   if (!$newnode) 
     return false;
 
-  watchdog('rides', 'about to save node clone for :onid', array(':onid' => $onode->nid), WATCHDOG_INFO);
+  watchdog('nycc_rides', '_nycc_rides_clone_ride - about to save node clone for :onid', array(':onid' => $onode->nid), WATCHDOG_INFO);
   node_save($newnode);
-  
-//  if ($ride_status == "Submitted")
-//    rules_invoke_event('nycc_rides_ride_is_submitted', $user, $newnode);
-  
-  $nid = $newnode->nid;
-  $title = $newnode->title;
-  $datestr = date("Y-m-d", $datetime);
-
-  drupal_set_message(check_markup("Recurring ride for <a href='/node/$nid' title='View recurring ride in another tab or window...' target='_blank'>$title</a> created with date $datestr", 'filtered_html', '', FALSE));
-  
-  return true;
+  return $newnode;
 } // _nycc_rides_clone_ride
 
 // form callback
