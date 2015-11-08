@@ -1600,7 +1600,7 @@ function nycc_rides_count_ref($data, $type = 'riders') {
     if (isset($to_count) && is_array($to_count)) {
       foreach($to_count as $val){
         if(user_access('administer')) dpm($val);    
-        if (array_key_exists($val['uid']) &&  is_numeric($val['uid']))
+        if (array_key_exists('uid', $val) &&  is_numeric($val['uid']))
           $no_to_return = $no_to_return + 1;
       }
     }
