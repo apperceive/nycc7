@@ -55,7 +55,7 @@ function nycc_rides2_output_ride_buttons($ride) {
     $buttons[] = nycc_rides2_nycc_ride_link('Approve Ride', "node/$nid/approve");
     //Ride Coordinator
 
-  if ($can_modify)
+  if ($can_modify && (!$is_cancelled))
     $buttons[] = nycc_rides2_nycc_ride_link('Revise Ride Details', "node/$nid/edit");
     //Leader
 

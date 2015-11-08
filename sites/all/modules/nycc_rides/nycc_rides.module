@@ -292,7 +292,7 @@ function nycc_rides_node_update($node) {
 		if((arg(3)=="resubmit") && (nycc_rides_get_ride_status($node) =="Cancelled")) {
 			//TODO: IS THIS STILL NEEEDED?
         nycc_rides_update_ride_status($node, "Submitted");
-        drupal_set_message(check_markup($ride->title . " successfully submitted for approval to the Ride Coordinator Recurring. </br>Approval may take 24 to 48 hours (usually, we get to it sooner.
+        drupal_set_message(check_markup($node->title . " successfully submitted for approval to the Ride Coordinator Recurring. </br>Approval may take 24 to 48 hours (usually, we get to it sooner.
                                       </br> <b>Please Note:</b> If your ride includes the use of a train you must also complete a
                                       <a href='https://docs.google.com/forms/d/1-KMVUUHflXyxes6ZFKPqTK54-FKvQ9V2-ympcYZ8b0w/viewform' target='_blank'>Train Request</a> here."
                                       , 'filtered_html', '', FALSE));
