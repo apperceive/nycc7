@@ -1583,18 +1583,19 @@ function nycc_rides_count_ref($data, $type = 'riders') {
   } else {
     switch ($type) {
       case "riders":
-        $to_count = nycc_field_get_value($data->field_ride_current_riders);
+        $field_name = "field_ride_current_riders";
         break;
       case "waiters":
-        $to_count = nycc_field_get_value($data->field_ride_waitlist);
+        $field_name = "field_ride_waitlist";
         break;
       case "leaders":
-        $to_count = nycc_field_get_value($data->field_ride_current_leaders);
+      $field_name = "field_ride_current_leaders";
         break;
       case "attendees":
-        $to_count = nycc_field_get_value($data->field_ride_attendees);
+      $field_name = "field_ride_attendees";
         break;        
     }
+    $to_count = property_exists($data, $field_name ) ? nycc_field_get_value($data->{$field_name}) : null;
     $no_to_return = 0;
     
     if (isset($to_count) && is_array($to_count)) {
