@@ -99,9 +99,23 @@ function nycc_rides_copy_ride_form_submit($form, &$form_state) {
     if (is_array($adsarr)) {
       foreach ($adsarr as $ds) {
         $d = strtotime($ds);
-        watchdog('nycc_node_update', "about to clone ride to date $ds", array(), WATCHDOG_INFO);
-        $newnode = _nycc_rides_clone_ride($onode, $d);
-        drupal_set_message("Additional ride created for $ds ($d)");
+        
+        $new_node = _nycc_rides_clone_ride($onode, $d);
+        if (isset($new_node) && is_object($new_node)) {
+          watchdog('nycc_rides', "nycc_rides_copy_ride_form_submit - successfully cloned ride :onid to ride :nnid for date $ds",
+                   array(':onid' => $onode->nid, ':nnid' => $new_node->nid), WATCHDOG_INFO);
+  
+          $nid = $new_node->nid;
+          $title = $new_node->title;
+          $datestr = date("Y-m-d", $datetime);
+
+          drupal_set_message(check_markup("Recurring ride for <a href='/node/$nid' title='View recurring ride in another tab' target='_blank'>$title</a> created with date $datestr", 'filtered_html', '', FALSE));
+            
+        } else {
+          drupal_set_message("Unable to clone the ride. Please contact the webmaster.");
+          watchdog('nycc_rides', 'nycc_rides_copy_ride_form_submit - Failed to clone ride :onid', array(':onid' => $onode->nid), WATCHDOG_ERROR);
+        }
+        
       } // for
     } // if array
   } // if additional dates
