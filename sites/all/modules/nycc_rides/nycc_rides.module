@@ -468,7 +468,7 @@ function nycc_rides_node_prepare($node) {
   } // add
   
   if ($node->type == 'rides' && arg(2) == 'edit') {
-    if (!nycc_rides_can_modify_ride($node, $user)){
+    if (![nycc_rides_can_modify_ride]($node, $user)){
       drupal_set_message(filter_xss("<b>Please Note:</b> You do not have permission to edit this ride."));
       drupal_goto("node/" . $node->nid);
     }    
@@ -1596,7 +1596,7 @@ function nycc_rides_count_ref($data, $type = 'riders') {
         break;        
     }
     $no_to_return = 0;
-    dpm($to_count);
+    if(user_access('administer')) dpm($to_count);
     if (isset($to_count) && is_array($to_count)) {
       foreach($to_count as $val){
         if (is_numeric($val['uid']))
