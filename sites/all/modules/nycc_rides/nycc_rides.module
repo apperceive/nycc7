@@ -964,14 +964,15 @@ function nycc_rides_join_ride($nid) {
 }
 
 
+//internal function that executes the withawal and returns true or false if it could not withdraw
+//called by menu callback & inbound email processor
 function _nycc_rides_withdraw($ride, $account) {
-  //internal function that executes the withawal and returns true or false if it could not withdraw
   if (( ! isset($ride) ) || (! isset($account)))
     return false;
 
   $user_uid = $account->uid;
   $current_riders = nycc_field_get_value($ride->field_ride_current_riders);
-  if(!empty($current_riders)) {
+  if(!empty($current_riders) && (!empty($user_uid))) {
     foreach($current_riders as $ndx => $val) {
       if ($val['uid'] == $user_uid) {
         unset($ride->field_ride_current_riders['und'][$ndx]);
@@ -992,7 +993,7 @@ function _nycc_rides_withdraw($ride, $account) {
   }
 
   $current_waiters = nycc_field_get_value($ride->field_ride_waitlist);
-  if (!empty($current_waiters)) {
+  if ((!empty($current_waiters)) && (!empty($user_uid))) {
     foreach($current_waiters as $ndx => $val) {
       if ($val['uid'] == $user_uid) {
         unset($ride->field_ride_waitlist['und'][$ndx]);
@@ -1023,7 +1024,10 @@ function nycc_rides_withdraw_from_ride($nid=null, $account=null) {
     return;
   }
 
-  if($account == null) {
+  if( ($account == null) && (is_numeric(arg(3))) ) {
+    //check if URL is /node/<nid>/withdraw/<uid> so that User can withdraw via a URL. NOTE: Need to figure out how to secure this
+    $user = user_load(arg(3));
+  } else if ($account == null) {
     global $user; 
   } else {
     $user = $account;
