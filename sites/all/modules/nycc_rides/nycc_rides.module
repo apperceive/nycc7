@@ -1,10 +1,6 @@
 <?php
-
-
 module_load_include('inc', 'nycc_rides', 'nycc_rides.email_approvals');
 module_load_include('inc', 'nycc_rides', 'nycc_rides.ride_coordinators');
-
-
 
 /*
 TODO List:
@@ -71,9 +67,17 @@ function nycc_rides_menu() {
       'file' => 'nycc_rides.email_approvals.inc',
     	'description' => t('Inbound email'),
       'type' => MENU_CALLBACK,
-    	'page callback' => 'nycc_rides_inbound_callback',
+    	'page callback' => 'nycc_rides_inbound_approvals_callback',
     	'access callback' => TRUE,
   );
+  $items['nycc_rides/inbound_riders'] = array(
+    	'title' => t('NYCC Inbound Email'),
+      'file' => 'nycc_rides.email_approvals.inc',
+    	'description' => t('Inbound email'),
+      'type' => MENU_CALLBACK,
+    	'page callback' => 'nycc_rides_inbound_withdrawals_callback',
+    	'access callback' => TRUE,
+  );  
   $items['nycc-ride-coordinators-email'] = array(
     'page callback' => 'drupal_get_form',
     'file' => 'nycc_rides.ride_coordinators.inc',
@@ -963,20 +967,12 @@ function nycc_rides_join_ride($nid) {
   drupal_goto("node/$nid");
 }
 
-// menu callback
-function nycc_rides_withdraw_from_ride($nid=null) {
-  $ride = nycc_rides_get_ride_object($nid);
-  if (!$ride) {
-    watchdog("nycc_rides", "nycc_rides_withdraw_from_ride - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
-    drupal_set_message(check_plain("Warning: This operation could not be completed. No Ride ID was passed.", "error"));
-    drupal_goto("<front>");
-    return;
-  }
 
-  global $user;
-  $user_uid = $user->uid;
+function _nycc_rides_withdraw($ride, $account) {
+  //internal function that executes the withawal and returns true or false if it could not withdraw
+  if (( ! isset($ride) ) || (! isset($account)))
+    return false;
 
-  $was_joined = FALSE;
   $current_riders = nycc_field_get_value($ride->field_ride_current_riders);
   if(!empty($current_riders)) {
     foreach($current_riders as $ndx => $val) {
@@ -987,19 +983,13 @@ function nycc_rides_withdraw_from_ride($nid=null) {
                  array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
                  WATCHDOG_INFO);
 
-        $was_joined = TRUE;
-        
         node_save($ride);
 
         nycc_rides_log_action($ride, $user_uid, "Withdraw From Ride");          
           
         //fire rules
         rules_invoke_event('nycc_rides_member_withdraws_from_ride', $user, $ride);
-        
-        //MOVED TO RULE
-        drupal_set_message(check_plain("You have withdrawn from this ride's participant list."));
-
-        drupal_goto("node/$nid");
+        return true;
       }
     }
   }
@@ -1010,27 +1000,46 @@ function nycc_rides_withdraw_from_ride($nid=null) {
       if ($val['uid'] == $user_uid) {
         unset($ride->field_ride_waitlist['und'][$ndx]);
 
-        $was_joined = TRUE;
-
         node_save($ride);
 
         //fire rules
         rules_invoke_event('nycc_rides_member_withdraws_from_waitlist', $user, $ride);
         nycc_rides_log_action($ride, $user_uid, "Withdraw From Waitlist");
 
-        drupal_set_message(check_plain("You have withdrawn from this ride's waiting list."));
         watchdog("rides", "user: %uid (%uname) withdrew from ride waitlist: %nid (%rname)",
                    array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
                    WATCHDOG_INFO);
-        drupal_goto("node/$nid");
-        return;
+        return true;
       }
     }
   }
+  return false;
+}
 
-  if(!$was_joined)
+// menu callback
+function nycc_rides_withdraw_from_ride($nid=null, $account=null) {
+  $ride = nycc_rides_get_ride_object($nid);
+  if (!$ride) {
+    watchdog("nycc_rides", "nycc_rides_withdraw_from_ride - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
+    drupal_set_message(check_plain("Warning: This operation could not be completed. No Ride ID was passed.", "error"));
+    drupal_goto("<front>");
+    return;
+  }
+
+  if($account == null) {
+    global $user; 
+  } else {
+    $user = $account;
+  }
+  
+  if (_nycc_rides_withdraw($ride, $user)) {
+    drupal_set_message(check_plain("You have withdrawn from this ride's participant list."));
+    drupal_goto("node/$nid");    
+    
+  } else {
     drupal_set_message(check_plain("Warning: Unable to withdraw from ride. You're not currently signed up for this ride.", "error"));
-    drupal_goto("node/$nid");
+    drupal_goto("node/$nid");     
+  }
 }
 
 // menu callback

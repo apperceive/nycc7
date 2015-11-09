@@ -32,14 +32,16 @@ function nycc_rides2_output_ride_buttons($ride) {
 
   // todo: refactor status code to make for simpler vars. use an array? eg return $status_is['pending']
   // also, has_status not used here
+  
+  $ride_status = nycc_rides_get_ride_status($ride);
   $has_status = isset($ride->field_ride_status) && is_array($ride->field_ride_status) && array_key_exists('und', $ride->field_ride_status);
   
-  $is_pending = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Pending' ) ? true : FALSE;
-  $is_approved = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Approved' ) ? true : FALSE;
-  $is_cancelled = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Cancelled' ) ? true : FALSE;
-  $is_submitted = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Submitted' ) ? true : FALSE;
-  $is_revised = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Revised' ) ? true : FALSE;
-  $is_flagged = $has_status && ($ride->field_ride_status['und'][0]['value'] == 'Flagged' ) ? true : FALSE;
+  $is_pending = ($ride_status == 'Pending' ) ? true : FALSE;
+  $is_approved = ($ride_status  == 'Approved' ) ? true : FALSE;
+  $is_cancelled = ($ride_status  == 'Cancelled' ) ? true : FALSE;
+  $is_submitted = ($ride_status  == 'Submitted' ) ? true : FALSE;
+  $is_revised = ($ride_status  == 'Revised' ) ? true : FALSE;
+  $is_flagged = ($ride_status  == 'Flagged' ) ? true : FALSE;
 
   // todo: refactor (has_spots not used here)
   $has_spots = isset($ride->field_ride_spots) && is_array($ride->field_ride_spots) && array_key_exists('und', $ride->field_ride_spots);
