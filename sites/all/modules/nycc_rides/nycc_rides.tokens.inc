@@ -9,7 +9,7 @@ function nycc_rides_token_info() {
   
     $info['tokens']['node']['nycc_rides_participants_emails_csv'] = array(
       'name' => t('nycc_rides_participants_emails_csv'),
-      'description' => t('Returns all participants emails as comma separate string'),
+      'description' => t('Returns all participants emails (riders, leaders, waiters) as comma separate string'),
     );
 
     $info['tokens']['node']['nycc_rides_ride_date_and_time'] = array(
