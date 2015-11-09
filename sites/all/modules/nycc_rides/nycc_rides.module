@@ -973,6 +973,7 @@ function _nycc_rides_withdraw($ride, $account) {
   if (( ! isset($ride) ) || (! isset($account)))
     return false;
 
+  $user_uid = $account->uid;
   $current_riders = nycc_field_get_value($ride->field_ride_current_riders);
   if(!empty($current_riders)) {
     foreach($current_riders as $ndx => $val) {
@@ -980,7 +981,7 @@ function _nycc_rides_withdraw($ride, $account) {
         unset($ride->field_ride_current_riders['und'][$ndx]);
 
         watchdog("rides", "user: %uid (%uname) withdrew from ride: %nid (%rname)",
-                 array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
+                 array('%uid'=> $user_uid, '%uname' => $account->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
                  WATCHDOG_INFO);
 
         node_save($ride);
@@ -988,7 +989,7 @@ function _nycc_rides_withdraw($ride, $account) {
         nycc_rides_log_action($ride, $user_uid, "Withdraw From Ride");          
           
         //fire rules
-        rules_invoke_event('nycc_rides_member_withdraws_from_ride', $user, $ride);
+        rules_invoke_event('nycc_rides_member_withdraws_from_ride', $account, $ride);
         return true;
       }
     }
@@ -1003,11 +1004,11 @@ function _nycc_rides_withdraw($ride, $account) {
         node_save($ride);
 
         //fire rules
-        rules_invoke_event('nycc_rides_member_withdraws_from_waitlist', $user, $ride);
+        rules_invoke_event('nycc_rides_member_withdraws_from_waitlist', $account, $ride);
         nycc_rides_log_action($ride, $user_uid, "Withdraw From Waitlist");
 
         watchdog("rides", "user: %uid (%uname) withdrew from ride waitlist: %nid (%rname)",
-                   array('%uid'=> $user_uid, '%uname' => $user->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
+                   array('%uid'=> $user_uid, '%uname' => $account->name, '%nid'=> $ride->nid, '%rname' => $ride->title),
                    WATCHDOG_INFO);
         return true;
       }
