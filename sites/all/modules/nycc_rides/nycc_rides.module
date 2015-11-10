@@ -380,15 +380,18 @@ function nycc_rides_node_presave($node) {
 
     //if ((arg(0) != "nycc" && arg(1) != "inbound") ||  (arg(0) != "node" && arg(2) != "approve") ) // if edit is not coming from inbound email processor
     if (arg(2) != "approve") {
-      if (!nycc_rides_can_approve() && in_array($node->field_ride_status['und'][0]['value'] , array('Approved', 'Submitted')) &&
-          nycc_rides_ride_has_changed($node)) {
-          $node->field_ride_status['und'][0]['value'] = 'Revised';
-      drupal_set_message(check_markup($node->title . " successfully submitted for approval to the Ride Coordinator.
+      if (!nycc_rides_can_approve()
+          && in_array(nycc_rides_get_ride_status($node) , array('Approved', 'Submitted'))
+          && nycc_rides_ride_has_changed($node)) {
+        
+        $node->field_ride_status['und'][0]['value'] = 'Revised';
+        drupal_set_message(check_markup($node->title . " successfully submitted for approval to the Ride Coordinator.
                                       </br>Approval may take 24 to 48 hours (usually, we get to it sooner.)
                                       </br><b>Please Note:</b> If your ride includes the use of a train you must also complete a
                                       <a href='https://goo.gl/T3VseF' target='_blank'>Train Request</a> here."
-                                      , '1', '', FALSE));          
-          rules_invoke_event('nycc_rides_ride_is_revised', $user, $node, nycc_rides_last_approved_revision($node));
+                                      , '1', '', FALSE));
+        $prior_revion = nycc_rides_last_approved_revision($node);
+        rules_invoke_event('nycc_rides_ride_is_revised', $user, $node, $prior_revion ? $prior_revion : $node );
       }
     }
 
