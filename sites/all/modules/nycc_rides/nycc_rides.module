@@ -379,7 +379,11 @@ function nycc_rides_node_presave($node) {
     $node->field_ride_dow['und'][0]['value'] = date("l", nycc_rides_get_ride_time($node));
 
     //if ((arg(0) != "nycc" && arg(1) != "inbound") ||  (arg(0) != "node" && arg(2) != "approve") ) // if edit is not coming from inbound email processor
-    if (arg(2) != "approve") {
+    //if edit isn't being caused by someone joining, withdrawing, or approving a ride AND if edit is not coming from inbound processorss
+    if ( (! in_array( arg(2), "approve", "join", "withdraw"))
+        && arg(0) != "nycc_rides"
+        && arg(1) != "inbound") {
+      
       if (!nycc_rides_can_approve()
           && in_array(nycc_rides_get_ride_status($node) , array('Approved', 'Submitted'))
           && nycc_rides_ride_has_changed($node)) {
