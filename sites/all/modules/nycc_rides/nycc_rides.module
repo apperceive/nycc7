@@ -67,17 +67,10 @@ function nycc_rides_menu() {
       'file' => 'nycc_rides.email_approvals.inc',
     	'description' => t('Inbound email'),
       'type' => MENU_CALLBACK,
-    	'page callback' => 'nycc_rides_inbound_approvals_callback',
+    	'page callback' => 'nycc_rides_inbound_callback',
     	'access callback' => TRUE,
   );
-  $items['nycc_rides/inbound_riders'] = array(
-    	'title' => t('NYCC Inbound Email'),
-      'file' => 'nycc_rides.email_approvals.inc',
-    	'description' => t('Inbound email'),
-      'type' => MENU_CALLBACK,
-    	'page callback' => 'nycc_rides_inbound_withdrawals_callback',
-    	'access callback' => TRUE,
-  );  
+  
   $items['nycc-ride-coordinators-email'] = array(
     'page callback' => 'drupal_get_form',
     'file' => 'nycc_rides.ride_coordinators.inc',
@@ -972,6 +965,7 @@ function _nycc_rides_withdraw($ride, $account) {
 
   $user_uid = $account->uid;
   $current_riders = nycc_field_get_value($ride->field_ride_current_riders);
+  
   if(!empty($current_riders) && (!empty($user_uid))) {
     foreach($current_riders as $ndx => $val) {
       if ($val['uid'] == $user_uid) {

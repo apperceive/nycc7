@@ -3,7 +3,7 @@
 //EMAIL APPROVAL RELATED FUNCTIONS
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-function nycc_rides_inbound_approvals_callback() {
+function nycc_rides_inbound_callback() {
 	if (variable_get('nycc_rides_debug_to_log', '') == 1)
 		$email_debug = true;
 	else
@@ -14,165 +14,127 @@ function nycc_rides_inbound_approvals_callback() {
 	if(nycc_mandrill_signature_is_valid('nycc_rides/inbound')) {
 		//iterate through the messages
     foreach (json_decode($_POST['mandrill_events']) as $event) {
-      	$args = array(
-        		'from_email' => $event->msg->from_email ?: '',
-        		'from_name' => $event->msg->from_name ?: '',
-        		'to_mail' => $event->msg->email ?: '',
-        		'subject' => $event->msg->subject ?: '',
-        		'text' => array('value' => $event->msg->text ?: '', ),
-        		'raw_msg' => array('value' => $event->msg->raw_msg ?: '', ),
-      		);
-      	// Add type & ID.
-      	//$args += _nycc_rides_inbound_parse_address($args['to_mail']);
-      	$token = nycc_mandrill_parse_email($args['to_mail']);
-      	
-      	if ($email_debug ) watchdog('nycc_rides', "Ride Token is " .  $token, array(), WATCHDOG_NOTICE) ;
-		$ride = nycc_rides_get_ride_from_token($token);
-		if (isset($ride)) {
-			if ($email_debug ) watchdog('nycc_rides', "Ride found is " .  $ride->title, array(), WATCHDOG_NOTICE) ;
-			if(nycc_rides_can_approve_rides($args['from_email'])) {
-				$ride_status = nycc_rides_get_ride_status($ride);
-				if ($email_debug ) watchdog('nycc_rides', 'Ride Status for Ride: ' . $ride->nid . " is " .  $ride_status,
-																		array(), WATCHDOG_NOTICE) ;	
-				if($ride_status == 'Revised' || $ride_status == 'Submitted') {
-					if ($email_debug ) watchdog('nycc_rides', 'Ride: ' . $ride->nid . ' needs approval', array(), WATCHDOG_NOTICE) ;
-
-					if (_nycc_rides_has_approval($args['text']['value'])) {
-            nycc_rides_update_ride_status($ride, 'Approved'); 
-						watchdog('nycc_rides', "Ride: " . $ride->nid . " is Approved via email by: " . $args['from_email'],
-										 array(), WATCHDOG_NOTICE) ;
-
-					} else { //is not approval
-						if ($email_debug ) watchdog('nycc_rides', 'Not Approving ride: ' . $ride->nid . "Start of Message is: " . $startOfMsg ,
-																				array(), WATCHDOG_NOTICE) ;
-						nycc_mandrill_send_msg($args['from_email'], 
-							'webmaster@nycc.org', 
-							"NYCC Ride: " . $ride->title . " will not be approved" ,
-							"Hello, The ride listed above will not be approved because we did not see the word Approved at the start of your reply. If you feel that this is a error, please email the NYCC Webmaster"
-						);
-						
-					} //end if should be approved
-				} else { //if ride isn't in a submitted or revised state
-					if ($email_debug ) watchdog('nycc_rides', 'Skipping approval of ride: ' . $ride->nid . " because it's already approved",
-																			array(), WATCHDOG_WARNING) ;
-						nycc_mandrill_send_msg($args['from_email'], 
-							'webmaster@nycc.org', 
-							"NYCC Ride: " . $ride->title . " was not be approved" ,
-							"Hello, The ride listed above was not approved because the status is not Submitted or Revised. If you feel that this is a error, please email the NYCC Webmaster"
-						);		
-				} // end if ride is revised
-			} else { //can not approve
-				watchdog('nycc_rides', 'Unauthorised approval attempt from ' . $args['from_email'], array(), WATCHDOG_ERROR) ;
-				nycc_mandrill_send_msg($args['from_email'], 
-					'webmaster@nycc.org', 
-					"Unable to process ride approval for Ride: " . $ride->title ,
-					"Hello, We are unable to process your request to approve a ride because it was sent from an unauthorised email address. If you feel that this is a error, please email the NYCC Webmaster"
-				);
-					
-			} // end if can approve
-				
-		} else { //unable to load ride from token
-			watchdog('nycc_rides', 'Unable to load ride from token: ' . $token, array(), WATCHDOG_ERROR) ;
-			nycc_mandrill_send_msg($args['from_email'], 
-					'webmaster@nycc.org', 
-					"Unable to process ride approval.",
-					"Hello, We are unable to process your request to approve a ride because the ride could not be found. If you feel that this is a error, please email the NYCC Webmaster"
-			);
-		} //end if ride is loaded
-    }//end for each
-  } //end if valid signature
-}
-
-function nycc_rides_inbound_withdrawals_callback() {
-	if (variable_get('nycc_rides_debug_to_log', '') == 1)
-		$email_debug = true;
-	else
-		$email_debug = false;
-		
-  // Check signature.	 
-	if(nycc_mandrill_signature_is_valid('nycc_rides/inbound_riders')) {
-		//iterate through the messages
-    foreach (json_decode($_POST['mandrill_events']) as $event) {
 			$args = array(
-										'from_email' => $event->msg->from_email ?: '',
-										'from_name' => $event->msg->from_name ?: '',
-										'to_mail' => $event->msg->email ?: '',
-										'subject' => $event->msg->subject ?: '',
-										'text' => array('value' => $event->msg->text ?: '', ),
-										'raw_msg' => array('value' => $event->msg->raw_msg ?: '', ),
-			);
-      $token = nycc_mandrill_parse_email($args['to_mail']);
-      	
-      if ($email_debug ) watchdog('nycc_rides', "Ride Token is " .  $token, array(), WATCHDOG_NOTICE) ;
-			$ride = nycc_rides_get_ride_from_token($token);
+					'from_email' => $event->msg->from_email ?: '',
+					'from_name' => $event->msg->from_name ?: '',
+					'to_mail' => $event->msg->email ?: '',
+					'subject' => $event->msg->subject ?: '',
+					'text' => array('value' => $event->msg->text ?: '', ),
+					'raw_msg' => array('value' => $event->msg->raw_msg ?: '', ),
+				);
+			// Add type & ID.
+			//$args += _nycc_rides_inbound_parse_address($args['to_mail']);
+			$token = nycc_mandrill_parse_email($args['to_mail']);
+			$is_approval = _nycc_rides_has_approval($args['text']['value']);
+			$is_withdrawal = _nycc_rides_has_withdrawal($args['text']['value']);
+
+			if ($email_debug ) watchdog('nycc_rides', "Ride Token is " .  $token, array(), WATCHDOG_NOTICE) ;
 			
-			if (isset($ride)) {
-				if ($email_debug ) watchdog('nycc_rides', "Ride found is " .  $ride->title, array(), WATCHDOG_NOTICE) ;
-				$ride_status = nycc_rides_get_ride_status($ride);
+			if(!$is_approval && !$is_withdrawal) {
+				if ($email_debug ) watchdog('nycc_rides', "Unable to process email. Start of Message is: " .
+																		strtolower(substr(ltrim($args['text']['value']),0,16)),
+																		array(), WATCHDOG_NOTICE) ;
+				nycc_mandrill_send_msg($args['from_email'], 
+						'webmaster@nycc.org', 
+						"NYCC Ride: " . $ride->title . " will not be processed" ,
+						"Hello, The ride listed above will not be processed because  we did not see the word Approved or withdraw at the start of your reply. If you feel that this is a error, please email the NYCC Webmaster"
+					);
+				return;
+			}
+			
+			$ride = nycc_rides_get_ride_from_token($token);
+			if (! isset($ride)) {
+				watchdog('nycc_rides', 'Unable to load ride from token: ' . $token, array(), WATCHDOG_ERROR) ;
+				nycc_mandrill_send_msg($args['from_email'],
+															 'webmaster@nycc.org',
+															 "Unable to process ride request.",
+															 "Hello, We are unable to process your request because the ride could not be found. If you feel that this is a error, please email the NYCC Webmaster");				
+			}
+			$ride_status = nycc_rides_get_ride_status($ride);
+			
+			if ($email_debug ) watchdog('nycc_rides', "Ride found is " .  $ride->title, array(), WATCHDOG_NOTICE) ;
 				
-				$user = user_load_by_mail($args['from_email']);
-				
-				if ($user) {
-					if ($email_debug ) watchdog('nycc_rides',
-																			'nycc_rides_inbound_withdrawals_callback -Loaded user !name for ride: !title', 
-																			array('!name'=> $user->name, '!title'=> $ride->title), WATCHDOG_NOTICE) ;
+			if ($is_approval){
+				if(nycc_rides_can_approve_rides($args['from_email'])) {
 					
-					if (nycc_rides_is_rider($ride, $user) || (nycc_rides_is_waiting($ride, $user))) {
-						if(_nycc_rides_withdraw($ride, $user)) {
-							if ($email_debug ) watchdog('nycc_rides',
-																			'nycc_rides_inbound_withdrawals_callback - Withdrew user !name for ride: !title', 
-																			array('!name'=> $user->name, '!title'=> $ride->title), WATCHDOG_NOTICE) ;							
-						} else {
-							if ($email_debug ) watchdog('nycc_rides',
-																			'nycc_rides_inbound_withdrawals_callback - Unable to withdrew user !name for ride: !title', 
-																			array('!name'=> $user->name, '!title'=> $ride->title), WATCHDOG_WARNING) ;
-							
-							nycc_mandrill_send_msg($args['from_email'],
-																 'webmaster@nycc.org',
-																 "Unable to process ride withdrawal.",
-																 "Hello, We are unable to process your request to withdraw from a ride. Please contact the webmaster"
-							);							
-						}
-					} else { // user is not on ride or waitlist
-						watchdog('nycc_rides',
-										 'nycc_rides_inbound_withdrawals_callback - Unable to withdrew user !name for ride: !title. User is not signed up for this ride',
-										 array('!name'=> $user->name, '!title'=> $ride->title), WATCHDOG_WARNING) ;
-						
+					if ($email_debug ) watchdog('nycc_rides', 'Ride Status for Ride: ' . $ride->nid . " is " .  $ride_status,
+																array(), WATCHDOG_NOTICE) ;	
+					if($ride_status == 'Revised' || $ride_status == 'Submitted') {
+						if ($email_debug ) watchdog('nycc_rides', 'Ride: ' . $ride->nid . ' needs approval', array(), WATCHDOG_NOTICE) ;
+						nycc_rides_update_ride_status($ride, 'Approved'); 
+						watchdog('nycc_rides', "Ride: " . $ride->nid . " is Approved via email by: " . $args['from_email'],
+								 array(), WATCHDOG_NOTICE) ;
+
+					} else { //if ride isn't in a submitted or revised state
+						if ($email_debug ) watchdog('nycc_rides', 'Skipping approval of ride: ' . $ride->nid . " because it's already approved",
+																array(), WATCHDOG_WARNING) ;
 						nycc_mandrill_send_msg($args['from_email'],
-																 'webmaster@nycc.org',
-																 "Unable to process ride withdrawal.",
-																 "Hello, We are unable to process your request to withdraw from a ride because you are not currently signed up this ride."
-					);						
-					}
-				} else {//could not load user
-					if ($email_debug ) watchdog('nycc_rides',
-																			'nycc_rides_inbound_withdrawals_callback - Could not load user from mail: !mail for ride: !title',
-																			array('!name'=> $args['from_email'], '!title'=> $ride->title), WATCHDOG_WARNING) ;
-					
+																		 'webmaster@nycc.org',
+																		 "NYCC Ride: " . $ride->title . " was not be approved" ,
+																		 "Hello, The ride listed above was not approved because the status is not Submitted or Revised. If you feel that this is a error, please email the NYCC Webmaster");		
+					} // end if ride is revised
+				} else { //can not approve
+					watchdog('nycc_rides', 'Unauthorised approval attempt from ' . $args['from_email'], array(), WATCHDOG_ERROR) ;
 					nycc_mandrill_send_msg($args['from_email'],
 																 'webmaster@nycc.org',
-																 "Unable to process ride withdrawal.",
-																 "Hello, We are unable to process your request to withdraw from a ride because we could not load your user account from this email address."
-					);
-				} //end else
-			} else { //unable to load ride from token
-				watchdog('nycc_rides', 'Unable to load ride from token: ' . $token, array(), WATCHDOG_ERROR) ;
-				nycc_mandrill_send_msg($args['from_email'], 
-					'webmaster@nycc.org', 
-					"Unable to process ride approval.",
-					"Hello, We are unable to process your request to approve a ride because the ride could not be found. If you feel that this is a error, please email the NYCC Webmaster"
-				);
-			} //end if ride is loaded
+																 "Unable to process ride approval for Ride: " . $ride->title ,
+																 "Hello, We are unable to process your request to approve a ride because it was sent from an unauthorised email address. If you feel that this is a error, please email the NYCC Webmaster");
+			
+				} // end if can approve
+			} else { //if it's not an approval then it's a withdrawal
+				$user = user_load_by_mail($args['from_email']);
+				if (! $user) {
+					if ($email_debug ) watchdog('nycc_rides',
+																				'nycc_rides_inbound_callback - Could not load user from mail: !mail for ride: !title',
+																				array('!name'=> $args['from_email'], '!title'=> $ride->title), WATCHDOG_WARNING) ;
+						
+					nycc_mandrill_send_msg($args['from_email'],
+																	 'webmaster@nycc.org',
+																	 "Unable to process ride withdrawal.",
+																	 "Hello, We are unable to process your request to withdraw from a ride because we could not load your user account from this email address.");										
+						
+				}
+				
+				if ($email_debug ) watchdog('nycc_rides',
+																				'nycc_rides_inbound_callback -Loaded user !name for ride: !title', 
+																				array('!name'=> $user->name, '!title'=> $ride->title), WATCHDOG_NOTICE) ;
+						
+				if (nycc_rides_is_rider($ride, $user) || (nycc_rides_is_waiting($ride, $user))) {
+					if(_nycc_rides_withdraw($ride, $user)) {
+						if ($email_debug ) watchdog('nycc_rides',
+																		'nycc_rides_inbound_callback - Withdrew user !name for ride: !title', 
+																		array('!name'=> $user->name, '!title'=> $ride->title), WATCHDOG_NOTICE) ;							
+					} else {
+						if ($email_debug ) watchdog('nycc_rides',
+																		'nycc_rides_inbound_callback - Unable to withdrew user !name for ride: !title', 
+																		array('!name'=> $user->name, '!title'=> $ride->title), WATCHDOG_WARNING) ;
+						
+						nycc_mandrill_send_msg($args['from_email'],
+															 'webmaster@nycc.org',
+															 "Unable to process ride withdrawal.",
+															 "Hello, We are unable to process your request to withdraw from a ride. Please contact the webmaster"
+						);							
+					}
+				} else { // user is not on ride or waitlist
+					watchdog('nycc_rides',
+											 'nycc_rides_inbound_callback - Unable to withdrew user !name for ride: !title. User is not signed up for this ride',
+											 array('!name'=> $user->name, '!title'=> $ride->title), WATCHDOG_WARNING) ;
+							
+					nycc_mandrill_send_msg($args['from_email'],
+												'webmaster@nycc.org',
+												"Unable to process ride withdrawal.",
+												"Hello, We are unable to process your request to withdraw from a ride because you are not currently signed up this ride.");						
+				}
+			} //end if approval or waitlist
     }//end for each
   } //end if valid signature
 }
-
 
 function _nycc_rides_has_approval($text) {
 	return strtolower(substr(ltrim($text),0,7)) == 'approve' ;
 }
 
-function _nycc_rides_has_withdawal($text) {
+function _nycc_rides_has_withdrawal($text) {
 	return strtolower(substr(ltrim($text),0,8)) == 'withdraw' ;
 }
 
