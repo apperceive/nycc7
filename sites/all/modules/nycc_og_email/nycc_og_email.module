@@ -39,11 +39,15 @@ function nycc_og_email_group_email_callback() {
     $email_debug = FALSE;
   
   if ($email_debug ) watchdog('nycc_og_email', 'processing inbound group email callback', array(), WATCHDOG_NOTICE) ;
-  watchdog('nycc_og_email', '<pre>@print_r</pre>', array('@print_r'=> print_r( $_POST, TRUE)));
+  
+  //watchdog('nycc_og_email', '<pre>@print_r</pre>', array('@print_r'=> print_r( $_POST, TRUE)));
 
   if (! nycc_mandrill_signature_is_valid('nycc_og_email/inbound', $_POST)) {
+    if ($email_debug ) watchdog('nycc_og_email', 'Invalid signature detected. Message will be discarded.', array(), WATCHDOG_NOTICE) ;
     return;
   }
+  
+  if ($email_debug ) watchdog('nycc_og_email', 'iterating through mandrill events', array(), WATCHDOG_NOTICE) ;
   //iterate through the messages
   foreach (json_decode($_POST['mandrill_events']) as $event) {
     $args = nycc_mandrill_get_msg_details($event);
