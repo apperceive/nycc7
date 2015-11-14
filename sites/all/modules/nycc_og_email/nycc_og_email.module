@@ -136,17 +136,18 @@ function nycc_og_email_email_check_validate(&$form, &$form_state)  {
   //Validation logic for group email address
   //Confirms that the domain portion of the email address matches the specified domain suffix
   //Also checks email address to ensure it's structurally valid
-  if (strlen(trim($form_state['values']['field_group_email'][0]['value'])) != 0) {
+  if (strlen(trim($form_state['values']['field_group_email']['und'][0]['value'])) != 0) {
+                             
 
-    $mail = explode('@', $form_state['values']['field_group_email'][0]['value']);
+    $mail = explode('@', $form_state['values']['field_group_email']['und'][0]['value']);
     if ( strtolower( trim($mail[1]) != strtolower(trim(variable_get('nycc_og_email_group_domain_suffix', ''))))) {
       form_set_error('field_group_email', 'Email addresses must end in ' . variable_get('nycc_og_email_group_domain_suffix' , '') 
                   . '. Please visit <a href="' . url('/admin/settings/nycc_og_email', array('absolute' => TRUE)) 
                   . '" target="_blank">Settings Page</a> to confirm your domain settings.');
                   
     }   
-    if ( ! valid_email_address( $form_state['values']['field_group_email'][0]['value'])) {
-      form_set_error('field_group_email_alias', $form_state['values']['field_group_email'][0]['value'] 
+    if ( ! valid_email_address( $form_state['values']['field_group_email']['und'][0]['value'])) {
+      form_set_error('field_group_email_alias', $form_state['values']['field_group_email']['und'][0]['value']
       . " is not valid. Please enter a valid e-mail address.");
     }
   } 
