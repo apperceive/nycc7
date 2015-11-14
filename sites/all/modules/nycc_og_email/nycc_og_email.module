@@ -164,6 +164,8 @@ function nycc_email_get_group_by_email($grp_email) {
   $query->fieldCondition('field_group_email', 'value', $grp_email);
   $result = $query->execute();
   
+  dpm($result);
+  
   if (empty($result) || count($result) == 0) {
     watchdog('nycc_og_email',
              'nycc_og_email_get_group_by_email could not find group with email address of: @grp_email.' , 
