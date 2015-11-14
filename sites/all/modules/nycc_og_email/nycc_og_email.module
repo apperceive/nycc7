@@ -183,7 +183,7 @@ function nycc_email_get_group_by_email($grp_email) {
   if( count($result) == 1)
   {
     foreach($result as $g) {
-      return key($g);
+      return $g;
       //$query = new EntityFieldQuery();
       //$query
       //->entityCondition("entity_type", "og_membership", "=")
