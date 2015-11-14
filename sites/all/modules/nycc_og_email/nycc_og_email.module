@@ -2,17 +2,15 @@
 //TODO: Fix tables in nycc_email_get_group_by_email
 function nycc_og_email_menu() {
   $items = array();
-
-    //DO WE NEED A SETTINGS PAGE?
-    //YES: need to specify signing domain and domain_suffix
-    $items['admin/config/nycc/nycc_og_email'] = array(
+  $items['admin/config/nycc/nycc_og_email'] = array(
       'title' => 'NYCC Organic Groups Email Settings',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('nycc_og_email_admin'),
-      'access arguments' => array('administer nycc_og_email'),
       'description' => 'configure organic groups email integration',
+      'page callback' => 'drupal_get_form',
       'file' => 'nycc_og_email.admin.inc',
+      'access arguments' => array('administer nycc_og_email'),
       'type' => MENU_NORMAL_ITEM,
+      'access callback' => TRUE,
+      'page arguments' => array('nycc_og_email_admin'),
     );
 
     $items['nycc_og_email/inbound'] = array(
