@@ -140,7 +140,7 @@ function nycc_og_email_email_check_validate(&$form, &$form_state)  {
 
     $mail = explode('@', $form_state['values']['field_group_email'][0]['value']);
     if ( strtolower( trim($mail[1]) != strtolower(trim(variable_get('nycc_og_email_group_domain_suffix', ''))))) {
-      form_set_error('field_group_email_alias', 'Email addresses must end in ' . variable_get('nycc_og_email_group_domain_suffix' , '') 
+      form_set_error('field_group_email', 'Email addresses must end in ' . variable_get('nycc_og_email_group_domain_suffix' , '') 
                   . '. Please visit <a href="' . url('/admin/settings/nycc_og_email', array('absolute' => TRUE)) 
                   . '" target="_blank">Settings Page</a> to confirm your domain settings.');
                   
@@ -153,26 +153,42 @@ function nycc_og_email_email_check_validate(&$form, &$form_state)  {
 }
 
 
-function nycc_email_get_group_by_email($grp_email = NULL) {
+function nycc_email_get_group_by_email($grp_email) {
   //returns the group ID of a selected group if the email_alias matches the passed email address
-  if ( isset( $grp_email)) {
-    $sql = "select n.nid as gid from {content_type_group} g join {node} n on n.nid=g.nid and n.vid=g.vid WHERE g.field_group_email_alias_value='@s'";
-      $r = db_fetch_object(db_query($sql, trim($grp_email)));
-      watchdog("nycc_of_email", 'Groups: ' . $sql); 
-    if ( is_numeric( $r->gid)) {
-        if ($email_debug ) watchdog('nycc_og_email', 'nycc_email_get_Group_by_email found group <a href="/node/@grp_id">@grp_id</a> with email address of @grp_email.' , 
-                  array('@grp_id' => $r->gid, '@grp_email' => $grp_email), WATCHDOG_NOTICE) ;
-        return $r->gid;
-      }
-      else {
-        watchdog('nycc_og_email', 'nycc_og_email_get_group_by_email could not find group with email address of: @grp_email.' , 
-              array('@grp_email' => $grp_email), WATCHDOG_NOTICE) ;
-        return NULL;
-      }
-    }
-    else {
-      return NULL;
+  if ( !isset( $grp_email)) {
+    return 0;
   }
+  
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node');
+  $query->entityCondition('bundle', 'group');
+  $query->fieldCondition('field_group_email', 'value', $grp_email);
+  $result = $query->execute();
+  
+  if (empty($result) || count($result) == 0) {
+    watchdog('nycc_og_email',
+             'nycc_og_email_get_group_by_email could not find group with email address of: @grp_email.' , 
+              array('@grp_email' => $grp_email), WATCHDOG_NOTICE) ;    
+    return 0;
+  }
+  
+  if(count($result)>1) {
+    watchdog('nycc_og_email',
+             'nycc_og_email_get_group_by_email found multiple groups  with email address of: @grp_email.' , 
+              array('@grp_email' => $grp_email), WATCHDOG_ERROR) ;    
+    return 0;
+  }
+  
+  if( count($result) == 1)
+  {
+    foreach($result as $g) {
+      if ($email_debug ) watchdog('nycc_og_email',
+                                  'nycc_email_get_Group_by_email found group <a href="/node/@grp_id">@grp_id</a> with email address of @grp_email.' ,
+                                  array('@grp_id' => $r->gid, '@grp_email' => $grp_email), WATCHDOG_NOTICE) ;
+      return key($g);
+    }
+  }
+
 }
 //og_is_member
 
