@@ -218,14 +218,15 @@ join realname rn on rn.uid=u.uid
 where o.state=1 
 and o.nid=@d
 EOS;
+
   $q = db_query($sql, $gid);
 
 //    watchdog('nycc_email', 'nycc_email_get_group_member_emails sql  returned ' . db_affected_rows() . ' members of group with id ' . $gid, array(), WATCHDOG_NOTICE) ;
-  while ($records = db_fetch_array($q)) {
-    if (!in_array(strtolower($records['mail']), $recipients)) {
+  while ($records = db_fetch_object($q)) {
+    if (!in_array(strtolower($records->mail), $recipients)) {
       $emails[] = array(
-                        'email' => $records['mail'],
-                        'name' => $records['realname'],
+                        'email' => $records->mail,
+                        'name' => $records->realname,
                         'type' => 'bcc'
                         );
     }
