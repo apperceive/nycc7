@@ -1,6 +1,6 @@
 <?php
 
-function nycc_og_email_admin() {
+function nycc_og_email_admin(&$form_state) {
   $form = array();
 
   $form['nycc_og_email_group_domain_suffix'] = array(
