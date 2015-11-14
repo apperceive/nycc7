@@ -216,13 +216,12 @@ from og_membership o
 join users u on o.etid=u.uid
 join realname rn on rn.uid=u.uid
 where o.state=1 
-and o.nid=@d
+and o.nid=:gid
 EOS;
 
-  $q = db_query($sql, $gid);
-
-//    watchdog('nycc_email', 'nycc_email_get_group_member_emails sql  returned ' . db_affected_rows() . ' members of group with id ' . $gid, array(), WATCHDOG_NOTICE) ;
-  while ($records = db_fetch_object($q)) {
+  $q = db_query($sql,  array(':gid' => $gid));
+  //    watchdog('nycc_email', 'nycc_email_get_group_member_emails sql  returned ' . db_affected_rows() . ' members of group with id ' . $gid, array(), WATCHDOG_NOTICE) ;
+  foreach($q as $records) {
     if (!in_array(strtolower($records->mail), $recipients)) {
       $emails[] = array(
                         'email' => $records->mail,
