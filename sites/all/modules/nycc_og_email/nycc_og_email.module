@@ -187,7 +187,7 @@ function nycc_email_get_group_by_email($grp_email) {
       $query = new EntityFieldQuery();
       $query
       ->entityCondition("entity_type", "og_membership", "=")
-      ->propertyCondition("gid", $g, "=");
+      ->propertyCondition("gid", key($g), "=");
       $result = $query->execute();
       return $result["og_membership"];
     }
