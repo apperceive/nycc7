@@ -183,12 +183,13 @@ function nycc_email_get_group_by_email($grp_email) {
   if( count($result) == 1)
   {
     foreach($result as $g) {
-      $members= og_get_group_members_properties($g, array(), 'members__' . OG_STATE_ACTIVE, 'node');
-      if ($email_debug ) watchdog('nycc_og_email',
-                                  'nycc_email_get_Group_by_email found group <a href="/node/@grp_id">@grp_id</a> with email address of @grp_email.' ,
-                                  array('@grp_id' => $r->gid, '@grp_email' => $grp_email), WATCHDOG_NOTICE) ;
       //return key($g);
-      return $members;
+      $query = new EntityFieldQuery();
+      $query
+      ->entityCondition("entity_type", "og_membership", "=")
+      ->propertyCondition("gid", $g, "=");
+      $result = $query->execute();
+      return $result["og_membership"];
     }
   }
 
