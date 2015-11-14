@@ -122,12 +122,12 @@ function nycc_og_email_group_email_callback() {
   } // end for each
 }
 
-function nycc_og_email_form_alter(&$form, &$form_state, $form_id)  {
-  //adds validation to group node form
-  if ($form_id == 'group_node_form') {
-    $form['#validate'][] = 'nycc_og_email_email_check_validate';
-  }
-}
+//function nycc_og_email_form_alter(&$form, &$form_state, $form_id)  {
+//  //adds validation to group node form
+//  if ($form_id == 'group_node_form') {
+//    $form['#validate'][] = 'nycc_og_email_email_check_validate';
+//  }
+//}
  
 
 function nycc_og_email_email_check_validate(&$form, &$form_state)  {
