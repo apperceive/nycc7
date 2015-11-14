@@ -210,16 +210,9 @@ function nycc_og_email_get_group_member_emails($gid, $recipients = array()) {
   }
   $emails = array();
   
-$sql = <<<EOS
-select u.mail as mail, rn.realname as realname
-from og_membership o
-join users u on o.etid=u.uid
-join realname rn on rn.uid=u.uid
-where o.state=1 
-and o.nid=:gid
-EOS;
+  $sql = 'select u.mail as mail, rn.realname as realname from og_membership o join users u on o.etid=u.uid join realname rn on rn.uid=u.uid where o.state=1 and o.nid=@gid';
 
-  $q = db_query($sql,  array(':gid' => $gid));
+  $q = db_query($sql,  array('@gid' => $gid));
   //    watchdog('nycc_email', 'nycc_email_get_group_member_emails sql  returned ' . db_affected_rows() . ' members of group with id ' . $gid, array(), WATCHDOG_NOTICE) ;
   foreach($q as $records) {
     if (!in_array(strtolower($records->mail), $recipients)) {
