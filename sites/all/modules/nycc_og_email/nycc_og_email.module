@@ -88,15 +88,16 @@ function nycc_og_email_group_email_callback() {
     if ($email_debug ) watchdog('nycc_og_email', 'message sent to group: @grp_email',
                                       array('@grp_email' => $args['to_mail']), WATCHDOG_NOTICE) ;
           
-    //if (! og_is_member('og_membership_type_default', $gid, 'user', $user)) {
-    //  if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. <a href="/user/@username">@username</a> is not member of group with address: @grp_email.', 
-    //              array('@grp_email' => $args['to_mail'], '@username' => $user->name), WATCHDOG_WARNING) ;
-    //  nycc_mandrill_send_msg($args['from_email'], 
-    //    variable_get('smtp_from', ''), 
-    //    "Unable to process your Group Email sent to: " . $args['to_mail'] ,
-    //    "Hello, We are unable to process your request to email this group because you are not an active member. If you feel you're receiving this message in error, please contact the group captain."
-    //  );             
-    //}
+    if (( ! nycc_og_allows_external_email($gid))
+        && (! og_is_member('og_membership_type_default', $gid, 'user', $user))) {
+      if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. <a href="/user/@username">@username</a> is not member of group with address: @grp_email.', 
+                  array('@grp_email' => $args['to_mail'], '@username' => $user->name), WATCHDOG_WARNING) ;
+      nycc_mandrill_send_msg($args['from_email'], 
+        variable_get('smtp_from', ''), 
+        "Unable to process your Group Email sent to: " . $args['to_mail'] ,
+        "Hello, We are unable to process your request to email this group because you are not an active member. If you feel you're receiving this message in error, please contact the group captain."
+      );             
+    }
     
     if ($email_debug ) watchdog('nycc_og_email',
                                   '<pre><a href="/user/@username">@username</a> is member or captain of group <a href="/node/@grp_id">@grp_id</a>. Processing email', 
@@ -159,7 +160,7 @@ function nycc_og_allows_external_email($group) {
   if (!isset($group)) {
     return false;
   }
-  return nycc_field_get_text_value($group->field_group_accept_ext_email);
+  return property_exists($group,'field_group_accept_ext_email') &&  nycc_field_get_text_value($group->field_group_accept_ext_email);
 }
 
 
