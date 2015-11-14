@@ -33,13 +33,13 @@ function nycc_og_email_permission() {
     );
 }
 function nycc_og_email_group_email_callback() {
-  if (variable_get('nycc_og_email_debug_to_log', '') == 1)
+  if (variable_get('nycc_og_email_debug_to_log', '1') == 1)
     $email_debug = TRUE;
   else
     $email_debug = FALSE;
   
-//  if ($email_debug ) watchdog('nycc_email', 'processing inbound group email callback', array(), WATCHDOG_NOTICE) ;
-
+  if ($email_debug ) watchdog('nycc_og_email', 'processing inbound group email callback', array(), WATCHDOG_NOTICE) ;
+watchdog('nycc_og_email', '<pre>@print_r</pre>', array('@print_r', print_r( $_POST, TRUE)));
   if (! nycc_mandrill_signature_is_valid('nycc_og_email/inbound', $_POST)) {
     return;
   }
