@@ -38,22 +38,15 @@ function nycc_og_email_group_email_callback() {
   else
     $email_debug = FALSE;
   
-  if ($email_debug ) watchdog('nycc_og_email', 'processing inbound group email callback', array(), WATCHDOG_NOTICE) ;
-  
-  //watchdog('nycc_og_email', '<pre>@print_r</pre>', array('@print_r'=> print_r( $_POST, TRUE)));
 
   if (! nycc_mandrill_signature_is_valid('nycc_og_email/inbound', $_POST)) {
     if ($email_debug ) watchdog('nycc_og_email', 'Invalid signature detected. Message will be discarded.', array(), WATCHDOG_NOTICE) ;
     return;
   }
   
-  //if ($email_debug ) watchdog('nycc_og_email', 'iterating through mandrill events', array(), WATCHDOG_NOTICE) ;
   //iterate through the messages
-  foreach (json_decode($_POST['mandrill_events']) as $event) {
-    //if ($email_debug) watchdog("nycc_og_email", 'Checking event: <pre>' . print_r( $event, TRUE) . '</pre>'); 
-    
+  foreach (json_decode($_POST['mandrill_events']) as $event) {    
     $args = nycc_mandrill_get_msg_details($event);
-    if ($email_debug) watchdog("nycc_og_email", 'Checking Args: <pre>' . print_r( $args, TRUE) . '</pre>'); 
     
     if ( ($args['to_mail'] == $args['from_email'])) {
       //prevent loopbacks
@@ -61,23 +54,7 @@ function nycc_og_email_group_email_callback() {
                     array('@user_email' => $args['from_email'], '@grp_email' => $args['to_mail']), WATCHDOG_NOTICE) ;
       return;
     }
-    //if ($email_debug ) watchdog('nycc_og_email', 'No loopback detected.', array(), WATCHDOG_NOTICE) ;
-    
-    $user = user_load_by_mail($args['from_email']);  
-    if(empty($user)) {
-      if ($email_debug ) watchdog('nycc_email', 'Dicarding message. Could not find user with email address: @user_email' , 
-                      array('@user_email' => $args['from_email']), WATCHDOG_WARNING) ;
-                      
-      nycc_mandrill_send_msg($args['from_email'], 
-              variable_get('smtp_from', ''), 
-              "Unable to process your Group Email sent to: " . $args['to_mail'] ,
-              "Hello, We are unable to process your request to email this group because you are not an active NYCC member. If you feel you're receiving this message in error, please contact the group captain.");                      
-      return;
-    }
-    
-    if ($email_debug ) watchdog('nycc_og_email', 'messages recieved from <a href="/user/@username">@username</a>',
-                                    array('@username' => $user->name), WATCHDOG_NOTICE) ;
-    
+
     $gid = nycc_og_email_get_group_node_by_email($args['to_mail']);
     if ($gid==0) {
       if ($email_debug ) watchdog('nycc_email', 'Dicarding message. Could not find group with email address: @grp_email', 
@@ -93,21 +70,37 @@ function nycc_og_email_group_email_callback() {
     
     if ($email_debug ) watchdog('nycc_og_email', 'message sent to group: @grp_email',
                                       array('@grp_email' => $args['to_mail']), WATCHDOG_NOTICE) ;
-          
-    if (( ! nycc_og_allows_external_email($gid))
-        && (! og_is_member('og_membership_type_default', $gid, 'user', $user))) {
-      if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. <a href="/user/@username">@username</a> is not member of group with address: @grp_email.', 
-                  array('@grp_email' => $args['to_mail'], '@username' => $user->name), WATCHDOG_WARNING) ;
-      nycc_mandrill_send_msg($args['from_email'], 
-        variable_get('smtp_from', ''), 
-        "Unable to process your Group Email sent to: " . $args['to_mail'] ,
-        "Hello, We are unable to process your request to email this group because you are not an active member. If you feel you're receiving this message in error, please contact the group captain."
-      );             
-    }
     
-    if ($email_debug ) watchdog('nycc_og_email',
-                                  '<pre><a href="/user/@username">@username</a> is member or captain of group <a href="/node/@grp_id">@grp_id</a>. Processing email', 
+    
+    if(! nycc_og_allows_external_email($gid)) {
+      $user = user_load_by_mail($args['from_email']);
+      if(empty($user)) {
+        if ($email_debug ) watchdog('nycc_email', 'Dicarding message. Could not find user with email address: @user_email' , 
+                      array('@user_email' => $args['from_email']), WATCHDOG_WARNING) ;
+                      
+        nycc_mandrill_send_msg($args['from_email'], 
+              variable_get('smtp_from', ''), 
+              "Unable to process your Group Email sent to: " . $args['to_mail'] ,
+              "Hello, We are unable to process your request to email this group because you are not an active NYCC member. If you feel you're receiving this message in error, please contact the group captain.");                      
+        return;
+      }
+      
+    
+      if (! og_is_member('og_membership_type_default', $gid, 'user', $user)) {
+        if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. <a href="/user/@username">@username</a> is not member of group with address: @grp_email.', 
+                    array('@grp_email' => $args['to_mail'], '@username' => $user->name), WATCHDOG_WARNING) ;
+        nycc_mandrill_send_msg($args['from_email'], 
+          variable_get('smtp_from', ''), 
+          "Unable to process your Group Email sent to: " . $args['to_mail'] ,
+          "Hello, We are unable to process your request to email this group because you are not an active member. If you feel you're receiving this message in error, please contact the group captain."
+        );
+        return;
+      }
+      if ($email_debug ) watchdog('nycc_og_email',
+                    'processing email send by <pre><a href="/user/@username">@username</a> to group <a href="/node/@grp_id">@grp_id</a>', 
                     array('@username' => $user->name, '@grp_id' => $gid), WATCHDOG_NOTICE) ;
+    }
+
       
     $send_to = nycc_og_email_get_group_member_emails($gid, $args['to_cc_list']);
     $send_to[] = array(
@@ -179,17 +172,12 @@ function nycc_og_email_get_group_node_by_email($grp_email) {
     return 0;
   }
   
-    watchdog('nycc_og_email',
-             'nycc_email_get_group_node_by_email - searching for address ' . $grp_email ,
-             array(), WATCHDOG_NOTICE) ;         
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node');
   $query->entityCondition('bundle', 'group');
   $query->fieldCondition('field_group_email', 'value', trim($grp_email),'=');
   $query->addMetaData('account', user_load(1));
   $result = $query->execute();
-  
-  watchdog("nycc_og_email", 'Checking event: <pre>' . print_r( $result, TRUE) . '</pre>'); 
   
   if (empty($result) || count($result) == 0) {
     watchdog('nycc_og_email',
@@ -213,21 +201,6 @@ function nycc_og_email_get_group_node_by_email($grp_email) {
   }
 
 }
-//og_is_member
-
-//
-//function nycc_og_email_is_member_of_group($gid, $uid) {
-//  //checks to see if user is member of specified group
-//    $sql = "select uid from {og_uid} where nid=@d and uid=@d and is_active=1";
-//
-//    $r = db_fetch_object(db_query($sql, $gid, $uid));
-//  if (is_numeric($r->uid) ) {
-//    return TRUE;
-//  }
-//  else {
-//    return FALSE;
-//  }
-//}
 
 function nycc_og_email_get_group_member_emails($gid, $recipients = array()) {
   if (! is_numeric($gid)){
