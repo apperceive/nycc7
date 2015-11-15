@@ -51,6 +51,9 @@ function nycc_og_email_group_email_callback() {
                     array('@event' => print_r($event, TRUE) ), WATCHDOG_NOTICE) ;
     
     $args = nycc_mandrill_get_msg_details($event);
+    watchdog('nycc_og_email',
+                    'Args Are: <pre>@args</pre>', 
+                    array('@args' => print_r($args, TRUE) ), WATCHDOG_NOTICE) ;    
     
     if ( ($args['to_mail'] == $args['from_email'])) {
       //prevent loopbacks

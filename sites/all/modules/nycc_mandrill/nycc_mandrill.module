@@ -70,6 +70,9 @@ function nycc_mandrill_get_msg_details($event) {
       'text' => array('value' => $event->msg->text ?: '', ),      
       'raw_msg' => array('value' => $event->msg->raw_msg ?: '', ),
       'attachments' => $event->msg->attachments ?: '',
+      'tags' => $event->msg->tags ?: '',
+      'headers' => $event->msg->headers ?: '',
+      'images' => $event->msg->images ?: '',
     );
   } else {
     watchdog('nycc_mandrill', "nycc_mandrill_get_msg_details received a null event", array(),  WATCHDOG_WARNING) ;  
@@ -133,7 +136,16 @@ function nycc_mandrill_generate_signature($url, $webhook_key, $params) {
 function nycc_mandrill_send_msg($to, $from, $subject, $body) {
   nycc_mandrill_send_email(array($to), $from, $from, $from, $subject, $body);
 }
-function nycc_mandrill_send_email($to, $from_addr, $from_name='', $reply_to='', $subject, $body, $attachments=array(), $tracking_domain='', $signing_domain='') {
+function nycc_mandrill_send_email(
+                                  $to,
+                                  $from_addr,
+                                  $from_name='',
+                                  $reply_to='',
+                                  $subject, $body,
+                                  $attachments=array(),
+                                  $tracking_domain='',
+                                  $signing_domain='',
+                                  $headers=array()) {
   //used to send an email directly using Mandrill API
   if (count($to)) {
     try {
@@ -145,7 +157,7 @@ function nycc_mandrill_send_email($to, $from_addr, $from_name='', $reply_to='', 
         'from_email' => $from_addr,
         'from_name' => $from_name,
         'to' => $to,
-        'headers' => array('Reply-To' => $reply_to),
+        'headers' => (!empty($headers)) ? $headers :array('Reply-To' => $reply_to) ,
         'track_opens' => TRUE,
         'track_clicks' => TRUE,
         'auto_text' => TRUE,
