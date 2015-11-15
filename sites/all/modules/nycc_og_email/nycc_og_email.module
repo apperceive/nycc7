@@ -110,9 +110,9 @@ function nycc_og_email_group_email_callback() {
         'type' => 'to'
       );
     
-    if ($email_debug ) watchdog('nycc_og_email',
+    watchdog('nycc_og_email',
                     'Sending email to: <pre>@to</pre>', 
-                    array('@to' => $send_to), WATCHDOG_NOTICE) ;    
+                    array('@to' => print_r($send_to) ), WATCHDOG_NOTICE) ;    
     nycc_mandrill_send_email(
                     $to = $send_to, 
                     $from_addr = $args['to_mail'], 
@@ -223,7 +223,9 @@ and o.gid=:gid
 EOS;
  
   $q = db_query($sql,  array(':gid' => $gid));
-  //    watchdog('nycc_email', 'nycc_email_get_group_member_emails sql  returned ' . db_affected_rows() . ' members of group with id ' . $gid, array(), WATCHDOG_NOTICE) ;
+  watchdog('nycc_email', 'nycc_email_get_group_member_emails sql  returned @rows members of group with id @gid',
+           array('@rows' => db_affected_rows(), '@gid' => $gid), WATCHDOG_NOTICE) ;
+  
   foreach($q as $records) {
     if (!in_array(strtolower($records->mail), $recipients)) {
       $emails[] = array(
