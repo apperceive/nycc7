@@ -159,17 +159,17 @@ function nycc_mandrill_send_email($to, $from_addr, $from_name='', $reply_to='', 
       //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
   
       $result = $mandrill->messages_send($message);
-      watchdog('nycc_og_email', 'nycc_og_email_send_mandrill_email Result:<pre>' . print_r( $result, TRUE) . '</pre>');
+      watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Result:<pre>' . print_r( $result, TRUE) . '</pre>');
   
     } catch (Mandrill_Error $e) {
-        watchdog('nycc_og_email', "nycc_og_email_send_mandrill_email: Error: @class - @msg", 
+        watchdog('nycc_mandrill', "nycc_mandrill_send_email - Error: @class - @msg", 
             array('@class' => get_class($e), '@msg' => $e->getMessage()), WATCHDOG_WARNING) ;
       throw $e;
     }     
   }
   else {
     //if no values are in $to
-        watchdog('nycc_og_email', "nycc_og_email_send_mandrill_email: Error: no to addresses specified", 
+        watchdog('nycc_mandrill', "nycc_mandrill_send_email - Error: no to addresses specified", 
             array(), WATCHDOG_WARNING) ;    
   }
 
