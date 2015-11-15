@@ -112,8 +112,8 @@ function nycc_og_email_group_email_callback() {
     
     watchdog('nycc_og_email',
                     'Sending email to: <pre>@to</pre>', 
-                    array('@to' => print_r($send_to) ), WATCHDOG_NOTICE) ;    
-    nycc_mandrill_send_email(
+                    array('@to' => print_r($send_to, TRUE) ), WATCHDOG_NOTICE) ;    
+    if(! nycc_mandrill_send_email (
                     $to = $send_to, 
                     $from_addr = $args['to_mail'], 
                     $from_name = $args['from_name'] . ' (via ' . variable_get('nycc_og_email_signing_domain', '') . ')',
@@ -123,7 +123,11 @@ function nycc_og_email_group_email_callback() {
                     $attachments = $args['attachments'],
                     $tracking_domain = variable_get('nycc_og_email_tracking_domain', ''),
                     $signing_domain = variable_get('nycc_og_email_signing_domain', '')
-                    );
+                    )) {
+      watchdog('nycc_og_email',
+                    'Error sedning email to: <pre>@to</pre>', 
+                    array('@to' => print_r($send_to, TRUE) ), WATCHDOG_WARNING) ;    
+    }
   } // end for each
 }
 

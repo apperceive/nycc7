@@ -159,10 +159,61 @@ function nycc_mandrill_send_email($to, $from_addr, $from_name='', $reply_to='', 
       );
       //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
 
-      $result = $mandrill->messages->send($message);
-      watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Result:<pre>' . print_r( $result, TRUE) . '</pre>');
+      $response = $mandrill->messages->send($message);
+
+      if (!isset($response['status'])) {
+        foreach ($response as $result) {
+          // Allow other modules to react based on a send result.
+          module_invoke_all('mandrill_mailsend_result', $result);
   
-    } catch (Mandrill_Error $e) {
+          switch ($result['status']) {
+            case "error":
+            case "invalid":
+            case "rejected":
+              $to = isset($result['email']) ? $result['email'] : 'recipient';
+              $status = isset($result['status']) ? $result['status'] : 'message';
+              $error_message = isset($result['message']) ? $result['message'] : 'no message';
+              $debug = print_r($result, TRUE);
+              watchdog('mandrill', 'Failed sending email from %from to %to. @status: @message <pre>@debug</pre>',
+                array(
+                  '%from' => $message['from_email'],
+                  '%to' => $to,
+                  '@status' => $status,
+                  '@message' => $error_message,
+                  '@debug' => $debug,
+                ),
+                WATCHDOG_ERROR
+              );
+            return FALSE;
+  
+            case "queued":
+              watchdog('mandrill', 'Email from %from to %to queued by Mandrill App.',
+                array(
+                  '%from' => $message['from_email'],
+                  '%to' => $result['email'],
+                ),
+                WATCHDOG_INFO
+              );
+              break;
+          }
+        }
+      }
+      else {
+        watchdog('mandrill', 'Mail send failed with status %status: code %code, %name, %message',
+          array(
+            '%status' => $response['status'],
+            '%code' => $response['code'],
+            '%name' => $response['name'],
+            '%message' => $response['message'],
+          ),
+          WATCHDOG_WARNING
+        );
+        return FALSE;
+      }
+      watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Result:<pre>' . print_r( $response, TRUE) . '</pre>');
+      return TRUE;
+    }      
+    catch (Mandrill_Error $e) {
         watchdog('nycc_mandrill', "nycc_mandrill_send_email - Error: @class - @msg", 
             array('@class' => get_class($e), '@msg' => $e->getMessage()), WATCHDOG_WARNING) ;
       throw $e;
