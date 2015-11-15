@@ -145,7 +145,8 @@ function nycc_mandrill_send_email(
                                   $attachments=array(),
                                   $tracking_domain='',
                                   $signing_domain='',
-                                  $headers=array()) {
+                                  $headers=array(),
+                                  $images=array()) {
   //used to send an email directly using Mandrill API
   if (count($to)) {
     try {
@@ -167,7 +168,8 @@ function nycc_mandrill_send_email(
         'view_content_link' => TRUE,
         'tracking_domain' => $tracking_domain,
         'signing_domain' =>  $signing_domain,
-        'attachments' => $attachments     
+        'attachments' => $attachments,
+        'images' => $images
       );
       //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
 

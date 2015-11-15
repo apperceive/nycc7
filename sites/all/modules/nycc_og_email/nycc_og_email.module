@@ -129,7 +129,9 @@ function nycc_og_email_group_email_callback() {
                     $body = $args['html'], 
                     $attachments = $args['attachments'],
                     $tracking_domain = variable_get('nycc_og_email_tracking_domain', ''),
-                    $signing_domain = variable_get('nycc_og_email_signing_domain', '')
+                    $signing_domain = variable_get('nycc_og_email_signing_domain', ''),
+                    $headers = array(),
+                    $images = $arg['images']
                     )) {
       watchdog('nycc_og_email',
                     'Error sedning email to: <pre>@to</pre>', 
