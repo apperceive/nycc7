@@ -156,7 +156,7 @@ function nycc_mandrill_send_email($to, $from_addr, $from_name='', $reply_to='', 
         'signing_domain' =>  $signing_domain,
         'attachments' => $attachments     
       );
-      watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
+      //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
   
       $result = $mandrill->messages_send($message);
       watchdog('nycc_og_email', 'nycc_og_email_send_mandrill_email Result:<pre>' . print_r( $result, TRUE) . '</pre>');
