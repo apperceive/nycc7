@@ -186,6 +186,7 @@ function nycc_og_email_get_group_node_by_email($grp_email) {
   $query->entityCondition('entity_type', 'node');
   $query->entityCondition('bundle', 'group');
   $query->fieldCondition('field_group_email', 'value', trim($grp_email),'=');
+  $query->addMetaData('account', user_load(1));
   $result = $query->execute();
   
   watchdog("nycc_og_email", 'Checking event: <pre>' . print_r( $result, TRUE) . '</pre>'); 
