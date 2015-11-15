@@ -57,7 +57,7 @@ function nycc_og_email_group_email_callback() {
     
     if ( ($args['to_mail'] == $args['from_email'])) {
       //prevent loopbacks
-      if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. sender is same as recipient: @user_email to @grp_email.', 
+      if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. sender is same as recipient: @user_email to @grp_email', 
                     array('@user_email' => $args['from_email'], '@grp_email' => $args['to_mail']), WATCHDOG_NOTICE) ;
       return;
     }
@@ -65,7 +65,7 @@ function nycc_og_email_group_email_callback() {
     
     $user = user_load_by_mail($args['from_email']);  
     if(empty($user)) {
-      if ($email_debug ) watchdog('nycc_email', 'Dicarding message. Could not find user with email address: @user_email.' , 
+      if ($email_debug ) watchdog('nycc_email', 'Dicarding message. Could not find user with email address: @user_email' , 
                       array('@user_email' => $args['from_email']), WATCHDOG_WARNING) ;
                       
       nycc_mandrill_send_msg($args['from_email'], 
@@ -179,6 +179,9 @@ function nycc_og_email_get_group_node_by_email($grp_email) {
     return 0;
   }
   
+    watchdog('nycc_og_email',
+             'nycc_email_get_group_node_by_email - searching for address ' . $grp_email ,
+             array(), WATCHDOG_NOTICE) ;         
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node');
   $query->entityCondition('bundle', 'group');
