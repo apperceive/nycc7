@@ -46,14 +46,10 @@ function nycc_og_email_group_email_callback() {
   
   //iterate through the messages
   foreach (json_decode($_POST['mandrill_events']) as $event) {
-    watchdog('nycc_og_email',
-                    'received event: <pre>@event</pre>', 
-                    array('@event' => print_r($event, TRUE) ), WATCHDOG_NOTICE) ;
+    //watchdog('nycc_og_email', 'received event: <pre>@event</pre>',  array('@event' => print_r($event, TRUE) ), WATCHDOG_NOTICE) ;
     
     $args = nycc_mandrill_get_msg_details($event);
-    watchdog('nycc_og_email',
-                    'Args Are: <pre>@args</pre>', 
-                    array('@args' => print_r($args, TRUE) ), WATCHDOG_NOTICE) ;    
+    //watchdog('nycc_og_email', 'Args Are: <pre>@args</pre>',  array('@args' => print_r($args, TRUE) ), WATCHDOG_NOTICE) ;    
     
     if ( ($args['to_mail'] == $args['from_email'])) {
       //prevent loopbacks
