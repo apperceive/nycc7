@@ -47,13 +47,13 @@ function nycc_og_email_group_email_callback() {
     return;
   }
   
-  if ($email_debug ) watchdog('nycc_og_email', 'iterating through mandrill events', array(), WATCHDOG_NOTICE) ;
+  //if ($email_debug ) watchdog('nycc_og_email', 'iterating through mandrill events', array(), WATCHDOG_NOTICE) ;
   //iterate through the messages
   foreach (json_decode($_POST['mandrill_events']) as $event) {
     //if ($email_debug) watchdog("nycc_og_email", 'Checking event: <pre>' . print_r( $event, TRUE) . '</pre>'); 
     
     $args = nycc_mandrill_get_msg_details($event);
-    if ($email_debug) watchdog("nycc_og_email", 'Checking Args: <pre>' . print_r( $args, TRUE) . '</pre>'); 
+    //if ($email_debug) watchdog("nycc_og_email", 'Checking Args: <pre>' . print_r( $args, TRUE) . '</pre>'); 
     
     if ( ($args['to_mail'] == $args['from_email'])) {
       //prevent loopbacks
@@ -61,7 +61,8 @@ function nycc_og_email_group_email_callback() {
                     array('@user_email' => $args['from_email'], '@grp_email' => $args['to_mail']), WATCHDOG_NOTICE) ;
       return;
     }
-    if ($email_debug ) watchdog('nycc_og_email', 'No loopback detected.', array(), WATCHDOG_NOTICE) ;
+    //if ($email_debug ) watchdog('nycc_og_email', 'No loopback detected.', array(), WATCHDOG_NOTICE) ;
+    
     $user = user_load_by_mail($args['from_email']);  
     if(empty($user)) {
       if ($email_debug ) watchdog('nycc_email', 'Dicarding message. Could not find user with email address: @user_email.' , 
@@ -78,7 +79,7 @@ function nycc_og_email_group_email_callback() {
                                     array('@username' => $user->name), WATCHDOG_NOTICE) ;
     
     $gid = nycc_og_email_get_group_node_by_email($args['to_mail']);
-    if (!isset($gid)) {
+    if ($gid==0) {
       if ($email_debug ) watchdog('nycc_email', 'Dicarding message. Could not find group with email address: @grp_email', 
                         array('@grp_email' => $args['to_mail']), WATCHDOG_WARNING) ;
                         
@@ -90,7 +91,6 @@ function nycc_og_email_group_email_callback() {
       return;
     }
     
-    //watchdog("nycc_email", '<pre>' . print_r( $args, TRUE) . '</pre>'); 
     if ($email_debug ) watchdog('nycc_og_email', 'message sent to group: @grp_email',
                                       array('@grp_email' => $args['to_mail']), WATCHDOG_NOTICE) ;
           
@@ -163,7 +163,7 @@ function nycc_og_allows_external_email($group) {
     $group = node_load($group);
   }
   
-  if (!isset($group)) {
+  if (!is_object($group)) {
     return false;
   }
   return property_exists($group,'field_group_accept_ext_email') &&  nycc_field_get_text_value($group->field_group_accept_ext_email);
@@ -173,6 +173,9 @@ function nycc_og_allows_external_email($group) {
 function nycc_og_email_get_group_node_by_email($grp_email) {
   //returns the nid of a selected group if the email_alias matches the passed email address
   if ( !isset( $grp_email)) {
+    watchdog('nycc_og_email',
+             'nycc_email_get_group_node_by_email - no group email address passed',
+             array(), WATCHDOG_NOTICE) ;       
     return 0;
   }
   
@@ -181,8 +184,6 @@ function nycc_og_email_get_group_node_by_email($grp_email) {
   $query->entityCondition('bundle', 'group');
   $query->fieldCondition('field_group_email', 'value', $grp_email,'=');
   $result = $query->execute();
-  
-  dpm($result);
   
   if (empty($result) || count($result) == 0) {
     watchdog('nycc_og_email',
