@@ -159,7 +159,7 @@ function nycc_mandrill_send_email($to, $from_addr, $from_name='', $reply_to='', 
       );
       //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
 
-      $result = $mandrill->request('messages/send', array('message' => $message));
+      $result = $mandrill->messages->send($message);
       watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Result:<pre>' . print_r( $result, TRUE) . '</pre>');
   
     } catch (Mandrill_Error $e) {
