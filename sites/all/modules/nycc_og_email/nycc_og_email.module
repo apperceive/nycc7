@@ -196,7 +196,7 @@ function nycc_go_email_get_member_emails($grp_email, $member_type='all') {
 
 
 
-function nycc_og_email_get_group_info_by_email($grp_email) {
+function nycc_og_email_get_group_info_by_email($grp_email,  $member_type='all') {
   if (empty($grp_email)) {
     return null;
   }
@@ -217,7 +217,18 @@ EOS;
   $q = db_query($sql,  array(':email' => $grp_email));
   watchdog('nycc_email', 'nycc_og_email_get_group_info_by_email sql  returned @rows members of group with email @email',
            array('@rows' => $q->rowCount(), '@email' => $grp_email), WATCHDOG_NOTICE) ;
-  return $q;
+  
+  foreach($q as $records) {
+    dpm($records);
+    if( $member_type == 'all' || $member_type == $records->role_name) {
+      $emails[] = array(
+                        'email' => $records->mail,
+                        'name' => $records->realname,
+                        'type' => 'bcc'
+                        );
+    }
+  }
+  return $emails; 
 }
 
 function nycc_og_email_get_group_node_by_email($grp_email) {
