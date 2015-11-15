@@ -220,8 +220,9 @@ EOS;
   
   $emails = array();
   foreach($q as $records) {
-    if (($records->leader_email==$grp_email && (in_array($records->role_name, array('leader', 'captain')))) || ($records->grp_email==$grp_email)) {
-      dpm($records);
+    if (($records->leader_email==$grp_email && (in_array($records->role_name, array('leader', 'captain'))))
+        || ($records->grp_email==$grp_email)) {
+      
       $emails[] = array(
                         'email' => $records->mail,
                         'name' => $records->realname,
@@ -234,6 +235,7 @@ EOS;
               array('@name' => $records->realname), WATCHDOG_NOTICE) ;         
     }
   }
+  dpm($emails);
   return $emails; 
 }
 
