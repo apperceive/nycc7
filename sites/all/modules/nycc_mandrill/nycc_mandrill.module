@@ -65,7 +65,7 @@ function nycc_mandrill_get_msg_details($event) {
       'from_email' => $event->msg->from_email ?: '',
       'from_name' => $event->msg->from_name ?: '',
       'to_mail' => $event->msg->email ?: '',
-      'to_cc_list' => _nycc_email_get_recipients($event->msg) ?: '',      
+      'to_cc_list' => nycc_mandrill_get_recipients($event->msg) ?: '',      
       'subject' => $event->msg->subject ?: '',
       'html' => $event->msg->html ?: '',
       'text' => array('value' => $event->msg->text ?: '', ),      
