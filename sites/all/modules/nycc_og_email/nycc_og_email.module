@@ -224,7 +224,7 @@ EOS;
  
   $q = db_query($sql,  array(':gid' => $gid));
   watchdog('nycc_email', 'nycc_email_get_group_member_emails sql  returned @rows members of group with id @gid',
-           array('@rows' => rowCount(), '@gid' => $gid), WATCHDOG_NOTICE) ;
+           array('@rows' => $q->rowCount(), '@gid' => $gid), WATCHDOG_NOTICE) ;
   
   foreach($q as $records) {
     if (!in_array(strtolower($records->mail), $recipients)) {
