@@ -89,6 +89,7 @@ function nycc_og_email_group_email_callback() {
       if (! og_is_member('og_membership_type_default', $gid, 'user', $user)) {
         if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. <a href="/user/@username">@username</a> is not member of group with address: @grp_email.', 
                     array('@grp_email' => $args['to_mail'], '@username' => $user->name), WATCHDOG_WARNING) ;
+        
         nycc_mandrill_send_msg($args['from_email'], 
           variable_get('smtp_from', ''), 
           "Unable to process your Group Email sent to: " . $args['to_mail'] ,
@@ -108,6 +109,10 @@ function nycc_og_email_group_email_callback() {
         'name' => $args['to_mail'],
         'type' => 'to'
       );
+    
+    if ($email_debug ) watchdog('nycc_og_email',
+                    'Sending email to: <pre>@to</pre>', 
+                    array('@to' => $send_to), WATCHDOG_NOTICE) ;    
     nycc_mandrill_send_email(
                     $to = $send_to, 
                     $from_addr = $args['to_mail'], 
