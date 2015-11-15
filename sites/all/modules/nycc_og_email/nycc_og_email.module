@@ -50,9 +50,9 @@ function nycc_og_email_group_email_callback() {
   if ($email_debug ) watchdog('nycc_og_email', 'iterating through mandrill events', array(), WATCHDOG_NOTICE) ;
   //iterate through the messages
   foreach (json_decode($_POST['mandrill_events']) as $event) {
-    if ($email_debug) watchdog("nycc_og_email", '<pre>' . print_r( $event, TRUE) . '</pre>'); 
+    if ($email_debug) watchdog("nycc_og_email", 'Checking event: <pre>' . print_r( $event, TRUE) . '</pre>'); 
     $args = nycc_mandrill_get_msg_details($event);
-    
+    if ($email_debug) watchdog("nycc_og_email", 'Checking Args: <pre>' . print_r( $args, TRUE) . '</pre>'); 
     if ( ($args['to_mail'] == $args['from_email'])) {
       //prevent loopbacks
       if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. sender is same as recipient: @user_email to @grp_email.', 

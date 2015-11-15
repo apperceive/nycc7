@@ -57,7 +57,7 @@ function nycc_mandrill_get_recipients($msg = NULL) {
 
 
 
-function nycc_mandrill_get_msg_details($event = NULL) {
+function nycc_mandrill_get_msg_details($event) {
   //Parses the event for relevant fields
   if (isset($event)) {
     return array(
@@ -71,6 +71,8 @@ function nycc_mandrill_get_msg_details($event = NULL) {
       'raw_msg' => array('value' => $event->msg->raw_msg ?: '', ),
       'attachments' => $event->msg->attachments ?: '',
     );
+  } else {
+    watchdog('nycc_mandrill', "nycc_mandrill_get_msg_details received a null event", array(),  WATCHDOG_WARNING) ;  
   }
 }
 
