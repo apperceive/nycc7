@@ -185,7 +185,7 @@ function nycc_og_email_get_group_node_by_email($grp_email) {
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node');
   $query->entityCondition('bundle', 'group');
-  $query->fieldCondition('field_group_email', 'value', $grp_email,'=');
+  $query->fieldCondition('field_group_email', 'value', trim($grp_email),'=');
   $result = $query->execute();
   
   if (empty($result) || count($result) == 0) {
