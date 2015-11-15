@@ -219,8 +219,9 @@ EOS;
            array('@rows' => $q->rowCount(), '@email' => $grp_email), WATCHDOG_NOTICE) ;
   
   foreach($q as $records) {
-    dpm($records);
+    
     if( $member_type == 'all' || $member_type == $records->role_name) {
+      dpm($records);
       $emails[] = array(
                         'email' => $records->mail,
                         'name' => $records->realname,
