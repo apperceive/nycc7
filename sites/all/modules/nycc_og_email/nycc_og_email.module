@@ -188,6 +188,8 @@ function nycc_og_email_get_group_node_by_email($grp_email) {
   $query->fieldCondition('field_group_email', 'value', trim($grp_email),'=');
   $result = $query->execute();
   
+  watchdog("nycc_og_email", 'Checking event: <pre>' . print_r( $result, TRUE) . '</pre>'); 
+  
   if (empty($result) || count($result) == 0) {
     watchdog('nycc_og_email',
              'nycc_email_get_group_node_by_email could not find group with email address of: @grp_email' , 
