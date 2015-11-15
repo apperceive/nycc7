@@ -59,6 +59,7 @@ function nycc_mandrill_get_recipients($msg = NULL) {
 
 function nycc_mandrill_get_msg_details($event) {
   //Parses the event for relevant fields
+  if ($email_debug) watchdog("nycc_og_email", 'Checking event: <pre>' . print_r( $event, TRUE) . '</pre>'); 
   if (isset($event)) {
     return array(
       'from_email' => $event->msg->from_email ?: '',
