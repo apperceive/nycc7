@@ -176,6 +176,49 @@ function nycc_og_allows_external_email($group) {
   return property_exists($group,'field_group_accept_ext_email') &&  nycc_field_get_text_value($group->field_group_accept_ext_email);
 }
 
+function nycc_go_email_get_member_emails($grp_email, $member_type='all') {
+  $q = nycc_og_email_get_group_info_by_email($grp_email);
+  dpm($q);
+  if (!$q) {
+    return array();
+  }
+   foreach($q as $records) {
+    if( $member_type == 'all' || $member_type == $records->role_name) {
+      $emails[] = array(
+                        'email' => $records->mail,
+                        'name' => $records->realname,
+                        'type' => 'bcc'
+                        );
+    }
+  }
+  return $emails; 
+}
+
+
+
+function nycc_og_email_get_group_info_by_email($grp_email) {
+  if (empty($grp_email)) {
+    return null;
+  }
+  
+$sql = <<<EOS
+select m.gid as gid, m.state as grp_state, n.title as grp_name, n.nid, n.vid, r.name as role_name, u.name, rn.realname, u.mail, ge.field_group_email_value as grp_email, gle.field_group_leaders_email_value as leader_email
+from og_membership m 
+join node n on n.nid= m.gid
+join og_users_roles ur on m.etid=ur.uid
+join og_role r on r.rid=ur.rid
+join users u on u.uid=ur.uid
+join realname rn on u.uid=rn.uid
+LEFT join field_data_field_group_email ge on ge.entity_id=n.nid and ge.revision_id=n.vid 
+LEFT join field_data_field_group_leaders_email gle on gle.entity_id=n.nid and gle.revision_id=n.vid 
+where m.state=1  AND (ge.field_group_email_value=:email OR gle.field_group_leaders_email_value=:email)
+EOS;
+ 
+  $q = db_query($sql,  array(':email' => $grp_email));
+  watchdog('nycc_email', 'nycc_og_email_get_group_info_by_email sql  returned @rows members of group with email @email',
+           array('@rows' => $q->rowCount(), '@email' => $grp_email), WATCHDOG_NOTICE) ;
+  return $q;
+}
 
 function nycc_og_email_get_group_node_by_email($grp_email) {
   //returns the nid of a selected group if the email_alias matches the passed email address
