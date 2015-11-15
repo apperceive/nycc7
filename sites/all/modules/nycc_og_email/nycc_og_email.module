@@ -218,8 +218,9 @@ EOS;
   watchdog('nycc_email', 'nycc_og_email_get_group_info_by_email sql  returned @rows members of group with email @email',
            array('@rows' => $q->rowCount(), '@email' => $grp_email), WATCHDOG_NOTICE) ;
   
+  $emails = array();
   foreach($q as $records) {
-    if (($records->leader_email==$grp_email && $records->role_name=='leader') || ($records->grp_email==$grp_email)) {
+    if (($records->leader_email==$grp_email && (in_array($records->role_name, array('leader', 'captain')))) || ($records->grp_email==$grp_email)) {
       dpm($records);
       $emails[] = array(
                         'email' => $records->mail,
