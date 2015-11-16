@@ -192,7 +192,7 @@ EOS;
   switch ($query_type) {
     case "allow_external":
       foreach($q as $records) {
-        if($records->accept_external_email) {
+        if($records->accept_external_email==1) {
           return TRUE;
         } else {
           return FALSE;
@@ -216,7 +216,7 @@ EOS;
       foreach($q as $records) {
         if($records->accept_external_email==1 || $records->mail== $sender_email) return TRUE;
       }
-      return FLASE;
+      return FALSE;
       break;
     
     
