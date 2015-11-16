@@ -223,22 +223,19 @@ EOS;
     case "email_addresses":
       $emails = array();
       foreach($q as $records) {
-        if (!in_array(strtolower($records->mail), $recipients)){
+        if (($records->leader_email == $grp_email && (in_array($records->role_name, array('leader', 'captain'))))
+          || ($records->grp_email == $grp_email)) {
         
-          if (($records->leader_email == $grp_email && (in_array($records->role_name, array('leader', 'captain'))))
-            || ($records->grp_email == $grp_email)) {
-          
-            $emails[] = array(
-                            'email' => $records->mail,
-                            'name' => $records->realname,
-                            'type' => 'bcc'
-                            );
-          }
-          else {
-            watchdog('nycc_og_email',
-                 'nycc_og_email_get_group_info_by_email - skipping @name because is not leader' , 
-                  array('@name' => $records->realname), WATCHDOG_NOTICE) ;         
-          }
+          $emails[] = array(
+                          'email' => $records->mail,
+                          'name' => $records->realname,
+                          'type' => 'bcc'
+                          );
+        }
+        else {
+          watchdog('nycc_og_email',
+               'nycc_og_email_get_group_info_by_email - skipping @name because is not leader' , 
+                array('@name' => $records->realname), WATCHDOG_NOTICE) ;         
         }
       }
       return $emails;
