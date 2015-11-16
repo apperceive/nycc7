@@ -135,7 +135,9 @@ function nycc_og_email_get_group_member_emails($grp_email, $recipients = array()
         watchdog('nycc_og_email', 'nycc_og_email_get_group_member_emails - skipping ' . $addr['email'] . ' because it was in the recipient list', array(),  WATCHDOG_NOTICE) ;
       } 
     }
-  }  
+  } else {
+    dpm("no addresses returned");
+  }
   return $addresses;
 }
 
