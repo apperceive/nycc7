@@ -55,7 +55,7 @@ function nycc_mandrill_admin_settings_validate($form, &$form_state) {
 		try {
 			$mandrill = nycc_mandrill_get_api_object($form_state['values']['nycc_email_mandrill_api_key']);
 		} catch(Mandrill_Exception $e) {
-			form_set_error('nycc_mandrill_api_key', "Error connecting to Mandrill: " . print_r ($e->getMessage()));
+			form_set_error('nycc_mandrill_api_key', "Error connecting to Mandrill: " . $e->getMessage());
 		}	
 	} 
 }
