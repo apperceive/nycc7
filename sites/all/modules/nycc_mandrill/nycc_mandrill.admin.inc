@@ -24,7 +24,7 @@ function nycc_mandrill_admin() {
 
     try {
       $rows = array();
-      foreach (mandrill_get_api_object()->webhooks->getList() as $list) {
+      foreach (nycc_mandrill_get_api_object()->webhooks->getList() as $list) {
         $rows[] = array(
           $list['id'],
           $list['url'],
