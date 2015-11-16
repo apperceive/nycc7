@@ -176,7 +176,7 @@ function nycc_og_allows_external_email($group) {
   return property_exists($group,'field_group_accept_ext_email') &&  nycc_field_get_text_value($group->field_group_accept_ext_email);
 }
 
-function nycc_go_email_get_member_emails($grp_email, $member_type='all') {
+function nycc_go_email_get_member_emails($grp_email, $member_type='all', $recipients=array()) {
   $q = nycc_og_email_get_group_info_by_email($grp_email);
   dpm($q);
   if (!$q) {
@@ -237,23 +237,24 @@ EOS;
   
   $emails = array();
   foreach($q as $records) {
-    dpm($records);
-    if (($records->leader_email == $grp_email && (in_array($records->role_name, array('leader', 'captain'))))
+    if (!in_array(strtolower($records->mail), $recipients)){
+    
+      if (($records->leader_email == $grp_email && (in_array($records->role_name, array('leader', 'captain'))))
         || ($records->grp_email == $grp_email)) {
       
-      $emails[] = array(
+        $emails[] = array(
                         'email' => $records->mail,
                         'name' => $records->realname,
                         'type' => 'bcc'
                         );
-    }
-    else {
-      watchdog('nycc_og_email',
+      }
+      else {
+        watchdog('nycc_og_email',
              'nycc_og_email_get_group_info_by_email - skipping @name because is not leader' , 
               array('@name' => $records->realname), WATCHDOG_NOTICE) ;         
+      }
     }
   }
-  dpm($emails);
   return $emails; 
 }
 
