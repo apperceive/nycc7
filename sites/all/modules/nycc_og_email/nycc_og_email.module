@@ -159,7 +159,23 @@ function nycc_og_email_email_check_validate(&$form, &$form_state)  {
                   
     }   
     if ( ! valid_email_address( $form_state['values']['field_group_email']['und'][0]['value'])) {
-      form_set_error('field_group_email_alias', $form_state['values']['field_group_email']['und'][0]['value']
+      form_set_error('field_group_email', $form_state['values']['field_group_email']['und'][0]['value']
+      . " is not valid. Please enter a valid e-mail address.");
+    }
+  }
+  
+  if (strlen(trim($form_state['values']['field_group_leaders_email']['und'][0]['value'])) != 0) {
+                             
+
+    $mail = explode('@', $form_state['values']['field_group_leaders_email']['und'][0]['value']);
+    if ( strtolower( trim($mail[1]) != strtolower(trim(variable_get('nycc_og_email_group_domain_suffix', ''))))) {
+      form_set_error('field_group_leaders_email', 'Email addresses must end in ' . variable_get('nycc_og_email_group_domain_suffix' , '') 
+                  . '. Please visit <a href="' . url('/admin/settings/nycc_og_email', array('absolute' => TRUE)) 
+                  . '" target="_blank">Settings Page</a> to confirm your domain settings.');
+                  
+    }   
+    if ( ! valid_email_address( $form_state['values']['field_group_leaders_email']['und'][0]['value'])) {
+      form_set_error('field_group_leaders_email', $form_state['values']['field_group_leaders_email']['und'][0]['value']
       . " is not valid. Please enter a valid e-mail address.");
     }
   } 
