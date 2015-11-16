@@ -200,8 +200,10 @@ EOS;
     
     case "can_send":
       //if the group accepts external email then anyone can send
-      if ($q[0]->accept_external_email) return TRUE;
-      
+      if ($q[0]->accept_external_email) {
+        dpm(  $q[0]);
+        return TRUE;
+      }
       //if the sender email wasn't specified then return false
       if(!isset($sender_email)) {
         return FALSE;
