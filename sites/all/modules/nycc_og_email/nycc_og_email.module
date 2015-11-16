@@ -128,10 +128,9 @@ function nycc_og_email_get_group_member_emails($grp_email, $recipients = array()
   $addresses =  nycc_og_email_get_group_info_by_email($grp_email, 'email_addresses');
   
   foreach($addresses as $ndx => $addr) {
-    dpm($addr);
-    if (in_array(strtolower($addr['mail']), $recipients)) {
+    if (in_array(strtolower($addr['email']), $recipients)) {
       unset($addresses[$ndx]);
-      watchdog('nycc_og_email', 'nycc_og_email_get_group_member_emails - skipping ' . $addr['mail'] . ' because it was in the recipient list', array(), WATCHDOG_NOTICE) ;
+      watchdog('nycc_og_email', 'nycc_og_email_get_group_member_emails - skipping ' . $addr['email'] . ' because it was in the recipient list', array(), WATCHDOG_NOTICE) ;
     }
   }  
   return $addresses;
