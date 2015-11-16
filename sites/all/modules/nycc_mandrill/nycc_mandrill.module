@@ -266,6 +266,28 @@ function nycc_mandrill_get_api_object($key='') {
   	}
 }
 
+function nycc_mandrill_get_webhooks() {
+  $rows = array();
+  try {    
+    foreach (nycc_mandrill_get_api_object()->webhooks->getList() as $list) {
+      $rows[] = array(
+        $list['id'],
+        $list['url'],
+        $list['auth_key'],
+        isset($list['last_sent_at']) ? $list['last_sent_at'] : t('Never'),
+        $list['batches_sent'],
+        $list['events_sent'],
+        $list['description'],
+      );
+    }  
+  } catch (Mandrill_Exception $e) {
+    drupal_set_message(check_plain("Error connecting to Mandrill: " . $e->getMessage()));
+  }
+  return $rows;
+}
+//TEST FUNCTIONS
+
+//
 
 
 

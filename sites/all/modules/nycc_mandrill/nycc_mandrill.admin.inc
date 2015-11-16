@@ -20,39 +20,20 @@ function nycc_mandrill_admin() {
       '#suffix' => '</h2></div>', 
       '#value' => t('Webhook Status'),
     );  
-    $rows = array();
-
-    try {
-      $rows = array();
-      foreach (nycc_mandrill_get_api_object()->webhooks->getList() as $list) {
-        $rows[] = array(
-          $list['id'],
-          $list['url'],
-          $list['auth_key'],
-          isset($list['last_sent_at']) ? $list['last_sent_at'] : t('Never'),
-          $list['batches_sent'],
-          $list['events_sent'],
-          $list['description'],
-        );
-      }
-    
-      $header = array(
-        t('ID'),
-        t('URL'),
-        t('Auth Key'),
-        t('Last Successful'),
-        t('Batches Sent'),
-        t('Events Sent'),
-        t('Description'),
-      );
-    
-      $form['webhooks'] = array(
-        '#markup' => theme('table', array('header' => $header, 'rows' => $rows)),
-      );  
-    
-    } catch (Mandrill_Exception $e) {
-      drupal_set_message(check_plain("Error connecting to Mandrill: " . $e->getMessage()));
-    }
+    $rows = nycc_mandrill_get_webhooks();;
+    $header = array(
+      t('ID'),
+      t('URL'),
+      t('Auth Key'),
+      t('Last Successful'),
+      t('Batches Sent'),
+      t('Events Sent'),
+      t('Description'),
+    );
+  
+    $form['webhooks'] = array(
+      '#markup' => theme('table', array('header' => $header, 'rows' => $rows)),
+    ); 
   }
     //$form['#submit'][] = 'nycc_mandrill_admin_submit';
 
