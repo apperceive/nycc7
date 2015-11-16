@@ -1,5 +1,5 @@
 <?php
-require_once libraries_get_path('mandrill') . '/src/Mandrill.php';
+
 
 function nycc_og_email_menu() {
   $items = array();
