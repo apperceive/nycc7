@@ -191,28 +191,30 @@ EOS;
   
   switch ($query_type) {
     case "allow_external":
-      return $q[0]->accept_external_email;
+      foreach($q as $records) {
+        if($records->accept_external_email) {
+          return TRUE;
+        } else {
+          return FALSE;
+        }
+      }
       break;
       
     case "group_id":
-      return $q[0]->gid;
+      foreach($q as $records) {
+        return $records->gid;
+      }
       break;
     
     case "can_send":
-      //if the group accepts external email then anyone can send
-      dpm($q);
-      if ($q[0]->accept_external_email) {
-        dpm(  $q[0]);
-        return TRUE;
-      }
       //if the sender email wasn't specified then return false
       if(!isset($sender_email)) {
         return FALSE;
       }
-      
-      
+            
+      //if the group accepts external email then anyone can send
       foreach($q as $records) {
-        if($records->mail== $sender_email) return TRUE;
+        if($records->accept_external_email==1 || $records->mail== $sender_email) return TRUE;
       }
       return FLASE;
       break;
