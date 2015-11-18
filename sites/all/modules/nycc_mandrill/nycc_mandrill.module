@@ -206,7 +206,7 @@ function nycc_mandrill_send_email($message){
 function nycc_mandrill_get_webhooks() {
   $rows = array();
   try {    
-    foreach (nycc_mandrill_get_api_object()->webhooks->getList() as $list) {
+    foreach (mandrill_get_webhooks() as $list) {
       $rows[] = array(
         $list['id'],
         $list['url'],
