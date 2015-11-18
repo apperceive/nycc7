@@ -156,7 +156,7 @@ function nycc_mandrill_send_msg($to, $from, $subject, $body) {
         'attachments' => array(),
         'images' => array()
   );
-  nycc_mandrill_send_email( $message);
+  return nycc_mandrill_send_email( $message);
 }
 function nycc_mandrill_send_email($message){
   //used to send an email directly using Mandrill API
@@ -164,7 +164,7 @@ function nycc_mandrill_send_email($message){
   try {
     //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
     $response = mandrill_mailsend( $message, 'mandrill_sender_plain');
-    $response = $mandrill->messages_send($message);
+    //$response = $mandrill->messages_send($message);
 
     watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Result:<pre>' . print_r( $response, TRUE) . '</pre>');
     return TRUE;
