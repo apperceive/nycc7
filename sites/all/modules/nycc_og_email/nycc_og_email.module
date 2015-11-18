@@ -239,7 +239,7 @@ EOS;
     case "email_addresses":
       $emails = array();
         watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Returning email addresses for Group: @email.',
-           array( '@mail' => $records->mail), WATCHDOG_NOTICE) ;       
+           array( '@mail' => $grp_email), WATCHDOG_NOTICE) ;       
       foreach($q as $records) {
         //If email was sent to leaders then check if member is leader or captain. Otherwise, if email was sent to group address then return the member address
         if (($records->leader_email == $grp_email && (in_array($records->role_name, array('leader', 'captain'))))
