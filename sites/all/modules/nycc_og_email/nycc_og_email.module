@@ -83,34 +83,33 @@ function nycc_og_email_group_email_callback() {
             "Hello, We are unable to process your request to email this group because you are not a member of this group. If you feel you're receiving this message in error, please contact the group captain.");                      
       return;      
     }
-    
-      
-    $send_to = nycc_og_email_get_group_member_emails($gid, $args['to_cc_list']);
-    $send_to[] = array(
-        'email' => $args['to_mail'],
-        'name' => $args['to_mail'],
-        'type' => 'to'
-      );
-    
+
     watchdog('nycc_og_email',
-                    'Sending email to: <pre>@to</pre>', 
-                    array('@to' => print_r($send_to, TRUE) ), WATCHDOG_NOTICE) ;    
-    if(! nycc_mandrill_send_email (
-                    $to = $send_to, 
-                    $from_addr = $args['to_mail'], 
-                    $from_name = $args['from_name'] . ' (via ' . variable_get('nycc_og_email_signing_domain', '') . ')',
-                    $reply_to = $args['from_email'],
-                    $subject = $args['subject'], 
-                    $body = $args['html'], 
-                    $attachments = $args['attachments'],
-                    $tracking_domain = variable_get('nycc_og_email_tracking_domain', ''),
-                    $signing_domain = variable_get('nycc_og_email_signing_domain', ''),
-                    $headers = array(),
-                    $images = $args['images']
-                    )) {
+                    'Sending email with subject @subject to: <pre>@to</pre>', 
+                    array('@to' => print_r($send_to, TRUE), '@subject' => $args['subject']), WATCHDOG_NOTICE) ;
+    $message = array(
+          'html' => $args['html'], 
+          'subject' => $args['subject'],
+          'from_email' => $args['to_mail'],
+          'from_name' => $args['from_name'] . ' (via ' . variable_get('nycc_og_email_signing_domain', '') . ')',
+          'to' => nycc_og_email_get_group_member_emails($gid, $args['to_cc_list']),
+          'headers' => array('Reply-To' => $from) ,
+          'track_opens' => TRUE,
+          'track_clicks' => TRUE,
+          'auto_text' => TRUE,
+          'auto_html' => TRUE,
+          'url_strip_qs' => TRUE,
+          'preserve_recipients' => TRUE,
+          'view_content_link' => TRUE,
+          'tracking_domain' => variable_get('nycc_mandrill_tracking_domain', 'nycc.org'),
+          'signing_domain' =>  variable_get('nycc_mandrill_signing_domain', 'nycc.org'),
+          'attachments' => $args['attachments'],
+          'images' => $args['images']
+    );    
+    if(! nycc_mandrill_send_email ($message )) {
       watchdog('nycc_og_email',
-                    'Error sedning email to: <pre>@to</pre>', 
-                    array('@to' => print_r($send_to, TRUE) ), WATCHDOG_WARNING) ;    
+                    'Error sedning email with subject @subject to: <pre>@to</pre>', 
+                    array('@to' => print_r($send_to, TRUE), '@subject' => $args['subject'] ), WATCHDOG_WARNING) ;    
     }
   } // end for each
 }
