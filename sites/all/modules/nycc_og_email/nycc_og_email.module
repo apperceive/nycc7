@@ -195,7 +195,11 @@ EOS;
   
   switch ($query_type) {
     case "allow_external":
+      watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - checking if group: @email accepts external emails',
+           array('@email' => $grp_email), WATCHDOG_NOTICE) ;
       foreach($q as $records) {
+        watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - checking if group: @email accepts external emails. Value of accept_external_email is:@val',
+           array('@email' => $grp_email, '@val' => $records->accept_external_email), WATCHDOG_NOTICE) ;
         if($records->accept_external_email==1) {
           return TRUE;
         } else {
@@ -205,12 +209,18 @@ EOS;
       break;
       
     case "group_id":
+      watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Returning GID for group: @email',
+           array('@email' => $grp_email), WATCHDOG_NOTICE) ;      
       foreach($q as $records) {
+        watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email -  GID for group: @email is : @gid',
+           array('@email' => $grp_email, '@gid' => $records->gid), WATCHDOG_NOTICE) ;         
         return $records->gid;
       }
       break;
     
     case "can_send":
+      watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Checking if user @user can email group: @email',
+           array('@user' => $sender_email, '@email' => $grp_email), WATCHDOG_NOTICE) ;        
       //if the sender email wasn't specified then return false
       if(!isset($sender_email)) {
         return FALSE;
@@ -218,6 +228,8 @@ EOS;
             
       //if the group accepts external email then anyone can send
       foreach($q as $records) {
+        watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - accept_external_email is: @allow and member email is: @mail',
+           array('@allow' => $records->accept_external_email, '@mail' => $records->mail), WATCHDOG_NOTICE) ; 
         if($records->accept_external_email==1 || $records->mail== $sender_email) return TRUE;
       }
       return FALSE;
@@ -226,7 +238,10 @@ EOS;
     
     case "email_addresses":
       $emails = array();
+        watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Returning email addresses for Group: @email.',
+           array( '@mail' => $records->mail), WATCHDOG_NOTICE) ;       
       foreach($q as $records) {
+        //If email was sent to leaders then check if member is leader or captain. Otherwise, if email was sent to group address then return the member address
         if (($records->leader_email == $grp_email && (in_array($records->role_name, array('leader', 'captain'))))
           || ($records->grp_email == $grp_email)) {
         
