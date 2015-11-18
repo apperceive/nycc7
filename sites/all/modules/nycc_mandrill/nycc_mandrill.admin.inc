@@ -7,14 +7,18 @@ function nycc_mandrill_admin() {
     '#title' => t('Write debug messages to Database Log'),
     '#default_value' => variable_get('nycc_mandrill_debug_to_log', '')
   );
-	$key = variable_get('nycc_mandrill_api_key', '');
-  	$form['nycc_mandrill_api_key'] = array(
-		'#title' => t('Mandrill API Key'),
+  $form['nycc_mandrill_signing_domain'] = array(
+		'#title' => t('Signing Domain'),
 		'#type' => 'textfield',
-		'#description' => t('Create or grab your API key from the !link.',
-	  		array('!link' => l('Mandrill settings', 'https://mandrillapp.com/settings/index'))),
-		'#default_value' => $key
+		'#description' => t('Domain to be used to sign mesages'),
+		'#default_value' => variable_get('nycc_mandrill_signing_domain', 'nycc.org')
   	);
+  $form['nycc_mandrill_tracking_domain'] = array(
+		'#title' => t('Signing Domain'),
+		'#type' => 'textfield',
+		'#description' => t('Domain to be used to track mesages'),
+		'#default_value' => variable_get('nycc_mandrill_tracking_domain', 'nycc.org')
+  	);  
   $key = variable_get('nycc_mandrill_api_key', '');
   
   if (empty($key)) {

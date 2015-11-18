@@ -137,31 +137,13 @@ function nycc_mandrill_generate_signature($url, $webhook_key, $params) {
 
 
 function nycc_mandrill_send_msg($to, $from, $subject, $body) {
-  nycc_mandrill_send_email(array($to), $from, $from, $from, $subject, $body);
-}
-function nycc_mandrill_send_email(
-                                  $to,
-                                  $from_addr,
-                                  $from_name='',
-                                  $reply_to='',
-                                  $subject, $body,
-                                  $attachments=array(),
-                                  $tracking_domain='',
-                                  $signing_domain='',
-                                  $headers=array(),
-                                  $images=array()) {
-  //used to send an email directly using Mandrill API
-  if (count($to)) {
-    try {
-      
-      $mandrill = nycc_mandrill_get_api_object();
-      $message = array(
+  $message = array(
         'html' => '<p>' . $body . '</p>', 
         'subject' => $subject,
-        'from_email' => $from_addr,
-        'from_name' => $from_name,
-        'to' => $to,
-        'headers' => (!empty($headers)) ? $headers :array('Reply-To' => $reply_to) ,
+        'from_email' => isset($from) ? $from : variable_get('mandrill_from', ''),
+        'from_name' => isset($from) ? $from : variable_get('mandrill_from_name', variable_get('site_name')),
+        'to' =>mandrill_get_to($to),
+        'headers' => array('Reply-To' => $from) ,
         'track_opens' => TRUE,
         'track_clicks' => TRUE,
         'auto_text' => TRUE,
@@ -169,104 +151,57 @@ function nycc_mandrill_send_email(
         'url_strip_qs' => TRUE,
         'preserve_recipients' => TRUE,
         'view_content_link' => TRUE,
-        'tracking_domain' => $tracking_domain,
-        'signing_domain' =>  $signing_domain,
-        'attachments' => $attachments,
-        'images' => $images
-      );
-      //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
+        'tracking_domain' => variable_get('nycc_mandrill_tracking_domain', 'nycc.org'),
+        'signing_domain' =>  variable_get('nycc_mandrill_signing_domain', 'nycc.org'),
+        'attachments' => array(),
+        'images' => array()
+  );
+  nycc_mandrill_send_email( $message);
+}
+function nycc_mandrill_send_email($message){
+  //used to send an email directly using Mandrill API
 
-      $response = $mandrill->messages_send($message);
+  try {
+    //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
+    $response = mandrill_mailsend( $message, 'mandrill_sender_plain');
+    $response = $mandrill->messages_send($message);
 
-      if (!isset($response['status'])) {
-        foreach ($response as $result) {
-
-          switch ($result['status']) {
-            case "error":
-            case "invalid":
-            case "rejected":
-              $to = isset($result['email']) ? $result['email'] : 'recipient';
-              $status = isset($result['status']) ? $result['status'] : 'message';
-              $error_message = isset($result['message']) ? $result['message'] : 'no message';
-              $debug = print_r($result, TRUE);
-              watchdog('mandrill', 'Failed sending email from %from to %to. @status: @message <pre>@debug</pre>',
-                array(
-                  '%from' => $message['from_email'],
-                  '%to' => $to,
-                  '@status' => $status,
-                  '@message' => $error_message,
-                  '@debug' => $debug,
-                ),
-                WATCHDOG_ERROR
-              );
-            return FALSE;
-  
-            case "queued":
-              watchdog('mandrill', 'Email from %from to %to queued by Mandrill App.',
-                array(
-                  '%from' => $message['from_email'],
-                  '%to' => $result['email'],
-                ),
-                WATCHDOG_INFO
-              );
-              break;
-          }
-        }
-      }
-      else {
-        watchdog('mandrill', 'Mail send failed with status %status: code %code, %name, %message',
-          array(
-            '%status' => $response['status'],
-            '%code' => $response['code'],
-            '%name' => $response['name'],
-            '%message' => $response['message'],
-          ),
-          WATCHDOG_WARNING
-        );
-        return FALSE;
-      }
-      watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Result:<pre>' . print_r( $response, TRUE) . '</pre>');
-      return TRUE;
-    }      
-    catch (Mandrill_Error $e) {
-        watchdog('nycc_mandrill', "nycc_mandrill_send_email - Error: @class - @msg", 
-            array('@class' => get_class($e), '@msg' => $e->getMessage()), WATCHDOG_WARNING) ;
-      throw $e;
-    }     
-  }
-  else {
-    //if no values are in $to
-        watchdog('nycc_mandrill', "nycc_mandrill_send_email - Error: no to addresses specified", 
-            array(), WATCHDOG_WARNING) ;    
-  }
+    watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Result:<pre>' . print_r( $response, TRUE) . '</pre>');
+    return TRUE;
+  }      
+  catch (Mandrill_Error $e) {
+      watchdog('nycc_mandrill', "nycc_mandrill_send_email - Error: @class - @msg", 
+          array('@class' => get_class($e), '@msg' => $e->getMessage()), WATCHDOG_WARNING) ;
+    throw $e;
+  } 
 }
 
-
-function nycc_mandrill_get_api_object($key='') {
-	if (empty($key)) {
-		$api_key = variable_get('nycc_mandrill_api_key', '');
-	} else {
-		$api_key = $key;
-	}
-	if (empty($api_key)) {
-		//drupal_set_message("Please specify a valid API key.");
-		watchdog('nycc_mandrill', "nycc_mandrill_get_api_object: Unable to connect to Mandrill. API KEY is empty", array(),  WATCHDOG_WARNING) ;	
-  	}
-  	try {
-	  	require_once('mandrill.class.php');
-		$m = new Mandrill($api_key, 60);
-		if (isset($m)) {
-			if ($email_debug ) watchdog('nycc_email', 'Successfully connected to Mandrill', array(), WATCHDOG_NOTICE) ;	
-			return $m;
-		} else {
-			watchdog('nycc_email', "nycc_mandrill_get_api_object: Unable to connect to Mandrill", array(), WATCHDOG_WARNING) ;	
-  			throw $e;  		
-		}  	
-  	} catch(Mandrill_Exception $e) {
-  		watchdog('nycc_email', "nycc_mandrill_get_api_object: Unable to connect to Mandrill: " . $e->getMessage(), array(), WATCHDOG_WARNING) ;
-  		throw $e;	
-  	}
-}
+//
+//function nycc_mandrill_get_api_object($key='') {
+//	if (empty($key)) {
+//		$api_key = variable_get('nycc_mandrill_api_key', '');
+//	} else {
+//		$api_key = $key;
+//	}
+//	if (empty($api_key)) {
+//		//drupal_set_message("Please specify a valid API key.");
+//		watchdog('nycc_mandrill', "nycc_mandrill_get_api_object: Unable to connect to Mandrill. API KEY is empty", array(),  WATCHDOG_WARNING) ;	
+//  	}
+//  	try {
+//	  	require_once('mandrill.class.php');
+//		$m = new Mandrill($api_key, 60);
+//		if (isset($m)) {
+//			if ($email_debug ) watchdog('nycc_email', 'Successfully connected to Mandrill', array(), WATCHDOG_NOTICE) ;	
+//			return $m;
+//		} else {
+//			watchdog('nycc_email', "nycc_mandrill_get_api_object: Unable to connect to Mandrill", array(), WATCHDOG_WARNING) ;	
+//  			throw $e;  		
+//		}  	
+//  	} catch(Mandrill_Exception $e) {
+//  		watchdog('nycc_email', "nycc_mandrill_get_api_object: Unable to connect to Mandrill: " . $e->getMessage(), array(), WATCHDOG_WARNING) ;
+//  		throw $e;	
+//  	}
+//}
 
 function nycc_mandrill_get_webhooks() {
   $rows = array();

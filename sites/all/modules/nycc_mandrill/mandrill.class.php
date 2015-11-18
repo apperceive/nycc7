@@ -86,9 +86,8 @@ class Mandrill {
       return $body;
     }
     else {
-      dpm($body);
       $message = isset($body['message']) ? $body['message'] : '';
-      throw new Mandrill_Exception($message . ' - ' . $body, $response_code);
+      throw new Mandrill_Exception($message . ' - ' . $response->data, $response_code);
     }
   }
 
