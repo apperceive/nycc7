@@ -149,7 +149,7 @@ function nycc_og_email_get_group_info_by_email($grp_email, $query_type, $sender_
     return null;
   }
   
-  $user_email = (isset($sender_email)) ? $sender_email : '%';
+  //$user_email = (isset($sender_email)) ? $sender_email : '%';
   
 $sql = <<<EOS
 select
@@ -176,12 +176,14 @@ from og_membership m
   LEFT join field_data_field_group_accept_ext_email ae on ae.entity_id=n.nid and ae.revision_id=n.vid 
 where
   m.state=1
-  and (u.mail like ':user_email' OR field_group_accept_ext_email_value=1)
+  
   AND (
     ge.field_group_email_value=:email
     OR gle.field_group_leaders_email_value=:email
   ) 
 EOS;
+ //and (u.mail like ':user_email' OR field_group_accept_ext_email_value=1)
+ 
  
   $q = db_query($sql,  array(':email' => $grp_email, ':user_email' => $user_email));
   
