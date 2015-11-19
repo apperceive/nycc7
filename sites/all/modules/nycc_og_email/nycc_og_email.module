@@ -185,8 +185,8 @@ EOS;
  //and (u.mail like ':user_email' OR field_group_accept_ext_email_value=1)
  
  
-  $q = db_query($sql,  array(':email' => $grp_email, ':user_email' => $user_email));
-  
+  //$q = db_query($sql,  array(':email' => $grp_email, ':user_email' => $user_email));
+  $q = db_query($sql,  array(':email' => $grp_email));
   
   if($q->rowCount() ==0) {
     watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email sql  returned no data of group with email @email',
@@ -206,6 +206,8 @@ EOS;
            array('@email' => $grp_email, '@val' => $records->accept_external_email), WATCHDOG_NOTICE) ;
         if($records->accept_external_email==1) {
           return TRUE;
+        } else {
+          return FALSE;
         }
       }
       return FALSE;
