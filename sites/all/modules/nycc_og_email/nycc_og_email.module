@@ -178,10 +178,11 @@ from og_membership m
   LEFT join field_data_field_group_accept_ext_email ae on ae.entity_id=n.nid and ae.revision_id=n.vid 
 where
   m.state=1
+  and u.mail like ':user_email'
   AND (
     ge.field_group_email_value=:email
     OR gle.field_group_leaders_email_value=:email
-  ) and u.mail like:user_email
+  ) 
 EOS;
  
   $q = db_query($sql,  array(':email' => $grp_email, ':user_email' => $user_email));
