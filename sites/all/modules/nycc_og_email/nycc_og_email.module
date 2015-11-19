@@ -149,6 +149,10 @@ function nycc_og_email_get_group_info_by_email($grp_email, $query_type, $sender_
     return null;
   }
   
+  if(!isset($sender_email)) {
+    $user_email='%';
+  }
+  
 $sql = <<<EOS
 select
   m.gid as gid,
@@ -177,11 +181,10 @@ where
   AND (
     ge.field_group_email_value=:email
     OR gle.field_group_leaders_email_value=:email
-  )
+  ) and u.mail like:user_email
 EOS;
  
-  $q = db_query($sql,  array(':email' => $grp_email));
-  
+  $q = db_query($sql,  array(':email' => $grp_email, ':user_email' => $user_email));
   
   
   if($q->rowCount() ==0) {
@@ -202,10 +205,9 @@ EOS;
            array('@email' => $grp_email, '@val' => $records->accept_external_email), WATCHDOG_NOTICE) ;
         if($records->accept_external_email==1) {
           return TRUE;
-        } else {
-          return FALSE;
         }
       }
+      return FALSE;
       break;
       
     case "group_id":
@@ -216,6 +218,7 @@ EOS;
            array('@email' => $grp_email, '@gid' => $records->gid), WATCHDOG_NOTICE) ;         
         return $records->gid;
       }
+      return NULL;
       break;
     
     case "can_send":
