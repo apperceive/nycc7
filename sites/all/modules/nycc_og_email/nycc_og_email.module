@@ -85,7 +85,7 @@ function nycc_og_email_group_email_callback() {
       return;      
     }
     
-    $send_to = nycc_og_email_get_group_member_emails($gid, $args['to_cc_list']);
+    $send_to = nycc_og_email_get_group_member_emails($args['to_mail'], $args['to_cc_list']);
 
     watchdog('nycc_og_email',
                     'Sending email with subject @subject to: <pre>@to</pre>', 
