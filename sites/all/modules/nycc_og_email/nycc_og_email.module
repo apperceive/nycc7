@@ -34,11 +34,12 @@ function nycc_og_email_permission() {
     );
 }
 function nycc_og_email_group_email_callback() {
-  if (variable_get('nycc_og_email_debug_to_log', '1') == 1)
+  if (variable_get('nycc_og_email_debug_to_log', '1') == 1) {
     $email_debug = TRUE;
-  else
+  }
+  else {
     $email_debug = FALSE;
-  
+  }
 
   if (! nycc_mandrill_signature_is_valid('nycc_og_email/inbound', $_POST)) {
     if ($email_debug ) watchdog('nycc_og_email', 'Invalid signature detected. Message will be discarded.', array(), WATCHDOG_NOTICE) ;
@@ -59,11 +60,12 @@ function nycc_og_email_group_email_callback() {
       return;
     }
     
-    $grp_members = nycc_og_email_get_group_info_by_email($args['to_mail']);
+    $grp_members = nycc_og_email_get_group_node_by_email($args['to_mail']);
       
     if (!isset($grp_members)) {
-      if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. Could not find group with email address: @grp_email', 
-                        array('@grp_email' => $args['to_mail']), WATCHDOG_WARNING) ;
+      if ($email_debug ) watchdog('nycc_og_email',
+                                  'Dicarding message. Could not find group with email address: @grp_email', 
+                                  array('@grp_email' => $args['to_mail']), WATCHDOG_WARNING) ;
                         
       nycc_mandrill_send_msg($args['from_email'], 
               variable_get('smtp_from', ''), 
