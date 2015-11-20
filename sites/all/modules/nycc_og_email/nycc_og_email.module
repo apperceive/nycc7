@@ -253,12 +253,16 @@ EOS;
         //If email was sent to leaders then check if member is leader or captain. Otherwise, if email was sent to group address then return the member address
         if (($records->leader_email == $grp_email && (in_array($records->role_name, array('leader', 'captain'))))
           || ($records->grp_email == $grp_email)) {
-        
-          $emails[] = array(
+          
+          $to_insert = array(
                           'email' => $records->mail,
                           'name' => $records->realname,
                           'type' => 'bcc'
                           );
+          
+          if (!in_array($to_insert, $emails)) {
+            $emails[] =   $to_insert;
+          }
         }
         else {
           watchdog('nycc_og_email',
