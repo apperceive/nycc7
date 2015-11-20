@@ -70,8 +70,7 @@ function nycc_og_email_group_email_callback() {
       nycc_mandrill_send_msg($args['from_email'], 
               variable_get('smtp_from', ''), 
               "Unable to process your Group Email sent to: " . $args['to_mail'] ,
-              "Hello, We are unable to process your request to email this group because we could not find a group with that email address. If you feel you're receiving this message in error, please contact the group captain.");                
-
+              "Hello, We are unable to process your request to email this group because we could not find a group with that email address. If you feel you're receiving this message in error, please contact the group captain.");
       return;
     }
     
@@ -85,6 +84,8 @@ function nycc_og_email_group_email_callback() {
             "Hello, We are unable to process your request to email this group because you are not a member of this group. If you feel you're receiving this message in error, please contact the group captain.");                      
       return;      
     }
+    
+    $send_to = nycc_og_email_get_group_member_emails($gid, $args['to_cc_list']);
 
     watchdog('nycc_og_email',
                     'Sending email with subject @subject to: <pre>@to</pre>', 
@@ -94,7 +95,7 @@ function nycc_og_email_group_email_callback() {
           'subject' => $args['subject'],
           'from_email' => $args['to_mail'],
           'from_name' => $args['from_name'] . ' (via ' . variable_get('nycc_og_email_signing_domain', '') . ')',
-          'to' => nycc_og_email_get_group_member_emails($gid, $args['to_cc_list']),
+          'to' => $send_to,
           'headers' => array('Reply-To' => $from) ,
           'track_opens' => TRUE,
           'track_clicks' => TRUE,
