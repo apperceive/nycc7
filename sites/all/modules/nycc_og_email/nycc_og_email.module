@@ -132,7 +132,8 @@ function nycc_og_email_get_group_member_emails($grp_email, $recipients = array()
   
   if(!empty($addresses)) {
     foreach($addresses as $ndx => $addr) {
-      if (in_array(strtolower($addr['email']), $recipients)) {
+      if( ( ! (strcasecmp($grp_email, $addr['email'])))
+         && (in_array(strtolower($addr['email']), $recipients))) {
         unset($addresses[$ndx]);
         watchdog('nycc_og_email', 'nycc_og_email_get_group_member_emails - skipping ' . $addr['email'] . ' because it was in the recipient list', array(),  WATCHDOG_NOTICE) ;
       } 
@@ -291,6 +292,8 @@ EOS;
           }
         }
       }
+      
+      
       $to_add = array(
                           'email' => $grp_email,
                           'name' => $grp_email,
