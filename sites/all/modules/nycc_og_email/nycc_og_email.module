@@ -250,24 +250,39 @@ EOS;
         watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Returning email addresses for Group: @email.',
            array( '@email' => $grp_email), WATCHDOG_NOTICE) ;       
       foreach($q as $records) {
-        //If email was sent to leaders then check if member is leader or captain. Otherwise, if email was sent to group address then return the member address
-        if (($records->leader_email == $grp_email && (in_array($records->role_name, array('leader', 'captain'))))
-          || ($records->grp_email == $grp_email)) {
-          
-          $to_insert = array(
+        $to_insert = array(
                           'email' => $records->mail,
                           'name' => $records->realname,
                           'type' => 'bcc'
-                          );
+                          );           
+        //If email was sent to leaders then check if member is leader or captain. Otherwise, if email was sent to group address then return the member address
+        if ($records->leader_email == $grp_email) {
+          watchdog('nycc_og_email',
+                   'nycc_og_email_get_group_info_by_email - @email is leader address. Checking if member @user is a leader or captain',
+           array( '@email' => $grp_email, '@user' => $records->user_name), WATCHDOG_NOTICE) ;
+          
+          if (in_array($records->role_name, array('leader', 'captain'))) {
+            watchdog('nycc_og_email',
+                     'nycc_og_email_get_group_info_by_email - @user is a leader or captain in group @group',
+                     array( '@group' => $records->grp_name, '@user' => $records->user_name), WATCHDOG_NOTICE) ;
+            if (!in_array($to_insert, $emails)) {
+              $emails[] =   $to_insert;
+            }                     
+          }
+          else {
+            watchdog('nycc_og_email',
+                     'nycc_og_email_get_group_info_by_email - Skipping @user. Not leader or captain in group @group',
+                     array( '@group' => $records->grp_name, '@user' => $records->user_name), WATCHDOG_NOTICE) ;            
+          }
+        }
+        elseif ($records->grp_email == $grp_email) {
+          watchdog('nycc_og_email',
+                   'nycc_og_email_get_group_info_by_email - @email is group address. adding @user to email',
+                   array( '@email' => $grp_email, '@user' => $records->user_name), WATCHDOG_NOTICE) ;          
           
           if (!in_array($to_insert, $emails)) {
             $emails[] =   $to_insert;
           }
-        }
-        else {
-          watchdog('nycc_og_email',
-               'nycc_og_email_get_group_info_by_email - skipping @name because is not leader' , 
-                array('@name' => $records->realname), WATCHDOG_NOTICE) ;         
         }
       }
       return $emails;
