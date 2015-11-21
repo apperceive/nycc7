@@ -148,6 +148,7 @@ function nycc_og_email_allows_external_email($grp_email) {
 }
 
 function nycc_og_email_get_group_info_by_email($grp_email, $query_type, $sender_email=NULL) {
+  $debug = 1;
   if (empty($grp_email)) {
     return null;
   }
@@ -205,7 +206,7 @@ EOS;
       watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - checking if group: @email accepts external emails',
            array('@email' => $grp_email), WATCHDOG_NOTICE) ;
       foreach($q as $records) {
-        watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - checking if group: @email accepts external emails. Value of accept_external_email is:@val',
+      if ($debug >1)  watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - checking if group: @email accepts external emails. Value of accept_external_email is:@val',
            array('@email' => $grp_email, '@val' => $records->accept_external_email), WATCHDOG_NOTICE) ;
         if($records->accept_external_email==1) {
           return TRUE;
@@ -217,10 +218,10 @@ EOS;
       break;
       
     case "group_id":
-      watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Returning GID for group: @email',
+      if ($debug >1) watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Returning GID for group: @email',
            array('@email' => $grp_email), WATCHDOG_NOTICE) ;      
       foreach($q as $records) {
-        watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email -  GID for group: @email is : @gid',
+        if ($debug >1) watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email -  GID for group: @email is : @gid',
            array('@email' => $grp_email, '@gid' => $records->gid), WATCHDOG_NOTICE) ;         
         return $records->gid;
       }
@@ -228,7 +229,7 @@ EOS;
       break;
     
     case "can_send":
-      watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Checking if user @user can email group: @email',
+      if ($debug >1) watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Checking if user @user can email group: @email',
            array('@user' => $sender_email, '@email' => $grp_email), WATCHDOG_NOTICE) ;        
       //if the sender email wasn't specified then return false
       if(!isset($sender_email)) {
@@ -237,7 +238,7 @@ EOS;
             
       //if the group accepts external email then anyone can send
       foreach($q as $records) {
-        watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - accept_external_email is: @allow and member email is: @mail',
+        if ($debug >1) watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - accept_external_email is: @allow and member email is: @mail',
            array('@allow' => $records->accept_external_email, '@mail' => $records->mail), WATCHDOG_NOTICE) ; 
         if($records->accept_external_email==1 || $records->mail== $sender_email) return TRUE;
       }
@@ -247,7 +248,7 @@ EOS;
     
     case "email_addresses":
       $emails = array();
-        watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Returning email addresses for Group: @email.',
+        if ($debug >1) watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - Returning email addresses for Group: @email.',
            array( '@email' => $grp_email), WATCHDOG_NOTICE) ;       
       foreach($q as $records) {
         $to_insert = array(
@@ -257,29 +258,31 @@ EOS;
                           );           
         //If email was sent to leaders then check if member is leader or captain. Otherwise, if email was sent to group address then return the member address
         if ($records->leader_email == $grp_email) {
-          watchdog('nycc_og_email',
+          if ($debug >1) watchdog('nycc_og_email',
                    'nycc_og_email_get_group_info_by_email - @email is leader address. Checking if member @user is a leader or captain',
            array( '@email' => $grp_email, '@user' => $records->user_name), WATCHDOG_NOTICE) ;
           
           if (in_array($records->role_name, array('leader', 'captain'))) {
-            watchdog('nycc_og_email',
+            if ($debug >1) watchdog('nycc_og_email',
                      'nycc_og_email_get_group_info_by_email - @user is a leader or captain in group @group',
                      array( '@group' => $records->grp_name, '@user' => $records->user_name), WATCHDOG_NOTICE) ;
-            watchdog('nycc_og_email',
+            
+            if ($debug >1) watchdog('nycc_og_email',
                      'nycc_og_email_get_group_info_by_email - <pre>@record</pre>',
-                     array( '@record' => print_r($records, TRUE)), WATCHDOG_NOTICE) ;            
+                     array( '@record' => print_r($records, TRUE)), WATCHDOG_NOTICE) ;
+            
             if (!in_array($to_insert, $emails)) {
               $emails[] =   $to_insert;
             }                     
           }
           else {
-            watchdog('nycc_og_email',
+            if ($debug >1) watchdog('nycc_og_email',
                      'nycc_og_email_get_group_info_by_email - Skipping @user. Not leader or captain in group @group',
                      array( '@group' => $records->grp_name, '@user' => $records->user_name), WATCHDOG_NOTICE) ;            
           }
         }
         elseif ($records->grp_email == $grp_email) {
-          watchdog('nycc_og_email',
+          if ($debug >1) watchdog('nycc_og_email',
                    'nycc_og_email_get_group_info_by_email - @email is group address. adding @user to email',
                    array( '@email' => $grp_email, '@user' => $records->user_name), WATCHDOG_NOTICE) ;          
           
