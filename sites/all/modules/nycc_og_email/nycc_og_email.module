@@ -295,13 +295,13 @@ EOS;
       
       
       $to_add = array(
-                          'email' => $grp_email,
-                          'name' => $grp_email,
-                          'type' => 'to'
-                          );
-      watchdog('nycc_og_email',
-                     'nycc_og_email_get_group_info_by_email - Adding <pre>@record</pre>',
-                     array( '@record' => print_r($to_add, TRUE)), WATCHDOG_NOTICE) ;
+                      'email' => $grp_email,
+                      'name' => $grp_email,
+                      'type' => 'to'
+                      );
+      //watchdog('nycc_og_email',
+      //               'nycc_og_email_get_group_info_by_email - Adding <pre>@record</pre>',
+      //               array( '@record' => print_r($to_add, TRUE)), WATCHDOG_NOTICE) ;
       $emails[] =$to_add;
       return $emails;
     

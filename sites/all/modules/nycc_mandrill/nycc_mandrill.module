@@ -73,10 +73,10 @@ function nycc_mandrill_get_msg_details($event) {
       'html' => $event->msg->html ?: '',
       'text' => array('value' => $event->msg->text ?: '', ),      
       'raw_msg' => array('value' => $event->msg->raw_msg ?: '', ),
-      'attachments' => $event->msg->attachments ?: '',
+      'attachments' => property_exists( $event->msg, 'attachments') ?  $event->msg->attachments : array(),
       'tags' => $event->msg->tags ?: '',
       'headers' => $event->msg->headers ?: '',
-      'images' => $event->msg->images ?: '',
+      'images' => property_exists( $event->msg, 'images') ?  $event->msg->images : array()
     );
   } else {
     watchdog('nycc_mandrill', "nycc_mandrill_get_msg_details received a null event", array(),  WATCHDOG_WARNING) ;  
