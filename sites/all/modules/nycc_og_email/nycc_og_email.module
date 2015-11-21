@@ -265,6 +265,9 @@ EOS;
             watchdog('nycc_og_email',
                      'nycc_og_email_get_group_info_by_email - @user is a leader or captain in group @group',
                      array( '@group' => $records->grp_name, '@user' => $records->user_name), WATCHDOG_NOTICE) ;
+            watchdog('nycc_og_email',
+                     'nycc_og_email_get_group_info_by_email - <pre>@record</pre>',
+                     array( '@record' => print_r($records, TRUE)), WATCHDOG_NOTICE) ;            
             if (!in_array($to_insert, $emails)) {
               $emails[] =   $to_insert;
             }                     
