@@ -291,6 +291,11 @@ EOS;
           }
         }
       }
+      $to_insert = array(
+                          'email' => $grp_email,
+                          'name' => $grp_email,
+                          'type' => 'to'
+                          );         
       return $emails;
       break;
   }
