@@ -96,7 +96,7 @@ function nycc_og_email_group_email_callback() {
           'from_email' => $args['to_mail'],
           'from_name' => $args['from_name'] . ' (via ' . variable_get('nycc_og_email_signing_domain', '') . ')',
           'to' => $send_to,
-          'headers' => array('Reply-To' => $from) ,
+          'headers' => array('Reply-To' => $args['from_email']) ,
           'track_opens' => TRUE,
           'track_clicks' => TRUE,
           'auto_text' => TRUE,
@@ -275,7 +275,7 @@ EOS;
               $emails[] =   $to_insert;
             }                     
           }
-          else {
+          else { //if 
             if ($debug >1) watchdog('nycc_og_email',
                      'nycc_og_email_get_group_info_by_email - Skipping @user. Not leader or captain in group @group',
                      array( '@group' => $records->grp_name, '@user' => $records->user_name), WATCHDOG_NOTICE) ;            
@@ -291,12 +291,17 @@ EOS;
           }
         }
       }
-      $emails[] = array(
+      $to_add = array(
                           'email' => $grp_email,
                           'name' => $grp_email,
                           'type' => 'to'
                           );
+      watchdog('nycc_og_email',
+                     'nycc_og_email_get_group_info_by_email - Adding <pre>@record</pre>',
+                     array( '@record' => print_r($to_add, TRUE)), WATCHDOG_NOTICE) ;
+      $emails[] =$to_add;
       return $emails;
+    
       break;
   }
 }
