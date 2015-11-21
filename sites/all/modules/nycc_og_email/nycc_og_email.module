@@ -53,10 +53,12 @@ function nycc_og_email_group_email_callback() {
     $args = nycc_mandrill_get_msg_details($event);
     watchdog('nycc_og_email', 'Args Are: <pre>@args</pre>',  array('@args' => print_r($args, TRUE) ), WATCHDOG_NOTICE) ;    
     
-    if ( ($args['to_mail'] == $args['from_email'])) {
+    if ( strcasecmp($args['to_mail'] , $args['from_email']) == 0) {
       //prevent loopbacks
-      if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. sender is same as recipient: @user_email to @grp_email', 
-                    array('@user_email' => $args['from_email'], '@grp_email' => $args['to_mail']), WATCHDOG_NOTICE) ;
+      if ($email_debug ) watchdog('nycc_og_email',
+                                  'Dicarding message. sender is same as recipient: @user_email to @grp_email',
+                                  array('@user_email' => $args['from_email'], '@grp_email' => $args['to_mail']),
+                                  WATCHDOG_NOTICE) ;
       return;
     }
     
@@ -76,7 +78,7 @@ function nycc_og_email_group_email_callback() {
     
     if (! nycc_og_email_can_email_group($args['to_mail'] , $args['from_email'])) {
       if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. @user_email can not email @grp_email' , 
-                    array('@user_email' => $args['from_email'], '@grp_email' => $args['to_email']), WATCHDOG_WARNING) ;
+                    array('@user_email' => $args['from_email'], '@grp_email' => $args['to_mail']), WATCHDOG_WARNING) ;
                     
       nycc_mandrill_send_msg($args['from_email'], 
             variable_get('smtp_from', ''), 
@@ -120,20 +122,20 @@ function nycc_og_email_group_email_callback() {
 
 
 function nycc_og_email_can_email_group($grp_email, $sender_email) {
-  return nycc_og_email_get_group_info_by_email($grp_email, 'can_send', $sender_email);
+  return nycc_og_email_get_group_info_by_email(strtolower($grp_email), 'can_send', strtolower($sender_email));
 }
 
 function nycc_og_email_get_group_node_by_email($grp_email) {
-  return nycc_og_email_get_group_info_by_email($grp_email, 'group_id');
+  return nycc_og_email_get_group_info_by_email(strtolower($grp_email), 'group_id');
 }
 
 function nycc_og_email_get_group_member_emails($grp_email, $recipients = array()) {
-  $addresses =  nycc_og_email_get_group_info_by_email($grp_email, 'email_addresses');
+  $addresses =  nycc_og_email_get_group_info_by_email(strtolower($grp_email), 'email_addresses');
   
   if(!empty($addresses)) {
     foreach($addresses as $ndx => $addr) {
       
-      watchdog('nycc_og_email', 'nycc_og_email_get_group_member_emails - comparing ' . $addr['email'] . ' to ' . $grp_email, array(),  WATCHDOG_NOTICE) ;
+      //watchdog('nycc_og_email', 'nycc_og_email_get_group_member_emails - comparing ' . $addr['email'] . ' to ' . $grp_email, array(),  WATCHDOG_NOTICE) ;
       
       if( strtolower($grp_email) != strtolower($addr['email'])
          && (in_array(strtolower($addr['email']), $recipients))) {
@@ -149,7 +151,7 @@ function nycc_og_email_get_group_member_emails($grp_email, $recipients = array()
 }
 
 function nycc_og_email_allows_external_email($grp_email) {
-  return nycc_og_email_get_group_info_by_email($grp_email, 'allow_external');
+  return nycc_og_email_get_group_info_by_email(strtolower($grp_email), 'allow_external');
 }
 
 function nycc_og_email_get_group_info_by_email($grp_email, $query_type, $sender_email=NULL) {
@@ -245,7 +247,7 @@ EOS;
       foreach($q as $records) {
         if ($debug >1) watchdog('nycc_og_email', 'nycc_og_email_get_group_info_by_email - accept_external_email is: @allow and member email is: @mail',
            array('@allow' => $records->accept_external_email, '@mail' => $records->mail), WATCHDOG_NOTICE) ; 
-        if($records->accept_external_email==1 || $records->mail== $sender_email) return TRUE;
+        if($records->accept_external_email==1 || strcasecmp($records->mail, $sender_email) ==0) return TRUE;
       }
       return FALSE;
       break;
@@ -262,7 +264,7 @@ EOS;
                           'type' => 'bcc'
                           );           
         //If email was sent to leaders then check if member is leader or captain. Otherwise, if email was sent to group address then return the member address
-        if ($records->leader_email == $grp_email) {
+        if (strcasecmp($records->leader_email, $grp_email) == 0) {
           if ($debug >1) watchdog('nycc_og_email',
                    'nycc_og_email_get_group_info_by_email - @email is leader address. Checking if member @user is a leader or captain',
            array( '@email' => $grp_email, '@user' => $records->user_name), WATCHDOG_NOTICE) ;
@@ -286,7 +288,7 @@ EOS;
                      array( '@group' => $records->grp_name, '@user' => $records->user_name), WATCHDOG_NOTICE) ;            
           }
         }
-        elseif ($records->grp_email == $grp_email) {
+        elseif (strcasecmp($records->grp_email, $grp_email) ==0) {
           if ($debug >1) watchdog('nycc_og_email',
                    'nycc_og_email_get_group_info_by_email - @email is group address. adding @user to email',
                    array( '@email' => $grp_email, '@user' => $records->user_name), WATCHDOG_NOTICE) ;          
