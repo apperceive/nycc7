@@ -170,7 +170,7 @@ select
   ae.field_group_accept_ext_email_value as accept_external_email
 from og_membership m 
   join node n on n.nid= m.gid
-  join og_users_roles ur on m.etid=ur.uid
+  join og_users_roles ur on m.etid=ur.uid  AND ur.gid=m.gid
   join og_role r on r.rid=ur.rid
   join users u on u.uid=ur.uid
   join realname rn on u.uid=rn.uid
