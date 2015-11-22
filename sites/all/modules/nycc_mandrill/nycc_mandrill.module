@@ -169,7 +169,7 @@ function nycc_mandrill_send_email($msg){
         'url_strip_qs' => array_key_exists('url_strip_qs', $msg)  ? $msg['url_strip_qs'] : TRUE ,
         'preserve_recipients' => array_key_exists('preserve_recipients', $msg)  ? $msg['preserve_recipients'] : TRUE ,
         'view_content_link' => array_key_exists('view_content_link', $msg)  ? $msg['view_content_link'] : TRUE ,
-        'bcc_address' => array_key_exists('bcc_address', $msg)  ? $msg['bcc_address'] : TRUE ,
+        'bcc_address' => array_key_exists('bcc_address', $msg)  ? $msg['bcc_address'] : NULL ,
         'inline_css' => array_key_exists('inline_css', $msg)  ? $msg['inline_css'] : TRUE ,
         'tracking_domain' => array_key_exists('tracking_domain', $msg)  ? $msg['tracking_domain'] : variable_get('nycc_mandrill_tracking_domain', 'nycc.org'),
         
