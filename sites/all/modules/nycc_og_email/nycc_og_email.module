@@ -45,7 +45,7 @@ function nycc_og_email_group_email_callback() {
     $email_debug = FALSE;
   }
 
-  if (! nycc_mandrill_signature_is_valid(variable_get('nycc_og_email_inbound_url', ''), $_POST)) {
+  if (! nycc_mandrill_url_is_valid(variable_get('nycc_og_email_inbound_url', ''), $_POST)) {
     if ($email_debug ) watchdog('nycc_og_email', 'Invalid signature detected. Message will be discarded.', array(), WATCHDOG_NOTICE) ;
     return;
   }

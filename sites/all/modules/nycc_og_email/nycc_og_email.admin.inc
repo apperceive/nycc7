@@ -90,7 +90,7 @@ function nycc_og_email_admin_validate($form, &$form_state) {
     
   //check to confirm inbound domain is configured in Mandrill
   if ( (!empty($form_state['values']['nycc_og_email_inbound_url']))
-        && (! nycc_mandrill_signature_is_valid($form_state['values']['nycc_og_email_inbound_url']))) {
+        && (! nycc_mandrill_url_is_valid($form_state['values']['nycc_og_email_inbound_url']))) {
 
     form_set_error('nycc_og_email_inbound_url',
       t('Error: Cannot verify Inbound URL specified. Please visit the !link and confirm the inbound domain settings.',
