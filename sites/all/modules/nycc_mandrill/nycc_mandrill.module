@@ -114,6 +114,29 @@ function nycc_mandrill_signature_is_valid($url_suffix='') {
   }
 }
 
+function nycc_mandrill_url_is_valid($url_suffix='') {
+  if (!empty($url_suffix) ) {
+    $url = url($url_suffix, array('absolute' => TRUE));  
+    try {
+      foreach (mandrill_get_webhooks() as $list) {
+        if ($url == $list['url']) {
+          return TRUE;
+        }
+      }
+    } catch (Mandrill_Exception $e) {
+      watchdog('nycc_mandrill', "nycc_mandrill_url_is_valid generated exception: " . $e->getMessage(),
+               array('url' => $ur),  WATCHDOG_WARNING) ;  
+      return FALSE;
+    }
+    return FALSE;
+  }
+  else {
+    watchdog('nycc_mandrill', "nycc_mandrill_url_is_valid. recieved invalid parameters " ,
+             array('url' => $url_suffix),  WATCHDOG_WARNING) ;  
+    return FALSE;
+  }
+}
+
 // WAS _nycc_rides_generate_signature
 function nycc_mandrill_generate_signature($url, $webhook_key, $params) {
 /**

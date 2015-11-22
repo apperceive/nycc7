@@ -76,7 +76,16 @@ function nycc_og_email_admin_validate($form, &$form_state) {
 
     form_set_error('nycc_og_email_group_domain_suffix',
       t('Error: Can not verify MX Records for specified domain. Please visit the !link and confirm the MX records are setup correctly.',
-          array('!link' => l('Mandrill Website', 'https://mandrillapp.com/inbound'))));
+          array(
+                '!link' => l(
+                             'Mandrill Website',
+                             'https://mandrillapp.com/inbound',
+                             array('attributes' => array('target'=>'_blank')
+                                   )
+                             )
+                )
+          )
+      );
     }
     
   //check to confirm inbound domain is configured in Mandrill
@@ -85,7 +94,15 @@ function nycc_og_email_admin_validate($form, &$form_state) {
 
     form_set_error('nycc_og_email_inbound_url',
       t('Error: Cannot verify Inbound URL specified. Please visit the !link and confirm the inbound domain settings.',
-          array('!link' => l('Mandrill Website', 'https://mandrillapp.com/inbound'))));
+          array(
+                '!link' => l(
+                             'Mandrill Website', 'https://mandrillapp.com/inbound',
+                             array('attributes' => array('target'=>'_blank')
+                                   )
+                             )
+                )
+          )
+      );
     }
 
   //check to confirm inbound domain is specified 
@@ -93,7 +110,16 @@ function nycc_og_email_admin_validate($form, &$form_state) {
 
     form_set_error('nycc_og_email_inbound_url',
       t('Error: You must specifiy an inbound domain. Please visit the !link to configure the inbound domain settings.',
-          array('!link' => l('Mandrill Website', 'https://mandrillapp.com/inbound'))));
+          array(
+                '!link' => l(
+                             'Mandrill Website',
+                             'https://mandrillapp.com/inbound',
+                             array('attributes' => array('target'=>'_blank')
+                                   )
+                             )
+                )
+          )
+      );
     }    
     
     
@@ -103,7 +129,16 @@ function nycc_og_email_admin_validate($form, &$form_state) {
 
     form_set_error('nycc_og_email_signing_domain',
       t('Error: Can not verify MX Records for specified domain. Please visit the !link and confirm the MX records are setup correctly.',
-          array('!link' => l('Mandrill Website', 'https://mandrillapp.com/settings/sending-domains'))));
+          array(
+                '!link' => l(
+                             'Mandrill Website',
+                             'https://mandrillapp.com/settings/sending-domains',
+                             array('attributes' => array('target'=>'_blank')
+                                   )
+                             )
+                )
+          )
+      );
     }
 
   //confirm that BCC email address is valid (if specified)
