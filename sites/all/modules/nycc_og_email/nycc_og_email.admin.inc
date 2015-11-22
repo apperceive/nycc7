@@ -39,7 +39,7 @@ function nycc_og_email_admin() {
   $key = variable_get('nycc_mandrill_api_key', '');
   
   if (empty($key)) {
-    drupal_set_message(filter_xss("You must configure the Mandrill module with an API key"), "error");
+    drupal_set_message(filter_xss("You must configure the <a href='admin/config/services/mandrill' target='_blank'>Mandrill module</a> with an API key  "), "error");
   }
   else {
     $form['webhooks_header'] = array(
