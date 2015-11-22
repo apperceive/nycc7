@@ -34,6 +34,7 @@ function nycc_og_email_permission() {
     );
 }
 function nycc_og_email_group_email_callback() {
+  $bcc_webmaster = TRUE;
   if (variable_get('nycc_og_email_debug_to_log', '1') == 1) {
     $email_debug = TRUE;
   }
@@ -68,11 +69,14 @@ function nycc_og_email_group_email_callback() {
       if ($email_debug ) watchdog('nycc_og_email',
                                   'Dicarding message. Could not find group with email address: @grp_email', 
                                   array('@grp_email' => $args['to_mail']), WATCHDOG_WARNING) ;
-                        
-      nycc_mandrill_send_msg($args['from_email'], 
-              variable_get('smtp_from', ''), 
-              "Unable to process your Group Email sent to: " . $args['to_mail'] ,
-              "Hello, We are unable to process your request to email this group because we could not find a group with that email address. If you feel you're receiving this message in error, please contact the group captain.");
+                
+      $msg = array(
+          'to'=> mandrill_get_to($args['from_email']),
+          'subject' => "Unable to process your Group Email sent to: " . $args['to_mail'],
+          'html' => "Hello,<br/>We are unable to process your request to email this group because we could not find a group with that email address. <br/><br/>If you feel you're receiving this message in error, please contact the group captain.<br/>"
+      );
+      if ($bcc_webmaster) $msg->bcc_address = 'webmaster@nycc.org';
+      nycc_mandrill_send_email($msg);
       return;
     }
     
@@ -80,10 +84,13 @@ function nycc_og_email_group_email_callback() {
       if ($email_debug ) watchdog('nycc_og_email', 'Dicarding message. @user_email can not email @grp_email' , 
                     array('@user_email' => $args['from_email'], '@grp_email' => $args['to_mail']), WATCHDOG_WARNING) ;
                     
-      nycc_mandrill_send_msg($args['from_email'], 
-            variable_get('smtp_from', ''), 
-            "Unable to process your Group Email sent to: " . $args['to_mail'] ,
-            "Hello, We are unable to process your request to email this group because you are not a member of this group. If you feel you're receiving this message in error, please contact the group captain.");                      
+      $msg = array(
+          'to'=> mandrill_get_to($args['from_email']),
+          'subject' => 'Unable to process your Group Email sent to: ' . $args['to_mail'],
+          'html' => "Hello,<br/> We are unable to process your request to email this group because you are not a member of this group.<br/><br/>If you feel you're receiving this message in error, please contact the group captain.<br/>"
+      );
+      if ($bcc_webmaster) $msg->bcc_address = 'webmaster@nycc.org';
+      nycc_mandrill_send_email($msg);                   
       return;      
     }
     
@@ -92,6 +99,7 @@ function nycc_og_email_group_email_callback() {
     watchdog('nycc_og_email',
                     'Sending email with subject @subject to: <pre>@to</pre>', 
                     array('@to' => print_r($send_to, TRUE), '@subject' => $args['subject']), WATCHDOG_NOTICE) ;
+    
     $message = array(
           'html' => $args['html'], 
           'subject' => $args['subject'],
@@ -99,15 +107,6 @@ function nycc_og_email_group_email_callback() {
           'from_name' => $args['from_name'] . ' (via ' . variable_get('nycc_og_email_signing_domain', '') . ')',
           'to' => $send_to,
           'headers' => array('Reply-To' => $args['from_email']) ,
-          'track_opens' => TRUE,
-          'track_clicks' => TRUE,
-          'auto_text' => TRUE,
-          'auto_html' => TRUE,
-          'url_strip_qs' => TRUE,
-          'preserve_recipients' => TRUE,
-          'view_content_link' => TRUE,
-          'tracking_domain' => variable_get('nycc_mandrill_tracking_domain', 'nycc.org'),
-          'signing_domain' =>  variable_get('nycc_mandrill_signing_domain', 'nycc.org'),
           'attachments' => $args['attachments'],
           'images' => $args['images']
     );    
