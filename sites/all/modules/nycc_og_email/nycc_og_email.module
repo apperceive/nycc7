@@ -75,7 +75,7 @@ function nycc_og_email_group_email_callback() {
           'subject' => "Unable to process your Group Email sent to: " . $args['to_mail'],
           'html' => "Hello,<br/>We are unable to process your request to email this group because we could not find a group with that email address. <br/><br/>If you feel you're receiving this message in error, please contact the group captain.<br/>"
       );
-      if ($bcc_webmaster) $msg->bcc_address = 'webmaster@nycc.org';
+      if ($bcc_webmaster) $msg['bcc_address'] = 'webmaster@nycc.org';
       nycc_mandrill_send_email($msg);
       return;
     }
@@ -89,7 +89,7 @@ function nycc_og_email_group_email_callback() {
           'subject' => 'Unable to process your Group Email sent to: ' . $args['to_mail'],
           'html' => "Hello,<br/> We are unable to process your request to email this group because you are not a member of this group.<br/><br/>If you feel you're receiving this message in error, please contact the group captain.<br/>"
       );
-      if ($bcc_webmaster) $msg->bcc_address = 'webmaster@nycc.org';
+      if ($bcc_webmaster) $msg['bcc_address'] = 'webmaster@nycc.org';
       nycc_mandrill_send_email($msg);                   
       return;      
     }

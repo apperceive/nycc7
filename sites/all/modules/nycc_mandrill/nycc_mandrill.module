@@ -157,11 +157,11 @@ function nycc_mandrill_send_email($msg){
       
       $message = array(
         'html' => $msg['html'], 
-        'subject' => $msg['body'],
+        'subject' => $msg['subject'],
         'from_email' => array_key_exists('from_email', $msg)  ? $msg['from_email'] : variable_get('mandrill_from', ''),
         'from_name' => array_key_exists('from_name', $msg)  ? $msg['from_name'] : variable_get('mandrill_from_name', variable_get('site_name')),
         'to' => $msg['to'], 
-        'headers' => array_key_exists('headers', $msg)  ? $msg['headers'] : array('Reply-To' => $from) ,
+        'headers' => array_key_exists('headers', $msg)  ? $msg['headers'] : array('Reply-To' => $msg['from_email']) ,
         'track_opens' => array_key_exists('track_opens', $msg)  ? $msg['track_opens'] : TRUE ,
         'track_clicks' => array_key_exists('track_clicks', $msg)  ? $msg['track_clicks'] : TRUE ,
         'auto_text' => array_key_exists('auto_text', $msg)  ? $msg['auto_text'] : TRUE ,
