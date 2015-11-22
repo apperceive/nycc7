@@ -136,6 +136,7 @@ function nycc_mandrill_generate_signature($url, $webhook_key, $params) {
 }
 
 
+
 function nycc_mandrill_send_msg($to, $from, $subject, $body) {
   $message = array(
         'html' => '<p>' . $body . '</p>', 
@@ -158,22 +159,58 @@ function nycc_mandrill_send_msg($to, $from, $subject, $body) {
   );
   return nycc_mandrill_send_email( $message);
 }
-function nycc_mandrill_send_email($message){
+
+function nycc_mandrill_send_email($msg){
   //used to send an email directly using Mandrill API
+  
+  if (   array_key_exists('body', $msg)
+      && array_key_exists('to', $msg)
+      && array_key_exists('subject', $msg) ) {
+      
+      $message = array(
+        'html' => '<p>' . $msg['body'] . '</p>', 
+        'subject' => $msg['body'],
+        'from_email' => array_key_exists('from_email', $msg)  ? $msg['from_email'] : variable_get('mandrill_from', ''),
+        'from_name' => array_key_exists('from_name', $msg)  ? $msg['from_name'] : variable_get('mandrill_from_name', variable_get('site_name')),
+        'to' =>mandrill_get_to($to), //NEED TO FIX THIS SO THAT IT HANDLES CCC
+        'headers' => array_key_exists('headers', $msg)  ? $msg['headers'] : array('Reply-To' => $from) ,
+        'track_opens' => array_key_exists('track_opens', $msg)  ? $msg['track_opens'] : TRUE ,
+        'track_clicks' => array_key_exists('track_clicks', $msg)  ? $msg['track_clicks'] : TRUE ,
+        'auto_text' => array_key_exists('auto_text', $msg)  ? $msg['auto_text'] : TRUE ,
+        'auto_html' => array_key_exists('auto_html', $msg)  ? $msg['auto_html'] : TRUE ,
+        'url_strip_qs' => array_key_exists('url_strip_qs', $msg)  ? $msg['url_strip_qs'] : TRUE ,
+        'preserve_recipients' => array_key_exists('preserve_recipients', $msg)  ? $msg['preserve_recipients'] : TRUE ,
+        'view_content_link' => array_key_exists('view_content_link', $msg)  ? $msg['view_content_link'] : TRUE ,
+        'bcc_address' => array_key_exists('bcc_address', $msg)  ? $msg['bcc_address'] : TRUE ,
+        'inline_css' => array_key_exists('inline_css', $msg)  ? $msg['inline_css'] : TRUE ,
+        'tracking_domain' => array_key_exists('tracking_domain', $msg)  ? $msg['tracking_domain'] : variable_get('nycc_mandrill_tracking_domain', 'nycc.org'),
+        
+        'signing_domain' =>  array_key_exists('signing_domain', $msg)  ? $msg['signing_domain'] : variable_get('nycc_mandrill_signing_domain', 'nycc.org'),
+        
+        'attachments' => array_key_exists('attachments', $msg)  ? $msg['attachments'] : array(),
+        'images' => array_key_exists('images', $msg)  ? $msg['images'] : array(),
+        'send_at' => array_key_exists('send_at', $msg)  ? $msg['send_at'] : null ,
+      );
+    try {
+      //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
+      $response = mandrill_mailsend( $message, 'mandrill_sender_plain');
+      //$response = $mandrill->messages_send($message);
+  
+      watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Send successful:<pre>' . print_r( $message, TRUE) . '</pre>');
+      return TRUE;
+    }      
+    catch (Mandrill_Error $e) {
+        watchdog('nycc_mandrill', "nycc_mandrill_send_email - Error: @class - @msg", 
+            array('@class' => get_class($e), '@msg' => $e->getMessage()), WATCHDOG_WARNING) ;
+      throw $e;
+    }       
+  }
+  else {
+    watchdog('nycc_mandrill',
+             'nycc_mandrill_send_email - Unable to send message because required fields are missing:<pre>@msg</pre>',
+             array('@msg' =>print_r( $msg, TRUE)), WATCHDOG_WARNING);
+  }
 
-  try {
-    //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
-    $response = mandrill_mailsend( $message, 'mandrill_sender_plain');
-    //$response = $mandrill->messages_send($message);
-
-    watchdog('nycc_mandrill', 'nycc_mandrill_send_email - Send successful:<pre>' . print_r( $message, TRUE) . '</pre>');
-    return TRUE;
-  }      
-  catch (Mandrill_Error $e) {
-      watchdog('nycc_mandrill', "nycc_mandrill_send_email - Error: @class - @msg", 
-          array('@class' => get_class($e), '@msg' => $e->getMessage()), WATCHDOG_WARNING) ;
-    throw $e;
-  } 
 }
 
 //
