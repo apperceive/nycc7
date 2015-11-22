@@ -144,18 +144,6 @@ function nycc_mandrill_send_msg($to, $from, $subject, $body) {
         'from_email' => isset($from) ? $from : variable_get('mandrill_from', ''),
         'from_name' => isset($from) ? $from : variable_get('mandrill_from_name', variable_get('site_name')),
         'to' =>mandrill_get_to($to),
-        'headers' => array('Reply-To' => $from) ,
-        'track_opens' => TRUE,
-        'track_clicks' => TRUE,
-        'auto_text' => TRUE,
-        'auto_html' => TRUE,
-        'url_strip_qs' => TRUE,
-        'preserve_recipients' => TRUE,
-        'view_content_link' => TRUE,
-        'tracking_domain' => variable_get('nycc_mandrill_tracking_domain', 'nycc.org'),
-        'signing_domain' =>  variable_get('nycc_mandrill_signing_domain', 'nycc.org'),
-        'attachments' => array(),
-        'images' => array()
   );
   return nycc_mandrill_send_email( $message);
 }
@@ -172,7 +160,7 @@ function nycc_mandrill_send_email($msg){
         'subject' => $msg['body'],
         'from_email' => array_key_exists('from_email', $msg)  ? $msg['from_email'] : variable_get('mandrill_from', ''),
         'from_name' => array_key_exists('from_name', $msg)  ? $msg['from_name'] : variable_get('mandrill_from_name', variable_get('site_name')),
-        'to' =>mandrill_get_to($to), //NEED TO FIX THIS SO THAT IT HANDLES CCC
+        'to' => $msg['to'], 
         'headers' => array_key_exists('headers', $msg)  ? $msg['headers'] : array('Reply-To' => $from) ,
         'track_opens' => array_key_exists('track_opens', $msg)  ? $msg['track_opens'] : TRUE ,
         'track_clicks' => array_key_exists('track_clicks', $msg)  ? $msg['track_clicks'] : TRUE ,
