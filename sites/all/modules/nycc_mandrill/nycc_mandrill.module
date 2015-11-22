@@ -155,30 +155,32 @@ function nycc_mandrill_send_email($msg){
       && array_key_exists('to', $msg)
       && array_key_exists('subject', $msg) ) {
       
-      $message = array(
-        'html' => $msg['html'], 
-        'subject' => $msg['subject'],
-        'from_email' => array_key_exists('from_email', $msg)  ? $msg['from_email'] : variable_get('mandrill_from', ''),
-        'from_name' => array_key_exists('from_name', $msg)  ? $msg['from_name'] : variable_get('mandrill_from_name', variable_get('site_name')),
-        'to' => $msg['to'], 
-        'headers' => array_key_exists('headers', $msg)  ? $msg['headers'] : array('Reply-To' => $msg['from_email']) ,
-        'track_opens' => array_key_exists('track_opens', $msg)  ? $msg['track_opens'] : TRUE ,
-        'track_clicks' => array_key_exists('track_clicks', $msg)  ? $msg['track_clicks'] : TRUE ,
-        'auto_text' => array_key_exists('auto_text', $msg)  ? $msg['auto_text'] : TRUE ,
-        'auto_html' => array_key_exists('auto_html', $msg)  ? $msg['auto_html'] : TRUE ,
-        'url_strip_qs' => array_key_exists('url_strip_qs', $msg)  ? $msg['url_strip_qs'] : TRUE ,
-        'preserve_recipients' => array_key_exists('preserve_recipients', $msg)  ? $msg['preserve_recipients'] : TRUE ,
-        'view_content_link' => array_key_exists('view_content_link', $msg)  ? $msg['view_content_link'] : TRUE ,
-        'bcc_address' => array_key_exists('bcc_address', $msg)  ? $msg['bcc_address'] : NULL ,
-        'inline_css' => array_key_exists('inline_css', $msg)  ? $msg['inline_css'] : TRUE ,
-        'tracking_domain' => array_key_exists('tracking_domain', $msg)  ? $msg['tracking_domain'] : variable_get('nycc_mandrill_tracking_domain', 'nycc.org'),
-        
-        'signing_domain' =>  array_key_exists('signing_domain', $msg)  ? $msg['signing_domain'] : variable_get('nycc_mandrill_signing_domain', 'nycc.org'),
-        
-        'attachments' => array_key_exists('attachments', $msg)  ? $msg['attachments'] : array(),
-        'images' => array_key_exists('images', $msg)  ? $msg['images'] : array(),
-        'send_at' => array_key_exists('send_at', $msg)  ? $msg['send_at'] : null ,
-      );
+    $message = array(
+      'html' => $msg['html'], 
+      'subject' => $msg['subject'],
+      'from_email' => array_key_exists('from_email', $msg)  ? $msg['from_email'] : variable_get('mandrill_from', ''),
+      'from_name' => array_key_exists('from_name', $msg)  ? $msg['from_name'] : variable_get('mandrill_from_name', variable_get('site_name')),
+      
+      'to' => $msg['to'], 
+      'headers' => array_key_exists('headers', $msg)  ? $msg['headers'] : array('Reply-To' => $msg['from_email']) ,
+      'track_opens' => array_key_exists('track_opens', $msg)  ? $msg['track_opens'] : TRUE ,
+      'track_clicks' => array_key_exists('track_clicks', $msg)  ? $msg['track_clicks'] : TRUE ,
+      'auto_text' => array_key_exists('auto_text', $msg)  ? $msg['auto_text'] : TRUE ,
+      'auto_html' => array_key_exists('auto_html', $msg)  ? $msg['auto_html'] : TRUE ,
+      'url_strip_qs' => array_key_exists('url_strip_qs', $msg)  ? $msg['url_strip_qs'] : TRUE ,
+      'preserve_recipients' => array_key_exists('preserve_recipients', $msg)  ? $msg['preserve_recipients'] : TRUE ,
+      'view_content_link' => array_key_exists('view_content_link', $msg)  ? $msg['view_content_link'] : TRUE ,
+      'bcc_address' => array_key_exists('bcc_address', $msg)  ? $msg['bcc_address'] : NULL ,
+      'inline_css' => array_key_exists('inline_css', $msg)  ? $msg['inline_css'] : TRUE ,
+      'tracking_domain' => array_key_exists('tracking_domain', $msg)  ? $msg['tracking_domain'] : variable_get('nycc_mandrill_tracking_domain', 'nycc.org'),
+      
+      'signing_domain' =>  array_key_exists('signing_domain', $msg)  ? $msg['signing_domain'] : variable_get('nycc_mandrill_signing_domain', 'nycc.org'),
+      
+      'attachments' => array_key_exists('attachments', $msg)  ? $msg['attachments'] : array(),
+      'images' => array_key_exists('images', $msg)  ? $msg['images'] : array(),
+      'send_at' => array_key_exists('send_at', $msg)  ? $msg['send_at'] : null ,
+    );
+      
     try {
       //watchdog('nycc_mandrill', 'nycc_mandrill_send_mandrill_email Message:<pre>' . print_r( $message, TRUE) . '</pre>');
       $response = mandrill_mailsend( $message, 'mandrill_sender_plain');
@@ -200,6 +202,32 @@ function nycc_mandrill_send_email($msg){
   }
 
 }
+
+
+
+function nycc_mandrill_get_webhooks() {
+  $rows = array();
+  try {    
+    foreach (mandrill_get_webhooks() as $list) {
+      $rows[] = array(
+        $list['id'],
+        $list['url'],
+        $list['auth_key'],
+        isset($list['last_sent_at']) ? $list['last_sent_at'] : t('Never'),
+        $list['batches_sent'],
+        $list['events_sent'],
+        $list['description'],
+      );
+    }  
+  } catch (Mandrill_Exception $e) {
+    drupal_set_message(check_plain("Error connecting to Mandrill: " . $e->getMessage()));
+  }
+  return $rows;
+}
+//TEST FUNCTIONS
+
+//
+
 
 //
 //function nycc_mandrill_get_api_object($key='') {
@@ -227,29 +255,5 @@ function nycc_mandrill_send_email($msg){
 //  		throw $e;	
 //  	}
 //}
-
-function nycc_mandrill_get_webhooks() {
-  $rows = array();
-  try {    
-    foreach (mandrill_get_webhooks() as $list) {
-      $rows[] = array(
-        $list['id'],
-        $list['url'],
-        $list['auth_key'],
-        isset($list['last_sent_at']) ? $list['last_sent_at'] : t('Never'),
-        $list['batches_sent'],
-        $list['events_sent'],
-        $list['description'],
-      );
-    }  
-  } catch (Mandrill_Exception $e) {
-    drupal_set_message(check_plain("Error connecting to Mandrill: " . $e->getMessage()));
-  }
-  return $rows;
-}
-//TEST FUNCTIONS
-
-//
-
 
 

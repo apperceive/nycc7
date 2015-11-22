@@ -13,14 +13,17 @@ function nycc_og_email_menu() {
       'access callback' => TRUE,
       'page arguments' => array('nycc_og_email_admin'),
     );
-
-    $items['nycc_og_email/inbound'] = array(
+  
+  if (variable_get('nycc_og_email_inbound_url', '') != '') {
+    $items[variable_get('nycc_og_email_inbound_url', '')] = array(
       'title' => t('NYCC Group Email'),
       'description' => t('Group email'),
         'type' => MENU_CALLBACK,
         'page callback' => 'nycc_og_email_group_email_callback',
         'access callback' => TRUE,
-    );      
+    );    
+  }
+  
   return $items;
 }
 
@@ -42,7 +45,7 @@ function nycc_og_email_group_email_callback() {
     $email_debug = FALSE;
   }
 
-  if (! nycc_mandrill_signature_is_valid('nycc_og_email/inbound', $_POST)) {
+  if (! nycc_mandrill_signature_is_valid(variable_get('nycc_og_email_inbound_url', ''), $_POST)) {
     if ($email_debug ) watchdog('nycc_og_email', 'Invalid signature detected. Message will be discarded.', array(), WATCHDOG_NOTICE) ;
     return;
   }
