@@ -2,7 +2,6 @@ name = NYCC Mandrill Integration
 description = provides integration with Mandrill, to be used by other modules
 package = NYCC
 core = 7.x
-dependencies[] = mandrill
 files[]=nycc_mandrill.module
 files[]=nycc_mandrill.admin.inc
 configure=admin/config/nycc/nycc_mandrill
