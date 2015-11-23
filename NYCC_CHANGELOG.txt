@@ -1,0 +1,4 @@
+2015-Nov-23
+-----------
+- update profileref view for D7, create reference display, used for group captains field
+- create eventref view for use in group parent event field
