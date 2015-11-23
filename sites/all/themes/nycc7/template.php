@@ -31,6 +31,8 @@ function nycc7_preprocess_html(&$variables) {
   // Backport from Drupal 8 RDFa/HTML5 implementation.
   // @see https://www.drupal.org/node/1077566
   // @see https://www.drupal.org/node/1164926
+  
+  //dpm($variables);
 
   // NOTE: THIS IS OVERWRITING THE EXISTING ARRAY
   // HTML element attributes.
@@ -77,11 +79,19 @@ function nycc7_preprocess_html(&$variables) {
   }
 } // nycc7_preprocess_html
 
- 
+/**
+ * Implements hook_process_html().
+ */
+function nycc7_process_html(&$variables) {
+  $variables['html_attributes'] = drupal_attributes($variables['html_attributes_array']);
+  $variables['body_attributes'] = drupal_attributes($variables['body_attributes_array']);
+}
+
 function nycc7_preprocess_page(&$variables) {
   global $user;
   
-  // TODO: this is not setting: navbar_classes,  container_class , html_attributes , html_attributes 
+  //dpm($variables);
+  // TODO: this is not setting: navbar_classes,  container_class , html_attributes 
   
   // Add information about the number of sidebars.
   if (!empty($variables['page']['sidebar_first']) && !empty($variables['page']['sidebar_second'])) {
