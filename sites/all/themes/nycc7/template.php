@@ -26,6 +26,8 @@ function nycc7_preprocess_block(&$variables) {
 
 /**
  * Implements hook_preprocess_html().
+ *
+ * WHY IS THIS NECESSARY? copied from base theme
  */
 function nycc7_preprocess_html(&$variables) {
   // Backport from Drupal 8 RDFa/HTML5 implementation.
@@ -81,17 +83,20 @@ function nycc7_preprocess_html(&$variables) {
 
 /**
  * Implements hook_process_html().
+ *
+ * WHY IS THIS NECESSARY? copied from base theme
  */
 function nycc7_process_html(&$variables) {
   $variables['html_attributes'] = drupal_attributes($variables['html_attributes_array']);
   $variables['body_attributes'] = drupal_attributes($variables['body_attributes_array']);
 }
 
-function nycc7_preprocess_page(&$variables) {
+/**
+ * Implements hook_preprocess_page().
+ *
+ */
+ function nycc7_preprocess_page(&$variables) {
   global $user;
-  
-  //dpm($variables);
-  // TODO: this is not setting: navbar_classes,  container_class , html_attributes 
   
   // Add information about the number of sidebars.
   if (!empty($variables['page']['sidebar_first']) && !empty($variables['page']['sidebar_second'])) {
@@ -145,6 +150,22 @@ function nycc7_preprocess_page(&$variables) {
   $variables['navbar_nav_links'] = _nycc7_navbar_nav_links();
 
 } // nycc7_preprocess_page
+
+
+/**
+ * Processes variables for the "page" theme hook.
+ *
+ * See template for list of available variables.
+ *
+ * @see page.tpl.php
+ *
+ * @ingroup theme_process
+ *
+ * WHY IS THIS NECESSARY? copied from base theme
+ */
+function nycc7_process_page(&$variables) {
+  $variables['navbar_classes'] = implode(' ', $variables['navbar_classes_array']);
+}
 
 function nycc7_preprocess_node(&$variables) {
   // note: this is not called for add/edit forms, only for view
