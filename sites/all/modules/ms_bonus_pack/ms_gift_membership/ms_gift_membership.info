@@ -1,8 +1,0 @@
-name = Gift Memberships
-description = Allow users to purchase and send gift memberships
-package = MoneyScripts - Bonus Pack
-dependencies[] = ms_core
-dependencies[] = ms_membership
-version = "7.x-2.0"
-core = "7.x"
-configure = admin/moneyscripts/ms_gift_membership

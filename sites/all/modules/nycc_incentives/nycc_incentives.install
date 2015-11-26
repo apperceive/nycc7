@@ -39,13 +39,7 @@ function nycc_incentives_install() {
   //variable_set('nycc_incentives_end_date', null);
   //variable_set('nycc_incentives_ballot_instructions', "Please select a candidate for each position.");
   //variable_set('nycc_incentives_ballot',  "President\n*Bert\n*Ernie\nVice President\n*Jack\n*Jill\n");
-  drupal_install_schema('nycc_incentives');
-  
-  
-  
-  
-  
-  
+  //drupal_install_schema('nycc_incentives');
 }
 
 function nycc_incentives_uninstall() {
@@ -53,6 +47,5 @@ function nycc_incentives_uninstall() {
   db_query("DELETE FROM {variable} WHERE name LIKE 'nycc_incentives_%'");
   cache_clear_all('variables', 'cache');
   // todo: test for table existance first
-  drupal_uninstall_schema('nycc_incentives');
-    
+  //drupal_uninstall_schema('nycc_incentives');
 }
