@@ -42,18 +42,7 @@ function nycc_incentives_menu() {
     'type' => MENU_NORMAL_ITEM,
     'access callback' => TRUE,
   );
-  
-  
-  
-  $items['admin/settings/incentives/config'] = array(
-    'description' => 'NYCC earned incentives administrative settings.',
-    'title' => 'Incentives Configuration',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('_nycc_incentives_admin_settings_form'),
-    'access arguments' => array('administer nycc incentives'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -99,
-  );
+
   
   $items['incentives/update/status'] = array (
     'page callback' => '_nycc_incentives_update_status',
@@ -70,6 +59,7 @@ function nycc_incentives_menu() {
 
 // Block on Volunteer Page (Show status of past submissions, enabled/disable based time window)
 function nycc_incentives_block_info() {
+  //VALIDATED
   $blocks[0]['info'] = t('NYCC Ride Incentives');
   $blocks[0]['cache'] = DRUPAL_NO_CACHE;
   return $blocks;
@@ -77,8 +67,10 @@ function nycc_incentives_block_info() {
 
 
 
+//NOT TESTED
 // Block on Volunteer Page (Show status of past submissions, enabled/disable based time window)
 function nycc_incentives_block_view($delta = 0) {
+  //NOT WORKING YET
   if ($delta == 0) {
       global $user;
     // look for existing incentives request node for the current user this year
@@ -91,23 +83,17 @@ function nycc_incentives_block_view($delta = 0) {
     $prevyear = date("Y") - 1;
     if (($startdate <= $curdate) && ($curdate <= $enddate) /*&& user_access('view own nycc incentives')*/) {
       // check for existing node for past year of type incentive-request for the current user - if there show status else show add link
-      $sql = "SELECT n.nid FROM {node} n, {content_type_incentive_request} ir WHERE n.status = 1 AND ir.nid = n.nid AND ir.vid = n.vid AND n.type = 'incentive_request' AND ir.field_incentive_year_value = '%s' AND n.uid = %d";
-      $args = array($prevyear, $user->uid);
-      $q = db_query($sql, $args);
-      $retval = db_fetch_object($q);
-      $nid = $retval ? $retval->nid : 0;
-      if ($nid) {
-        $node = node_load($nid);
-        if ($node) {              
-          $incentive = _nycc_incentives_get_reward($node);
-          $args = array('@incentive' => $incentive, '@date' => date("M d, Y", $node->created), '@status' => $node->field_incentive_status[0]['value'], '!link' => l('request', "node/$nid"));
-          $block['content'] = t('Your !link for "@incentive", dated @date, has a status of @status.', $args);
-        }
-        else {
-          // do nothing for now.
-        }
+      $ir_node = node_load(_nycc_incentive_get_request_for_user($user->uid ,$prevyear));
+      
+      if ($ir_node) {              
+        $incentive = _nycc_incentives_get_reward($ir_node);
+        $args = array('@incentive' => $incentive,
+                      '@date' => date("M d, Y", $ir_node->created),
+                      '@status' => $ir_node->field_incentive_status[0]['value'],
+                      '!link' => l('request', "node/" . $ir_node->nid));
+        $block['content'] = t('Your !link for "@incentive", dated @date, has a status of @status.', $args);
       }
-      else {
+      else { //if no incentive request exists
         $points = _nycc_incentives_get_ride_leads_count($user->uid);
         $link = l('here', 'node/add/incentive-request', array('query' => array('destination' => 'incentives')));
         $args = array('@points' => $points, '!link' => $link, '@pts' => ($points == 1 ? "point" : "points"));
@@ -116,14 +102,7 @@ function nycc_incentives_block_view($delta = 0) {
       } // else no nid
     } // if dates and user access
     
-    $name = $user->name;
-//         $cp = content_profile_load('profile', $user->uid);
-//         if ($cp) {
-//           $name = $cp->field_first_name[0]['value'];
-//           $title .= " for $name";
-//         }        
-    
-    $args = array('@year' => date("Y")-1, '@name' => $name);
+    $args = array('@year' => date("Y")-1, '@name' => nycc_get_user_full_name($user));
     $block['subject'] = drupal_strlen($block['content']) ? t('@year Incentives for @name', $args) : "";
     //dpm(get_defined_vars());
   } // block[0]
@@ -133,6 +112,8 @@ function nycc_incentives_block_view($delta = 0) {
 
 
 function nycc_incentives_node_prepare ($node) {
+  //VALIDATED
+  //Act on a node that about to be shown on the add/edit form.
   if ($node->type == 'incentive_request') {
     global $user;
     // DONE: check that user does not have an existing request for this year, also general dates
@@ -142,28 +123,30 @@ function nycc_incentives_node_prepare ($node) {
     $prevyear = date("Y") - 1;
     $uid = $node->uid ? $node->uid : $user->uid;
     
-    if (($user->uid !== $node->uid) && !user_access('administer nycc incentives') && !user_access('coordinate nycc incentives') ) {
+    if (($user->uid !== $node->uid)
+        && !user_access('administer nycc incentives')
+        && !user_access('coordinate nycc incentives') ) {
       drupal_access_denied();
     }
 
-    // are there existing incentive requests from the previous year?
-    $sql = "SELECT n.nid FROM {node} n, {content_type_incentive_request} ir WHERE ir.nid = n.nid AND ir.vid = n.vid AND n.type = 'incentive_request' AND ir.field_incentive_year_value = '%s' AND n.uid = %d";
-    $args = array($prevyear, $uid);
-    $q = db_query($sql, $args);
-    $retval = db_fetch_object($q);
-    $nid = $retval ? $retval->nid : 0;
+    $ir_nid = _nycc_incentive_get_request_for_user($uid, $prevyear);
     
     // check for existing node for past year of type incentive-request for the current user
     // if exists show status else show add link
-    if ($nid && (arg(0) == 'node') && (arg(1) == 'add')) {
-      drupal_set_message(t("You already have an incentive request on record for @year. Redirecting to existing request.", array('@year' => $prevyear)));
-      drupal_goto("node/$nid");
+    if ($ir_nid && (arg(0) == 'node') && (arg(1) == 'add')) {
+      drupal_set_message(t("You already have an incentive request on record for @year. Redirecting to existing request.",
+                           array('@year' => $prevyear)));
+      drupal_goto("node/$ir_nid");
     } // if
 
     $ride_points = _nycc_incentives_get_ride_leads_count($uid);
-    $total_points = $ride_points + _nycc_incentives_calculate_node_points($node);          
-    $node->field_incentive_lead_point = array(array('value' => $ride_points));
-    $node->field_incentive_total = array(array('value' => $total_points));
+    //dpm("_nycc_incentives_get_ride_leads_count($uid) returned $ride_points" );
+    
+    $total_points = $ride_points + _nycc_incentives_calculate_node_points($node);
+    //dpm("_nycc_incentives_calculate_node_points() returned " . _nycc_incentives_calculate_node_points($node) );
+    
+    $node->field_incentive_lead_point = array('und' => array(array('value' => $ride_points)));
+    $node->field_incentive_total = array('und' => array(array('value' => $total_points)));
   }  
 }
 
@@ -175,9 +158,10 @@ function nycc_incentive_node_presave($node) {
     $ride_points = _nycc_incentives_get_ride_leads_count($uid);
     $total_points = $ride_points + _nycc_incentives_calculate_node_points($node);
     $incentive = _nycc_incentives_get_reward($node);
-    $node->field_incentive_lead_point = array(array('value' => $ride_points));
-    $node->field_incentive_total = array(array('value' => $total_points));
-    $node->field_incentive_reward = array(array('value' => $incentive));
+    $node->field_incentive_lead_point = array('und' => array(array('value' => $ride_points)));
+    $node->field_incentive_total = array('und' => array(array('value' => $total_points)));
+    $node->field_incentive_reward = array('und' => array(array('value' => $incentive)));
+    dpm($node);
     //dpm(get_defined_vars());
   } // if incentive_request      
 }
@@ -203,8 +187,9 @@ function nycc_incentive_node_view($node, $view_mode, $langcode) {
 
 
 function nycc_incentive_node_validate($node, $form, &$form_state) {
-  //TODO need to figure out how to replace the $a3 variable
-  
+  dpm($form);
+  //TODO need to figure out how to replace the $a3 variable && $subop
+  dpm($form_state);
   $subop = (array_key_exists('#post', $a3) && array_key_exists('op', $a3['#post'])) ? $a3['#post']['op'] : "";
   if (($node->type == 'incentive_request') && ($subop != 'Delete')) {
     $ride_points = 0;
@@ -251,9 +236,377 @@ function nycc_incentive_node_validate($node, $form, &$form_state) {
 
 
 
+//END HOOK FUNCTIONS
+
+//BEGIN UTILITY FUNCTIONS
+
+
+function _nycc_incentive_get_request_for_user($uid, $year) {
+  //TESTED AND VALIDATED
+  if (is_numeric($uid) && is_numeric($year)) {
+    $sql =<<<EOS
+SELECT n.nid
+from  {node} n   
+Join {field_data_field_incentive_year} y on y.entity_id=n.nid AND y.revision_id=n.vid          
+where n.type='incentive_request' 
+AND y.field_incentive_year_value ='$year' AND n.uid = $uid
+EOS;
+    
+    $q = db_query($sql);
+    foreach ($q as $record) {
+      return (isset($record) && isset($record->nid)) ? $record->nid : 0; 
+    }      
+  }
+  return 0;
+}
 
 
 
+//EXTRACTS POINTS VALUE FROM NAME OF REWARD ITEM
+function _nycc_incentives_parse_points($str) {
+  $matches = array();
+  preg_match_all('!\d+\s?point[s]?\)!', $str, $matches);
+  $retval = array_shift($matches); 
+  $retval = str_replace(array('points', 'point', ' ', ')'), '', strtolower($retval[0]));
+  //dsm(array($str, $retval));
+  return $retval;
+} // _nycc_incentives_parse_points
+
+
+
+
+
+// return incentive reward as string
+function _nycc_incentives_get_reward($node) {  
+  $incentive = "";
+  $tax = $node->taxonomy;
+  if (array_key_exists(7, $tax))
+    $tax = $tax[7];
+  foreach ($tax as $ndx => $term) {
+    if (!is_object($term))
+      $term = taxonomy_term_load($term);
+    if (is_object($term)) {
+      $val = $term->name;
+      if (drupal_strlen($incentive))
+        $incentive .= " - ";
+      $incentive .= $val;
+    } // if object
+  } // foreach term
+  //dpm(get_defined_vars());
+  return $incentive;
+} // _nycc_incentives_get_reward
+
+
+// calculate points from appropriate fields (checkboxes and selects)
+function _nycc_incentives_calculate_node_points($node) {
+  //VALIDATED
+  // todo: test for valid incentive request node
+  
+  $points = 0;
+  $pstrings = array();    // for debugging 
+  
+  // hard coded list of fields to check 
+  // TODO: consider parsing any field_incentive_XXX
+  $fields = array(
+    'field_incentive_participation' => $node->field_incentive_participation , 
+    'field_incentive_sig_rides_led' => $node->field_incentive_sig_rides_led, 
+    'field_incentive_all_day_count' => $node->field_incentive_all_day_count, 
+    'field_incentive_half_day_count' => $node->field_incentive_half_day_count,
+  );
+  
+  foreach ($fields as $key => $field) {
+    $val = nycc_field_get_text_value($field);
+    if ($val) {
+      $points += _nycc_incentives_parse_points($val);
+    } // if
+  }  //for
+  
+  //dpm(get_defined_vars());
+  //dpm($points);
+  return $points;
+} // _nycc_incentives_calculate_node_points
+
+
+
+
+// get points for select incentive reward 
+function _nycc_incentives_reward_points($form) {
+  //TODO NEED TO VALIDATE
+  //dsm($form);
+  // TODO: check for valid array in taxonomy
+  foreach ($form['#post']['taxonomy'] as $vid => $item) {
+    $selects = $item['hierarchical_select']['selects'];
+    foreach ($selects as $termid) {
+      $term = taxonomy_term_load($termid);
+      if (is_object($term)) {
+        $val = strtolower($term->name);
+        if (stripos($val, 'point')) 
+          return _nycc_incentives_parse_points($val);
+      } // is_object
+    } // foreach
+  } // foreach
+  return 0;
+} // _nycc_incentives_reward_points
+
+function _nycc_incentives_get_ride_leads_count($uid, $year = null) {
+  //VALIDATED
+  if(!isset($year))
+    $year = date("Y")-1;
+    
+  //$st  = date("m/d/Y", mktime(0, 0, 0, 1 , 1, date("Y")-1));
+  //$et  = date("m/d/Y", mktime(0, 0, 0, 12 , 31, date("Y")-1));
+  //$startdate = strtotime($st);
+  //$enddate = strtotime($et);
+  
+  $cue_points = variable_get('nycc_incentives_ride_lead_cuesheet', 1);
+  $other_points = variable_get('nycc_incentives_ride_lead_other', .5);
+
+  
+  $sql =<<<EOS
+SELECT 
+SUM( IF(rt.field_ride_type_value = 'Cue Sheet Ride', $cue_points, $other_points)) AS pts 
+FROM {node} n
+join {field_data_field_ride_status} rs on rs.entity_id=n.nid AND rs.revision_id=n.vid
+join {field_data_field_ride_timestamp} ts on ts.entity_id=n.nid AND ts.revision_id=n.vid
+join {field_data_field_ride_current_leaders} cl on cl.entity_id=n.nid AND cl.revision_id=n.vid
+join {field_data_field_ride_type} rt  on rt.entity_id=n.nid AND rt.revision_id=n.vid
+Where n.status <> 0 
+AND rs.field_ride_status_value = 'Approved' 
+AND YEAR(ts.field_ride_timestamp_value ) = $year
+AND cl.field_ride_current_leaders_uid = $uid ;
+EOS;
+
+//AND UNIX_TIMESTAMP(ts.field_ride_timestamp_value) BETWEEN $startdate AND $enddate 
+  //dpm($sql);
+
+  $q = db_query($sql);   // , $args);
+  foreach($q as $records) {
+    //dpm($records) ;
+    return (isset($records->pts) && is_numeric($records->pts)) ? $records->pts : 0;
+  }
+  return 0;
+
+} // _nycc_incentives_get_ride_leads_count
+
+
+//END UTILITY FUNCTIONS
+
+// BEING MENU CALLBACK FUNCTIONS
+function _nycc_incentives_update_status() {
+  $nid = $_REQUEST['nid'];
+  $status = $_REQUEST['status'];
+  global $user;
+  
+  // TODO: check that user has incentive coord perms - do it in menu def?
+  if (user_access('administer nycc incentives') || user_access('coordinate nycc incentives')) {
+    if ($nid && is_numeric($nid) && drupal_strlen($status)) {
+      $node = node_load($nid);
+      if ($node) {
+        $node->field_incentive_status[0]['value'] = $status;
+        node_save($node);
+      } // if $node
+    } // if
+    drupal_set_message(check_plain("Status changed to $status for node/$nid."));
+  }
+  else {
+    drupal_set_message(check_plain("You are not authorized to change the status."));
+  }
+  drupal_goto("node/$nid");
+} // _nycc_incentives_update_status
+
+
+//END MENU CALBACK FUNCTIONS
+
+
+//BEGIN NODE FORM RELATED FUNCTIONS
+
+function nycc_incentives_form_alter(&$form, &$form_state, $form_id) {
+  global $user;
+  if ($form_id == 'incentive_request_node_form') {
+    // hide status? do that through field access permissions
+    // make field_incentive_lead_point read_only
+    // see https://www.silviogutierrez.com/blog/drupal-7-read-only-fields/
+    $uid = $form['uid']['#value'] ? $form['uid']['#value'] : $user->uid;
+    $form['#after_build'][] = '_nycc_incentives_after_build';
+    $name = nycc_get_user_full_name($user);
+    //$title .= " for $name";
+    $prevyear = date("Y") - 1;
+    
+    //TODO WHY IS THIS HERE?
+    //drupal_set_title($form['title']['#default_value'] . "Incentive Request for $name for $prevyear");
+    
+    // hidden fields
+    //if (arg(1) == 'add')
+      unset($form['field_incentive_reward']);
+    //if (arg(1) == 'add') {
+      unset($form['field_incentive_total']);
+    //} 
+    
+    $form['actions']['preview']['#value'] = t("Review");
+    $form['actions']['submit']['#value'] = t("Submit for Approval");
+    //dpm($form);
+    //dpm(get_defined_vars());
+  } // incentive_request_node_form  
+} // nycc_incentives_form_alter
+
+
+// make certain node fields read only
+function _nycc_incentives_after_build($form, &$form_state) {                           
+  // DONE: remove any notifications & spamicide
+  if (array_key_exists('notifications', $form))
+    unset($form['notifications']);
+   
+  if (array_key_exists('spamicide', $form))
+    unset($form['spamicide']);
+   
+  
+  $group = 'group_incentive_general';
+  $field = 'field_incentive_lead_point';
+  $form[$group][$field][0]['value']['#attributes']['readonly'] = 'readonly';
+  //$form[$group][$field][0]['value']['#attributes']['disabled'] = 'disabled';
+  //$form_state['values'][$group][$field][0]['value'] = $form[$group][$field][0]['value']['#default_value'];
+  $field = 'field_incentive_year';
+  $form[$group][$field][0]['value']['#attributes']['readonly'] = 'readonly';
+  //$form[$group][$field][0]['value']['#attributes']['disabled'] = 'disabled';
+  //$form_state['values'][$group][$field][0]['value'] = $form[$group][$field][0]['value']['#default_value'];
+  
+  
+  // dpm(array($form, $form_state));  
+  return $form;
+} // _nycc_incentives_after_build
+ 
+
+ 
+// calculate points from appropriate fields (checkboxes and selects)
+function _nycc_incentives_calculate_form_points($form) {
+  // TODO: check for valid array in post
+  $points = 0;
+  $pstrings = array();  // for debugging
+  foreach ($form['#post'] as $key => $val) {
+    if (stripos($key, "field_incentive_") === 0) {
+      //dsm($val);
+      if (is_array($val) && array_key_exists('value', $val)) {
+        if (is_array($val['value'])) {          // select
+          foreach ($val['value'] as $str) {
+            if (stripos($str, 'points)') || stripos($str, 'point)')) {
+              $pstrings[] = $str;
+              $points += _nycc_incentives_parse_points($str);
+            } // if
+          } // foreach
+        } else {                                // checkbox
+          if (stripos($val['value'], 'points)') || stripos($val['value'], 'point)')) {
+            $pstrings[] = $val['value'];
+            $points += _nycc_incentives_parse_points($val['value']);
+          } // if
+        } // else 
+      } // if 
+    } // if
+  } // foreach
+  return $points;
+} // _nycc_incentives_calculate_form_points
+
+
+
+
+
+
+
+
+
+
+
+
+//VALIDATION FUNCTIONS
+// TODO: check that form pairs are filled out together (e.g., all day events and all day points)
+// return TRUE if first field has text whenever field2 has point values
+function _nycc_incentive_validate_field_pair($field1, $field2, $a3) {
+  $f1 = $f2 = "";
+  if (array_key_exists($field1, $a3['#post']) && is_array($a3['#post'][$field1]))
+    if (array_key_exists(0, $a3['#post'][$field1]))
+      $f1 = $a3['#post'][$field1][0]['value'];
+    else
+      $f1 = $a3['#post'][$field1]['value'];
+  if (array_key_exists($field2, $a3['#post']) && is_array($a3['#post'][$field2]))
+    if (array_key_exists(0, $a3['#post'][$field2]))
+      $f2 = $a3['#post'][$field2][0]['value'];
+    else
+      $f2 = $a3['#post'][$field2]['value'];
+  $l1 = drupal_strlen(trim($f1));
+  $l2 = drupal_strlen(trim($f2));
+  //dpm(array($f1, $f2, $l1, $l2, ($l2 && !$l1), $a3['#post']));
+  if ($l2 && !$l1)
+   return FALSE;
+  return TRUE;
+} // _nycc_incentive_validate_field_pair
+
+// DISPLAY PERMISSIONS ON SETTINGS PAGE
+function _nycc_incentives_check_role_perms() {
+  $items = array();
+  $roles = array('paid member', 'incentives coordinator', 'incentive coordinator', 'administrator', 'auth', 'anon');
+  
+  $result = db_query("SELECT r.name, p.permission FROM {role} r INNER JOIN {role_permission} p ON r.rid = p.rid WHERE p.permission like '%incentive%' ORDER by 1");
+  foreach($result as $row) {
+    $name = $row->name;
+    $perm = $row->permission;
+    //$perms = explode(",", $row->permission);
+    //foreach ($perms as $perm) {
+      // show any "incentive" perm except the old nycc.module report
+      if ($perm != 'view incentives report') {
+        if ( array_key_exists($name, $items)) {
+          if( drupal_strlen($items[$name]))
+            $items[$name] .= ", ";          
+          
+          $items[$name] .= $perm;  
+        }
+        else {
+          $items[$name] = $perm;
+        }
+      } // if
+    //} // foreach perm
+  } // foreach row
+  //dpm($items);
+  
+  foreach ($items as $ndx => $item) {
+    $items[$ndx] = "<b>$ndx</b>: " . $items[$ndx];
+  }
+  
+  $base_perms = '';
+  $coord_perms = '';
+  $admin_perms = '';
+  
+  $perms = array(
+    'paid member' => array(
+      'whitelist' => '', 
+      'blacklist' => 'administer nycc incentives, coordinate nycc incentives, create incentive_request content',
+    ), 
+    // todo: this is incentive coodinator on production, incentives on dev
+    'incentives coordinator' => array(
+      'whitelist' => 'coordinate nycc incentives, create incentive_request content', 
+      'blacklist' => '',
+    ),
+    'administrator' => array(
+      'whitelist' => 'administer nycc incentives, coordinate nycc incentives, create incentive_request content', 
+      'blacklist' => '',
+    ),
+    'auth' => array(
+      'whitelist' => '', 
+      'blacklist' => '',
+    ),
+    'anon' => array(
+      'whitelist' => '', 
+      'blacklist' => '',
+    ),
+  );
+  
+  
+  // todo:
+  // iterate over roles, look up rids, look up perms check that role has all perms listing in $perms[$role] in white list and none in blacklist
+  // collect errors in an array of strings 
+  // theme as list and return
+  //$items[] = 'Coming soon.';
+  return $items;
+
+} // _nycc_incentives_check_role_perms
 
 
 
@@ -362,312 +715,6 @@ function nycc_incentive_node_validate($node, $form, &$form_state) {
 //    } // switch
 //} // nycc_incentives_nodeapi
 
-function nycc_incentives_form_alter(&$form, &$form_state, $form_id) {
-  global $user;
-  if ($form_id == 'incentive_request_node_form') {
-    // hide status? do that through field access permissions
-    // make field_incentive_lead_point read_only
-    // see https://www.silviogutierrez.com/blog/drupal-7-read-only-fields/
-    $uid = $form['uid']['#value'] ? $form['uid']['#value'] : $user->uid;
-    $form['#after_build'][] = '_nycc_incentives_after_build';
-    $name = nycc_get_user_full_name($user);
-    $title .= " for $name";
-    $prevyear = date("Y") - 1;
-    drupal_set_title($form['title']['#default_value'] . "Incentive Request for $name for $prevyear");
-    
-    // hidden fields
-    //if (arg(1) == 'add')
-      unset($form['field_incentive_reward']);
-    if (arg(1) == 'add') {
-      unset($form['field_incentive_total']);
-    } 
-    
-    $form['buttons']['preview']['#value'] = t("Review");
-    $form['buttons']['submit']['#value'] = t("Submit for Approval");
-    
-    //dpm(get_defined_vars());
-  } // incentive_request_node_form  
-} // nycc_incentives_form_alter
-
-// menu callback 
-function _nycc_incentives_update_status() {
-  $nid = $_REQUEST['nid'];
-  $status = $_REQUEST['status'];
-  global $user;
-  
-  // TODO: check that user has incentive coord perms - do it in menu def?
-  if (user_access('administer nycc incentives') || user_access('coordinate nycc incentives')) {
-    if ($nid && is_numeric($nid) && drupal_strlen($status)) {
-      $node = node_load($nid);
-      if ($node) {
-        $node->field_incentive_status[0]['value'] = $status;
-        node_save($node);
-      } // if $node
-    } // if
-    drupal_set_message(check_plain("Status changed to $status for node/$nid."));
-  }
-  else {
-    drupal_set_message(check_plain("You are not authorized to change the status."));
-  }
-  drupal_goto("node/$nid");
-} // _nycc_incentives_update_status
-
-
-
-
-// make certain node fields read only
-function _nycc_incentives_after_build($form, &$form_state) {                           
-  // DONE: remove any notifications & spamicide
-  if (array_key_exists('notifications', $form))
-    unset($form['notifications']);
-   
-  if (array_key_exists('spamicide', $form))
-    unset($form['spamicide']);
-   
-  
-  $group = 'group_incentive_general';
-  $field = 'field_incentive_lead_point';
-  $form[$group][$field][0]['value']['#attributes']['readonly'] = 'readonly';
-  //$form[$group][$field][0]['value']['#attributes']['disabled'] = 'disabled';
-  //$form_state['values'][$group][$field][0]['value'] = $form[$group][$field][0]['value']['#default_value'];
-  $field = 'field_incentive_year';
-  $form[$group][$field][0]['value']['#attributes']['readonly'] = 'readonly';
-  //$form[$group][$field][0]['value']['#attributes']['disabled'] = 'disabled';
-  //$form_state['values'][$group][$field][0]['value'] = $form[$group][$field][0]['value']['#default_value'];
-  
-  
-  // dpm(array($form, $form_state));  
-  return $form;
-} // _nycc_incentives_after_build
- 
-// calculate points from appropriate fields (checkboxes and selects)
-function _nycc_incentives_calculate_node_points($node) {
-  
-  // todo: test for valid incentive request node
-  
-  $points = 0;
-  $pstrings = array();    // for debugging 
-  
-  // hard coded list of fields to check 
-  // TODO: consider parsing any field_incentive_XXX
-  $fields = array(
-    'field_incentive_participation' => $node->field_incentive_participation , 
-    'field_incentive_sig_rides_led' => $node->field_incentive_sig_rides_led, 
-    'field_incentive_all_day_count' => $node->field_incentive_all_day_count, 
-    'field_incentive_half_day_count' => $node->field_incentive_half_day_count,
-  );
-  
-  foreach ($fields as $key => $field) {
-    if (is_array($field)) {
-      foreach ($field as $ndx => $val) {
-        if (is_array($val) && array_key_exists('value', $val)) {
-          if (stripos($val['value'], 'points)') || stripos($val['value'], 'point)')) {
-            $pstrings[] = $val['value'];
-            $points += _nycc_incentives_parse_points($val['value']);
-          } // if
-        } // if
-      } // for
-    } // if
-  }  //for
-  
-  //dpm(get_defined_vars());
-
-  return $points;
-} // _nycc_incentives_calculate_node_points
- 
-// calculate points from appropriate fields (checkboxes and selects)
-function _nycc_incentives_calculate_form_points($form) {
-  // TODO: check for valid array in post
-  $points = 0;
-  $pstrings = array();  // for debugging
-  foreach ($form['#post'] as $key => $val) {
-    if (stripos($key, "field_incentive_") === 0) {
-      //dsm($val);
-      if (is_array($val) && array_key_exists('value', $val)) {
-        if (is_array($val['value'])) {          // select
-          foreach ($val['value'] as $str) {
-            if (stripos($str, 'points)') || stripos($str, 'point)')) {
-              $pstrings[] = $str;
-              $points += _nycc_incentives_parse_points($str);
-            } // if
-          } // foreach
-        } else {                                // checkbox
-          if (stripos($val['value'], 'points)') || stripos($val['value'], 'point)')) {
-            $pstrings[] = $val['value'];
-            $points += _nycc_incentives_parse_points($val['value']);
-          } // if
-        } // else 
-      } // if 
-    } // if
-  } // foreach
-  return $points;
-} // _nycc_incentives_calculate_form_points
-
-
-// TODO: check that form pairs are filled out together (e.g., all day events and all day points)
-// return TRUE if first field has text whenever field2 has point values
-function _nycc_incentive_validate_field_pair($field1, $field2, $a3) {
-  $f1 = $f2 = "";
-  if (array_key_exists($field1, $a3['#post']) && is_array($a3['#post'][$field1]))
-    if (array_key_exists(0, $a3['#post'][$field1]))
-      $f1 = $a3['#post'][$field1][0]['value'];
-    else
-      $f1 = $a3['#post'][$field1]['value'];
-  if (array_key_exists($field2, $a3['#post']) && is_array($a3['#post'][$field2]))
-    if (array_key_exists(0, $a3['#post'][$field2]))
-      $f2 = $a3['#post'][$field2][0]['value'];
-    else
-      $f2 = $a3['#post'][$field2]['value'];
-  $l1 = drupal_strlen(trim($f1));
-  $l2 = drupal_strlen(trim($f2));
-  //dpm(array($f1, $f2, $l1, $l2, ($l2 && !$l1), $a3['#post']));
-  if ($l2 && !$l1)
-   return FALSE;
-  return TRUE;
-} // _nycc_incentive_validate_field_pair
-
-// return incentive reward as string
-function _nycc_incentives_get_reward($node) {  
-  $incentive = "";
-  $tax = $node->taxonomy;
-  if (array_key_exists(7, $tax))
-    $tax = $tax[7];
-  foreach ($tax as $ndx => $term) {
-    if (!is_object($term))
-      $term = taxonomy_term_load($term);
-    if (is_object($term)) {
-      $val = $term->name;
-      if (drupal_strlen($incentive))
-        $incentive .= " - ";
-      $incentive .= $val;
-    } // if object
-  } // foreach term
-  //dpm(get_defined_vars());
-  return $incentive;
-} // _nycc_incentives_get_reward
-
-// get points for select incentive reward 
-function _nycc_incentives_reward_points($form) {
-  //dsm($form);
-  // TODO: check for valid array in taxonomy
-  foreach ($form['#post']['taxonomy'] as $vid => $item) {
-    $selects = $item['hierarchical_select']['selects'];
-    foreach ($selects as $termid) {
-      $term = taxonomy_term_load($termid);
-      if (is_object($term)) {
-        $val = strtolower($term->name);
-        if (stripos($val, 'point')) 
-          return _nycc_incentives_parse_points($val);
-      } // is_object
-    } // foreach
-  } // foreach
-  return 0;
-} // _nycc_incentives_reward_points
-
-function _nycc_incentives_get_ride_leads_count($uid) {
-  $st  = date("m/d/Y", mktime(0, 0, 0, 1 , 1, date("Y")-1));
-  $et  = date("m/d/Y", mktime(0, 0, 0, 12 , 31, date("Y")-1));
-  $startdate = strtotime($st);
-  $enddate = strtotime($et);
-  $cue_points = variable_get('nycc_incentives_ride_lead_cuesheet', 1);
-  $other_points = variable_get('nycc_incentives_ride_lead_other', .5);
-  
-  $user_profile_nid = nycc_get_nid_from_uid($uid) ;
-  /*$sql =<<<EOS
-SELECT SUM(IF(field_ride_type_value = 'Cue Sheet Ride', %d, %d)) AS pts FROM content_type_rides r, content_field_ride_leaders l, node nr WHERE l.nid = r.nid AND l.vid = r.vid AND nr.nid = r.nid AND nr.vid = r.vid AND nr.status <> 0 AND r.vid = (SELECT MAX(NR.vid) FROM node_revisions NR WHERE NR.nid = r.nid) AND r.field_ride_status_value = "Approved" AND l.field_ride_leaders_nid = %d AND UNIX_TIMESTAMP(r.field_ride_timestamp_value) BETWEEN %d AND %d ;
-EOS;*/ 
-
-  // TODO: determine why drupal db_query seems to be messing with the above query by converting the .5 to 0 for $other_points
-  
-  $sql =<<<EOS
-SELECT SUM(IF(field_ride_type_value = 'Cue Sheet Ride', $cue_points, $other_points)) AS pts FROM {content_type_rides} r, {content_field_ride_leaders} l, {node} nr WHERE l.nid = r.nid AND l.vid = r.vid AND nr.nid = r.nid AND nr.vid = r.vid AND nr.status <> 0 AND r.vid = (SELECT MAX(NR.vid) FROM {node_revisions} NR WHERE NR.nid = r.nid) AND r.field_ride_status_value = "Approved" AND l.field_ride_leaders_nid = $user_profile_nid AND UNIX_TIMESTAMP(r.field_ride_timestamp_value) BETWEEN $startdate AND $enddate ;
-EOS;
-
-  dpm($sql);
-
-  $args = array($cue_points, $other_points, $user_profile_nid, $startdate, $enddate);
-  $q = db_query($sql);   // , $args);
-  $retval = db_fetch_object($q);
-  //dpm(get_defined_vars());
-  return ($retval && isset($retval->pts) && is_numeric($retval->pts)) ? $retval->pts : 0;
-} // _nycc_incentives_get_ride_leads_count
-
-function _nycc_incentives_parse_points($str) {
-  $matches = array();
-  preg_match_all('!\d+\s?point[s]?\)!', $str, $matches);
-  $retval = array_shift($matches); 
-  $retval = str_replace(array('points', 'point', ' ', ')'), '', strtolower($retval[0]));
-  //dsm(array($str, $retval));
-  return $retval;
-} // _nycc_incentives_parse_points
-
-function _nycc_incentives_check_role_perms() {
-  $items = array();
-  $roles = array('paid member', 'incentives coordinator', 'incentive coordinator', 'administrator', 'auth', 'anon');
-  
-  $result = db_query("SELECT r.name, p.permission FROM {role} r INNER JOIN {role_permission} p ON r.rid = p.rid WHERE p.permission like '%incentive%' ORDER by 1");
-  foreach($result as $row) {
-    $name = $row->name;
-    $perm = $row->permission;
-    //$perms = explode(",", $row->permission);
-    //foreach ($perms as $perm) {
-      // show any "incentive" perm except the old nycc.module report
-      if ($perm != 'view incentives report') {
-        if ( array_key_exists($name, $items)) {
-          if( drupal_strlen($items[$name]))
-            $items[$name] .= ", ";          
-          
-          $items[$name] .= $perm;  
-        }
-        else {
-          $items[$name] = $perm;
-        }
-      } // if
-    //} // foreach perm
-  } // foreach row
-  //dpm($items);
-  
-  foreach ($items as $ndx => $item) {
-    $items[$ndx] = "<b>$ndx</b>: " . $items[$ndx];
-  }
-  
-  $base_perms = '';
-  $coord_perms = '';
-  $admin_perms = '';
-  
-  $perms = array(
-    'paid member' => array(
-      'whitelist' => '', 
-      'blacklist' => 'administer nycc incentives, coordinate nycc incentives, create incentive_request content',
-    ), 
-    // todo: this is incentive coodinator on production, incentives on dev
-    'incentives coordinator' => array(
-      'whitelist' => 'coordinate nycc incentives, create incentive_request content', 
-      'blacklist' => '',
-    ),
-    'administrator' => array(
-      'whitelist' => 'administer nycc incentives, coordinate nycc incentives, create incentive_request content', 
-      'blacklist' => '',
-    ),
-    'auth' => array(
-      'whitelist' => '', 
-      'blacklist' => '',
-    ),
-    'anon' => array(
-      'whitelist' => '', 
-      'blacklist' => '',
-    ),
-  );
-  
-  
-  // todo:
-  // iterate over roles, look up rids, look up perms check that role has all perms listing in $perms[$role] in white list and none in blacklist
-  // collect errors in an array of strings 
-  // theme as list and return
-  //$items[] = 'Coming soon.';
-  return $items;
-
-} // _nycc_incentives_check_role_perms
 
 
 
