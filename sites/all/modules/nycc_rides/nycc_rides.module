@@ -326,11 +326,11 @@ function nycc_rides_node_insert($node) {
   } // rides
 } //node_insert
 
-function nycc_rides_node_validate($node, $form = NULL, $form_state = NULL) {
+function nycc_rides_node_validate($node, $form, &$form_state) {
   if ($node->type == 'rides') {
     global $user;
     // TODO: check for dates in future for non-approved rides
-    
+  
     // check for spots > riders count
     $num_riders = nycc_rides_count_riders($node);
     $num_spots =  nycc_field_get_text_value($node->field_ride_spots);
