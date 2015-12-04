@@ -252,6 +252,21 @@ function nycc_noderefs2userrefs($nrefs) {
   return $urefs;
 }
 
+function nycc_field_get_property_value($node, $field) {
+  if(property_exists($node, $field)) {
+    return nycc_field_get_value($node->{$field});
+  }
+  return array(0=>array('value'=>''));
+}
+
+
+function nycc_field_get_property_text_value($node, $field) {
+  if(property_exists($node, $field)) {
+    return nycc_field_get_text_value($node->{$field});
+  }
+  return "";
+}
+
 function nycc_field_get_value($field) {
   /*
    *possible values are:
@@ -260,8 +275,11 @@ function nycc_field_get_value($field) {
    *  non-array value stored in either #value or #default_value -> return as array with value element
    */
   if(nycc_field_has_value($field)) {
-    if(is_string($field))
-       return array(0=>array('value'=>$field));
+    if(is_object($field))
+      return array(0=>array('value'=>$field));
+
+    if(is_numeric($field) || is_string($field))
+      return array(0=>array('value'=>$field));
 
     if(isset($field['und']))
       return $field['und'];
@@ -290,11 +308,11 @@ function nycc_field_get_text_value($field) {
    *  array inside of ['und'] -> return first value string  under ['und']
    *  non-array value stored in either #value or #default_value -> return string value
    */
-  if(nycc_field_has_value($field)) {
-    if(is_string($field))
-       return $field;
-
-    if(isset($field['und']))
+  if(nycc_field_has_value($field) && (!is_object($field))) {
+    if(is_string($field) || is_numeric($field))
+      return $field;
+      
+    if(isset($field['und']) && (count($field['und']) ==1) && isset($field['und'][0]['value']))
       return $field['und'][0]['value'];
 
     if(isset($field['#value']))
@@ -310,27 +328,253 @@ function nycc_field_get_text_value($field) {
   }
 }
 
-function nycc_field_has_value($field) {
+function nycc_field_has_value($field, $lang_code='und') {
   if (!$field)
     return FALSE;
+  
+  if (is_string($field) || is_numeric($field) || is_object($field))
+    return TRUE;  
 
-  if  ( is_string($field) || isset($field['#value']) || isset($field['#default_value'])) //if value isn't localized then no 'und'
-    return true;
+  if  ( isset($field['#value']) || isset($field['#default_value'])) //if value isn't localized then no 'und'
+    return TRUE;  
 
-  if (is_object($field)) //if value is stored as object
-    return true;
-
-  if (!isset($field['und']))
+  if (!isset($field[$lang_code]))
     return FALSE;
 
-  if (!is_array($field['und']))
+  if (!is_array($field[$lang_code]))
     return FALSE;
 
-  if (empty($field['und']))
+  if (empty($field[$lang_code]))
     return FALSE;
-
+  
+  if (empty($field[$lang_code][0]))
+    return FALSE;  
+  
+  if (      empty($field[$lang_code][0]['value']) &&
+            empty($field[$lang_code][0]['uid']) &&
+            empty($field[$lang_code][0]['tid']) &&
+            empty($field[$lang_code][0]['eid']) &&
+            empty($field[$lang_code][0]['nid']))
+    return FALSE;  
+    
   return true;
 }
+
+
+function nycc_get_test_data($lang_code='und') {
+  $return_objects = array();
+
+//FALSE CONDITIONS  
+  $return_objects[] = (object) ['desc' => 'Field is null' ,
+            'to_test' =>null,
+            'expected_return'=>FALSE,
+            'expected_return_value'=>array(0=>array('value'=>'')),
+            'expected_return_text_value'=>'',
+            ];
+            
+  $return_objects[] = (object) ['desc' => 'Field is empty array' ,
+                                'to_test' => array(),
+                                'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',                                
+                                ];
+  
+  $return_objects[] = (object) ['desc' => 'Field is array but has no #value, #default_value, or und elements' ,
+                                'to_test' => array('test'=>1),
+                                'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with empty und element' ,
+                                'to_test' => array($lang_code=>null),
+                                'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  
+  $return_objects[] = (object) ['desc' => 'Field is array with und element but null for index 0' ,
+                                 'to_test' => array($lang_code=>array(0=>null)),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with und element but empty array for index 0' ,
+                                 'to_test' => array($lang_code=>array(0=>array())),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with und element but no value element in index 0' ,
+                                 'to_test' => array($lang_code=>array(0=>array('test'=>1))),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with und element but an empty array for value' ,
+                                 'to_test' => array($lang_code=>array(0=>array())),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with und element but value=>null' ,
+                                 'to_test' => array($lang_code=>array(0=>array('value'=>null))),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with und element and value=> empty array' ,
+                                 'to_test' => array($lang_code=>array(0=>array('value'=>array()))),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with string' ,
+                                 'to_test' => array('uid'=>'1'),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with int' ,
+                                 'to_test' => array('uid'=>1),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with object' ,
+                                 'to_test' => array('obj'=> (object) ['property' => 'Here we go']),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>'')),
+                                'expected_return_text_value'=>'',  
+                                ];  
+  //TRUE CONDITIONS
+  $return_objects[] = (object) ['desc' => 'Field is  object' ,
+                                 'to_test' => (object) ['property' => 'Here we go'],
+                                 'expected_return' => TRUE,
+                                'expected_return_value'=>array(0=>array('value'=> (object) ['property' => 'Here we go'])),
+                                'expected_return_text_value'=>'',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is string' ,
+                                 'to_test' => 'This is a string',
+                                 'expected_return' => TRUE,
+                                'expected_return_value'=>array(0=>array('value'=>'This is a string')),
+                                'expected_return_text_value'=>'This is a string',  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is int' ,
+                                 'to_test' => '12345',
+                                 'expected_return' => TRUE,
+                                'expected_return_value'=>array(0=>array('value'=>12345)),
+                                'expected_return_text_value'=>12345,  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is single int value stored in und[0][value]' ,
+                                 'to_test' => array($lang_code=>array(0=>array('value'=>12345))),
+                                 'expected_return' => TRUE,
+                                'expected_return_value'=>array(0=>array('value'=>12345)),
+                                'expected_return_text_value'=>12345,  
+                                ]; 
+  $return_objects[] = (object) ['desc' => 'Field is single string value stored in und[0][value]' ,
+                                 'to_test' => array($lang_code=>array(0=>array('value'=>'this is a string'))),
+                                 'expected_return' => TRUE,
+                                'expected_return_value'=>array(0=>array('value'=>'this is a string')),
+                                'expected_return_text_value'=>'this is a string',  
+                                ]; 
+  $return_objects[] = (object) ['desc' => 'Field is multi string value stored in und[0][value]' ,
+                                 'to_test' => array($lang_code=>array(0=>array('value'=>'this is a string'), 1=>array('value'=>'this is another string'), 2=>array('value'=>'this is yet another string'))),
+                                 'expected_return' => TRUE,
+                                'expected_return_value'=>array(0=>array('value'=>'this is a string'), 1=>array('value'=>'this is another string'), 2=>array('value'=>'this is yet another string')),
+                                'expected_return_text_value'=>'',  
+                                ]; 
+  $return_objects[] = (object) ['desc' => 'Field is array with #value key and int value' ,
+                                 'to_test' => array('#value'=>1),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>1)),
+                                'expected_return_text_value'=>1,  
+                                ];
+  $return_objects[] = (object) ['desc' => 'Field is array with #default_value key and int value' ,
+                                 'to_test' => array('#default_value'=>1),
+                                 'expected_return' => FALSE,
+                                'expected_return_value'=>array(0=>array('value'=>1)),
+                                'expected_return_text_value'=>1,  
+                                ];
+    
+    
+  return $return_objects;
+}
+function nycc_field_has_value_test($verbose = FALSE) {
+ //function to test all combinations of values to ensure it's correctly trapping all situations
+ $test_data = nycc_get_test_data();
+ 
+ $final_value = true;
+ foreach($test_data as $test){
+  $test_name = $test->desc;
+  if(nycc_field_has_value($test->to_test) == $test->expected_return) {
+    if ($verbose) dpm("Testing $test_name ... passed");  
+  } else {
+    $final_value = false;
+    if ($verbose)  dpm("ERROR: Testing $test_name ... failed");  
+  }
+ }
+ if ($verbose) {
+  if($final_value) {
+    dpm("Testing complete. returned: True");
+  } else {
+    dpm("Testing complete. returned: False");
+  }
+ }
+ return $final_value;
+}
+
+function nycc_field_get_text_value_test($verbose = FALSE) {
+ //function to test all combinations of values to ensure it's correctly trapping all situations
+ $test_data = nycc_get_test_data();
+ 
+ $final_value = true;
+ foreach($test_data as $test){
+  $test_name = $test->desc;
+  if(nycc_field_get_text_value($test->to_test) == $test->expected_return_text_value) {
+    if ($verbose) dpm("Testing $test_name ... passed");  
+  } else {
+    $final_value = false;
+    if ($verbose)  dpm("ERROR: Testing $test_name ... failed");  
+  }
+ }
+ if ($verbose) {
+  if($final_value) {
+    dpm("Testing complete. returned: True");
+  } else {
+    dpm("Testing complete. returned: False");
+  }
+ }
+ return $final_value;
+}
+
+
+function nycc_field_get_value_test($verbose = FALSE) {
+ //function to test all combinations of values to ensure it's correctly trapping all situations
+ $test_data = nycc_get_test_data();
+ 
+ $final_value = true;
+ foreach($test_data as $test){
+  $test_name = $test->desc;
+  if(nycc_field_get_value($test->to_test) == $test->expected_return_value) {
+    if ($verbose) dpm("Testing $test_name ... passed");  
+  } else {
+    $final_value = false;
+    if ($verbose)  dpm("ERROR: Testing $test_name ... failed");  
+  }
+ }
+ if ($verbose) {
+  if($final_value) {
+    dpm("Testing complete. returned: True");
+  } else {
+    dpm("Testing complete. returned: False");
+  }
+ }
+ return $final_value;
+}
+
+
+
+
 
 /*
  *compares a field value across 2 nodes (generally 2 revisions of the same node)
@@ -383,19 +627,27 @@ function nycc_user_is_in_list($node, $account = NULL, $field_name){
 
 
 function nycc_get_user_full_name($account = NULL) {
-    global $user;
-    if (!$account){
-      $account = $user;
+  global $user;
+  if (!$account){
+    $account = $user;
     $uid = $account->uid;
-    } else if (is_object($account)) {
+  } else if (is_object($account)) {
     $uid = $account->uid;
-  } else {
-    $uid = $account;
+  } else if (is_numeric($account)) {
+    $account = user_load($account);
+    $uid = $account->uid;
   }
+  
+  if(!$uid)
+    return "";
+  
+  if(function_exists('realname_load'))
+    return realname_load($account);
+    
 
   $cp = profile2_load_by_user($uid, "profile");
   if($cp) {
-    return $cp->title;
+    return $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
   } else {
     //TODO: Add Watchdog.
     drupal_set_message(check_plain("nycc_get_user_full_name: Could not load profile for user: $uid"), "error");
@@ -403,5 +655,26 @@ function nycc_get_user_full_name($account = NULL) {
   return "";
 }
 
+function nycc_get_nid_from_uid($account = NULL) {
+  global $user;
+  if (!$account){
+    $account = $user;
+      
+    $uid = $account->uid;
+  } else if (is_object($account)) {
+    $uid = $account->uid;
+  } else {
+    $uid = $account;
+  }
+
+  $cp = profile2_load_by_user($uid, "profile");
+  if($cp) {
+    return $cp->pid;
+  } else {
+    //TODO: Add Watchdog.
+    drupal_set_message(check_plain("nycc_get_nid_from_uid: Could not load profile for user: $uid"), "error");
+  }
+  return "";
+}
 
  

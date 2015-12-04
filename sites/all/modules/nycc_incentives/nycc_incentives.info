@@ -1,4 +1,8 @@
 name = NYCC Incetives Module 
 description = Handle incentives
 package = NYCC
-core = 6.x
+core = 7.x
+files[]=nycc_incentives.module
+files[]=nycc_incentives.admin.inc
+files[]=nycc_incentives.install
+configure=admin/config/nycc/nycc_incentive

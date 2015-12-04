@@ -1,7 +1,0 @@
-name = CoinPayments
-description = Support for Bitcoin, Litecoin, Quark, and others.
-core = 7.x
-version = "7.x-2.0"
-package = MoneyScripts - Gateways
-dependencies[] = ms_core
-configure = admin/moneyscripts/gateways/ms_coinpayments
