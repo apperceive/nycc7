@@ -3,12 +3,24 @@
 /**
  * @file nycc_modal.module
  * TODO: Enter file description here.
+ *
+ *
+ * Based on https://www.deeson.co.uk/labs/insert-form-pop-modal-ctools-and-drupal-7
+ *
+ * See also: http://cgit.drupalcode.org/ctools/tree/includes/modal.inc
+ *
+ * and https://api.drupal.org/api/drupal/includes!ajax.inc/group/ajax_commands/7
+ *
  */
 
 /**
  * Form builder.
  */
 function nycc_modal_settings_form($form, &$form_state) {
+  
+  
+  // TODO: create settings for all strings and options used in this module
+  
   $form['nycc_modal_variable_foo'] = array(
     '#type' => 'textfield',
     '#title' => t('Foo'),
@@ -166,7 +178,7 @@ function _nycc_modal_log_form($form, $form_state) {
   );
 
   $form['revision_summary'] = array(          // ### Specific to dlg
-    '#type' => 'textarea',
+    '#type' => 'textfield',
     '#title' => t('Change summary'),
   );
 
