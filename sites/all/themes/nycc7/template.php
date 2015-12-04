@@ -164,7 +164,11 @@ function nycc7_process_html(&$variables) {
  * WHY IS THIS NECESSARY? copied from base theme
  */
 function nycc7_process_page(&$variables) {
-  $variables['navbar_classes'] = implode(' ', $variables['navbar_classes_array']);
+  if (!array_key_exists('navbar_classes', $variables))
+    $variables['navbar_classes'] = "";
+  if (isset($variables['navbar_classes_array']) && is_array($variables['navbar_classes_array']))
+    $variables['navbar_classes'] = implode(' ', $variables['navbar_classes_array']);
+    
 }
 
 function nycc7_preprocess_node(&$variables) {
@@ -180,27 +184,26 @@ function nycc7_nycc_ride_link($variables) {
   if ($path == "#")
     return "<a href='#' onclick='alert(\"$title\");' title='$title' class='btn btn-info $classes'>$text</a>";
   
-  return l($text, $path, array('attributes' => array('title' => $title, 'class' => array('btn btn-primary ' . $classes)))); 
+  return l($text, $path, array('attributes' => array('title' => $title, 'class' => $classes . ' btn btn-primary'))); 
 }
 
 // note: only handles two levels of menu
 function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = true, $submenuclasses = "") {
   $menu = menu_tree($menuname);
   $id = $id ? $id : $menuname;
-  $litopclass = $flat ? '' : 'top-item';
   $ulclasess = drupal_strlen($submenuclasses) ? " class='$submenuclasses'" : "";
   $tree = array();
   
   foreach ($menu as $key => $item) {
-    if (!is_numeric($key))
-      continue;
+    $classes = array();
+    if ($flat) $classes[] = 'top-item';
+    if (!is_numeric($key)) continue;
 
     // note: one level processing here only
     $leaf = array();
     if (is_array($item['#below'])) {
       foreach ($item['#below'] as $child_key => $child) {
-        if (!is_numeric($child_key))
-          continue;
+        if (!is_numeric($child_key)) continue;
         if (drupal_strlen(trim($child['#title']))) {
           $cl = l($child['#title'], $child['#href']);
           // TODO: set active?
@@ -211,13 +214,14 @@ function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = t
     $submenuul ="";
     if (count($leaf)) {
       $submenu = implode('', $leaf);
-      if (drupal_strlen(trim($submenu)))
-        $submenuul = "<ul>$submenu</ul>";
+      if (drupal_strlen(trim($submenu))) $submenuul = "<ul>$submenu</ul>";
     }
     // TODO: set active?
-    $homeclass = ($item['#href'] == "<front>") ? "home" : "";
+    if ($item['#href'] == "<front>") $classes[] = 'home';
     $title = ($item['#href'] == "<front>") ? "&nbsp;" : $item['#title'];
-    $attributes = array('class' => array($homeclass, $litopclass));
+       
+    $attributes = array('class' => implode(' ', $classes));
+    
     $l = l($title, $item['#href'], array('html' => true, 'attributes' => $attributes));
     // skip home link if $front is true, for footer menu
     if (!($item['#href'] == "<front>") || (($item['#href'] == "<front>") && $front))
@@ -225,7 +229,7 @@ function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = t
     
   } // for
   $s = "<ul id='$id' class='$class'>" . implode('', $tree) . "</ul>";
- return $s;
+  return $s;
 } // _nycc7_menu
 
 function _nycc7_navbar_nav_links() {
@@ -306,7 +310,7 @@ function _nycc_block_render($module, $block_id) {
 
 /*
 
-function xxnycc7_menu_local_tasks(&$variables) {
+function xxxnycc7_menu_local_tasks(&$variables) {
   if (isset($variables['primary'])) {
     foreach($variables['primary'] as $menu_item_key => $menu_attributes) {
       //$variables['primary'][$menu_item_key]['#link']['localized_options'] = array(      'attributes' => array('class' => array('xxx')),);
