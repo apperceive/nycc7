@@ -1,0 +1,6 @@
+name = Nycc Modal
+description = TODO: Description of module
+package = NYCC
+dependencies[] = nycc
+core = 7.x
+files[] = tests/nycc_modal.test

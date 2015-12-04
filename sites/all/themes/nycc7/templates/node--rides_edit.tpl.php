@@ -18,7 +18,7 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
     '#value'  => $value,      // add icon ?
     '#weight' => $weight,
     '#attributes' => array(
-      'class' => array('btn btn-default btn-lg'), 
+      'class' => array('btn', 'btn-default', 'btn-lg'),
       'onclick' => "javascript: jQuery('a[href=\"#$href\"]').click(); return false;"
     ),
   );
@@ -107,7 +107,8 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
   }
   
   // alter submit button
-  $form['actions']['submit']['#attributes'] = array('class' => array('btn btn-lg'));
+  $form['actions']['submit']['#attributes']['class'][] = 'btn';
+  $form['actions']['submit']['#attributes']['class'][] = 'btn-lg';
   $form['actions']['submit']['#weight'] = 50;
   
   // copy submit button to last two tabs 
@@ -118,6 +119,15 @@ function _nycc_rides_form_nav_button($value, $href, $weight = 50) {
   if ($can_approve) {
     $form['group_rides_htabs']['group_ride_participants']['next'] = _nycc_rides_form_nav_button('Next', 'group-ride-rc-info', 49);
     $form['group_rides_htabs']['group_ride_rc_info']['prev'] = _nycc_rides_form_nav_button('Prev', 'group-ride-participants', 49);
+    $form['group_rides_htabs']['group_ride_rc_info']['settings'] = array(
+      '#type'   => 'button',
+      '#value'  => 'Toggle Settings',      // add icon ?
+      '#weight' => 100,
+      '#attributes' => array(
+        'class' => array('btn', 'btn-default', 'btn-sm'), 
+        'onclick' => "javascript: jQuery('#rides-node-form .vertical-tabs').toggle(); return false;"
+      ),
+    );
   }
   
   if ($op == 'add') {

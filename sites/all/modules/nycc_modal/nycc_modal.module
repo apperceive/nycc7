@@ -1,0 +1,197 @@
+<?php
+
+/**
+ * @file nycc_modal.module
+ * TODO: Enter file description here.
+ */
+
+/**
+ * Form builder.
+ */
+function nycc_modal_settings_form($form, &$form_state) {
+  $form['nycc_modal_variable_foo'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Foo'),
+    '#default_value' => variable_get('nycc_modal_variable_foo', 42),
+    '#required' => TRUE,
+  );
+  
+  // TODO! You probably don't need validation or submit handlers if using system_settings_form().
+  return system_settings_form($form);
+}
+
+/**
+ * Form validate handler.
+ */
+function nycc_modal_settings_form_validate($form, &$form_state) {
+  if ($form_state['values']['element'] != 'hello') {
+    form_set_error('element', t('Please say hello?'));
+  }
+}
+
+/**
+ * Form submit handler.
+ */
+function nycc_modal_settings_form_submit($form, &$form_state) {
+
+}
+
+/**
+ * Implements hook_menu().
+ */
+function nycc_modal_menu() {
+  $items = array();
+  
+  $items['nycc_modal/log/%ctools_js'] = array(
+    'title' => 'myPage',
+    'page callback' => '_nycc_modal_log_callback',          // ### Specific to dlg
+    'page arguments' => array(2),
+    'access arguments' => array('access content'),
+  );
+  $items['admin/config/nycc_modal'] = array(
+    'title' => 'Administer NYCC Modal',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nycc_modal_settings_form'),
+    'access arguments' => array('administer nycc_modal'),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function nycc_modal_form_alter(&$form, &$form_state, $form_id) {
+  if ('rides_node_form' == $form_id) {                  // ### Specific to dlg on rides form
+    $status = $form['#node']->field_ride_status[LANGUAGE_NONE][0]['value'];
+    if ($status == 'Approved') {
+      
+      // todo: check if important field changed
+    
+      // is this really necessary to check?
+      if (!isset($form['actions']['submit']['#attributes']))
+        $form['actions']['submit']['#attributes'] = array();
+      if (!isset($form['actions']['submit']['#attributes']['class']))
+        $form['actions']['submit']['#attributes']['class'] = array();
+      $form['actions']['submit']['#attributes']['class'][] = 'ctools-use-modal';
+       
+      ctools_include('modal');
+      ctools_modal_add_js();
+
+      $form['edit-submit-url'] = array('#type' => 'hidden', '#value' => '/nycc_modal/log/nojs', '#attributes' => array('class' => 'edit-submit-url'));
+      
+      //if (!is_array($form['actions']['submit']['#submit']))
+      //  $form['actions']['submit']['#submit'] = array();
+      //$form['actions']['submit']['#submit'][] = '_nycc_modal_log_callback';
+          
+      $form['revision_information']['#title'] = t('Track changes');
+      $form['revision_information']['revision']['#title'] = t('Track ride changes');
+      $form['revision_information']['log']['#title'] = t('Describe changes');
+      
+      //dpm($form['revision_information']['log']);
+      $form['revision_information']['log']['#default_value'] = 'this is a test';
+      
+      // TODO: admin
+      //$form['revision_information']['revision']['#default_value'] = FALSE;
+      //if (!nycc_can_approve()) {
+        $form['revision_information']['revision']['#default_value'] = TRUE;
+        $form['revision_information']['log']['#required'] = TRUE;
+      //}    
+      
+      unset($form['revision_information']['revision']['#states']['checked']);
+      $form['revision_information']['revision']['#states']['checked'] = TRUE;
+      // ['#states']['checked']['textarea[name="log"]']['empty'] = FALSE;
+    
+      //dpm(get_defined_vars());
+    
+    
+    }
+  }
+  //dpm(get_defined_vars());
+  
+}
+
+/**
+ * Implements hook_permission().
+ */
+function nycc_modal_permission() {
+  $permissions = array();
+  
+  $permissions['administer nycc_modal'] = array(
+    'title' => t('TODO: enter permission title'),
+    'description' => t('TODO: enter permission description'),
+  );
+  return $permissions;
+}
+
+/**
+ * Ajax menu callback.
+ */
+function _nycc_modal_log_callback($ajax) {
+  if ($ajax) {
+    ctools_include('ajax');
+    ctools_include('modal');
+
+    $form_state = array(
+      'ajax' => TRUE,
+      'title' => t('NYCC Confirmation Form'),
+    );
+
+    // Use ctools to generate ajax instructions for the browser to create
+    // a form in a modal popup.
+    $output = ctools_modal_form_wrapper('_nycc_modal_log_form', $form_state);           // ### Specific to dlg
+
+    // If the form has been submitted, there may be additional instructions
+    // such as dismissing the modal popup.
+    if (!empty($form_state['ajax_commands'])) {
+      $output = $form_state['ajax_commands'];
+    }
+
+    // Return the ajax instructions to the browser via ajax_render().
+    print ajax_render($output);
+    drupal_exit();
+  }
+  else {
+    return drupal_get_form('_nycc_modal_log_form');           // ### Specific to dlg
+  }
+}        
+
+/**
+ * Drupal form to be put in a modal.
+ */
+function _nycc_modal_log_form($form, $form_state) { 
+  $form = array();
+  
+  $form['instructions'] = array(
+    '#markup' => t("Ride Leaders: please provide an explanation of the additions or updates being made to help Ride Coordinators understand your changes.  Note that changing an approved ride will result in the ride being re-sumitted for approval and trigger email alerts to all riders. Revisions are optional for Ride Coordinators and Administers."),
+  );
+
+  $form['revision_summary'] = array(          // ### Specific to dlg
+    '#type' => 'textarea',
+    '#title' => t('Change summary'),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  return $form;
+}        
+
+/**
+ * Drupal form submit handler.
+ */
+function _nycc_modal_log_form_submit(&$form, &$form_state) {
+  // Generate the new link using the submitted text value.
+  $text = $form_state['values']['revision_summary'];
+
+  // Tell the browser to close the modal.
+  $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
+
+  // TODO: insert msg into log field
+  //$form_state['ajax_commands'][] = ajax_command_data('#edit-log', 'log', $text); // ### Specific to dlg
+  $form_state['ajax_commands'][] = ajax_command_invoke('#edit-log', 'val', array($text)); // ### Specific to dlg
+  $form_state['ajax_commands'][] = ajax_command_invoke('#rides-node-form .form-submit', 'removeClass', array('ctools-use-modal')); // ### Specific to dlg
+  $form_state['ajax_commands'][] = ajax_command_invoke('#rides-node-form', 'submit', array()); // ### Specific to dlg
+}        
+
