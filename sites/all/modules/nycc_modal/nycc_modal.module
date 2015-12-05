@@ -176,6 +176,8 @@ function _nycc_modal_log_form($form, $form_state) {
   $form['instructions'] = array(
     '#markup' => t("Ride Leaders: please provide an explanation of the additions or updates being made to help Ride Coordinators understand your changes.  Note that changing an approved ride will result in the ride being re-sumitted for approval and trigger email alerts to all riders. Revisions are optional for Ride Coordinators and Administers."),
   );
+  
+  // todo: add wysiwyg css classes or disable?
 
   $form['revision_summary'] = array(          // ### Specific to dlg
     '#type' => 'textfield',

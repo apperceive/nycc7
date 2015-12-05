@@ -2490,7 +2490,7 @@ function l($text, $path, array $options = array()) {
   // Append active class.
   if (($path == $_GET['q'] || ($path == '<front>' && drupal_is_front_page())) &&
       (empty($options['language']) || $options['language']->language == $language_url->language)) {
-    $options['attributes']['class'][] = 'active';
+      $options['attributes']['class'][] = 'active';
   }
 
   // Remove all HTML and PHP tags from a tooltip. For best performance, we act only

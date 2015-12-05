@@ -220,7 +220,8 @@ function _nycc7_menu($menuname, $flat = false, $class = "", $id = "", $front = t
     if ($item['#href'] == "<front>") $classes[] = 'home';
     $title = ($item['#href'] == "<front>") ? "&nbsp;" : $item['#title'];
        
-    $attributes = array('class' => implode(' ', $classes));
+    $attributes = array('class' => array(implode(' ', $classes)));
+    //dpm(array($classes, $attributes));
     
     $l = l($title, $item['#href'], array('html' => true, 'attributes' => $attributes));
     // skip home link if $front is true, for footer menu
