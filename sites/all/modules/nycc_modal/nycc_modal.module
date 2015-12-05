@@ -180,7 +180,7 @@ function _nycc_modal_log_form($form, $form_state) {
   // todo: add wysiwyg css classes or disable?
 
   $form['revision_summary'] = array(          // ### Specific to dlg
-    '#type' => 'textfield',
+    '#type' => 'textarea',
     '#title' => t('Change summary'),
   );
 
