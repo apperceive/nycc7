@@ -472,7 +472,7 @@ function nycc_rides_node_prepare($node) {
       drupal_goto("node/" . $node->nid);
     }    
     if (!nycc_rides_can_approve()) {
-      $ride_level = nycc_rides_get_ride_level($ride);
+      $ride_level = nycc_rides_get_ride_level($node);
       
       drupal_set_message(filter_xss("<b>Please Note:</b> If you modify key fields on this ride it will be taken offline until the Ride Coordinator has had a chance to review the changes."));
       
