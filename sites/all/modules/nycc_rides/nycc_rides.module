@@ -1472,7 +1472,7 @@ function nycc_rides_get_ride_time_as_text($ride) {
   if (!is_object($ride))
     return null;
 
-  return nycc_field_get_property_text_value($ride, 'field_ride_timestamp')
+  return nycc_field_get_property_text_value($ride, 'field_ride_timestamp');
 }
 
 function nycc_rides_get_ride_location($ride) {
