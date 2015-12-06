@@ -384,7 +384,7 @@ function nycc_rides_node_presave($node) {
         && arg(0) != "nycc_rides"
         && arg(1) != "inbound") {
       
-      if ( //!nycc_rides_can_approve() && 
+      if ( !nycc_rides_can_approve() && 
           in_array(nycc_rides_get_ride_status($node) , array('Approved', 'Submitted'))
           && nycc_rides_ride_has_changed($node)) {
         
@@ -1531,12 +1531,10 @@ function nycc_rides_ride_allows_signups($node) {
     $node = node_load($node);
 
   if($node && $node->type == 'rides'){
-    $ride_signups_value = nycc_field_get_property_text_value($node, 'field_ride_signups') ;
-    return ($ride_signups_value[0]['value'] == "Signups with waiting list" ) ;
+    return ( nycc_field_get_property_text_value($node, 'field_ride_signups')  == "Signups with waiting list" ) ;
   }
   else
     return FALSE;
-
 }
 
 
