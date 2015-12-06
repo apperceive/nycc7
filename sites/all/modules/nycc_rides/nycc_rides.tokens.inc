@@ -47,7 +47,11 @@ function nycc_rides_token_info() {
     $info['tokens']['node']['nycc_rides_ride_enable_time_formatted'] = array(
       'name' => t('nycc_rides_ride_enable_time_formatted'),
       'description' => t('Returns the date & time a ride will be enabled'),
-    );         
+    );
+    $info['tokens']['node']['nycc_ride_roster_html'] = array(
+        'name' => t("nycc_ride_roster_html"),
+        'description' => t("Ride Roster with contact info for Leaders"),
+  );    
   return $info;
 }
 
@@ -98,9 +102,14 @@ function nycc_rides_tokens($type, $tokens, array $data = array(), array $options
         case 'nycc_rides_ride_description_formatted':
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_get_ride_description_formatted($node)) : nycc_rides_get_ride_description_formatted($node) ;
           break;
+        
         case 'nycc_rides_ride_enable_time_formatted':
           $replacements[$original] = $sanitize ? filter_xss(nycc_rides_ride_enable_time($node, TRUE)) : nycc_rides_ride_enable_time($node, TRUE) ;
-          break;               
+          break;
+        
+        case 'nycc_ride_roster_html':
+            $replacements[$original] = $sanitize ? filter_xss(nycc_output_riders_roster_html($node)) : nycc_output_riders_roster_html($node);
+        break;        
         
       } //switch
     }//for each

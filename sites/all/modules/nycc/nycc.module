@@ -662,7 +662,80 @@ function nycc_user_is_in_list($node, $account = NULL, $field_name){
   return FALSE;    
 }
 
+function nycc_get_user_address($account = null, $respect_privacy = true) {
+  global $user;
+  if (!$account)
+    $account = $user;
 
+  $cp = nycc_get_user_profile($account);
+  
+  if(!$cp || !$account)
+    return '';
+    
+  if(!$respect_privacy  || ($respect_privacy  && nycc_field_get_property_text_value($cp, 'field_publish_address_flag') == '1')) {
+    return nycc_field_get_property_text_value($cp, 'field_address')
+            . ', ' . nycc_field_get_property_text_value($cp, 'field_city')
+            . ', ' . nycc_field_get_property_text_value($cp, 'field_state')
+            . ', ' . nycc_field_get_property_text_value($cp, 'field_zip');
+  }
+  else
+    return '';  
+}
+
+function nycc_get_user_phone($account = null, $respect_privacy = true) {
+  global $user;
+  if (!$account)
+    $account = $user;
+
+  $cp = nycc_get_user_profile($account);
+  
+  if(!$cp || !$account)
+    return '';
+    
+  if(!$respect_privacy  || ($respect_privacy  && nycc_field_get_property_text_value($cp, 'field_publish_phone_flag') == '1')) {
+    return nycc_field_get_property_text_value($cp, 'field_phone');
+  }
+  else
+    return '';  
+}
+
+function nycc_get_user_email($account = null, $respect_privacy = true) {
+  global $user;
+  if (!$account)
+    $account = $user;
+  else if(is_numeric($account))
+    $account = user_load($account);
+
+  $cp = nycc_get_user_profile($account);
+  dpm($cp);
+  if(!$cp || !$account)
+    return '';
+    
+  if(!$respect_privacy  || ($respect_privacy  && nycc_field_get_property_text_value($cp, 'field_publish_email_flag') == '1')) {
+    return $account->mail;
+  }
+  else
+    return '';  
+}
+
+
+function nycc_get_user_profile($account = NULL) {
+  global $user;
+  if (!$account){
+    $account = $user;
+    $uid = $account->uid;
+  } else if (is_object($account)) {
+    $uid = $account->uid;
+  } else if (is_numeric($account)) {
+    $account = user_load($account);
+    $uid = $account->uid;
+  }
+  
+  if(!$uid)
+    return null;
+
+  return profile2_load_by_user($uid, "profile");  
+}
 
 function nycc_get_user_full_name($account = NULL) {
   global $user;
