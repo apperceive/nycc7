@@ -27,6 +27,8 @@ function bootstrap_preprocess_page(&$variables) {
     $variables['content_column_class'] = ' class="col-sm-12"';
   }
 
+// dpm('bootstrap_preprocess_page');
+
   if(bootstrap_setting('fluid_container') == 1) {
     $variables['container_class'] = 'container-fluid';
   }
