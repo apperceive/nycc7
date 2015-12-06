@@ -1,5 +1,5 @@
-name = Nycc Modal
-description = TODO: Description of module
+name = NYCC Modal
+description = Modal dialogs for the NYCC site
 package = NYCC
 dependencies[] = nycc
 core = 7.x

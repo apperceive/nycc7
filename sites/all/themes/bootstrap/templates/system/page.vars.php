@@ -28,7 +28,7 @@ function bootstrap_preprocess_page(&$variables) {
   }
 
 // dpm('bootstrap_preprocess_page');
-
+  
   if(bootstrap_setting('fluid_container') == 1) {
     $variables['container_class'] = 'container-fluid';
   }
