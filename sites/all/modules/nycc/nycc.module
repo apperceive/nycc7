@@ -707,7 +707,6 @@ function nycc_get_user_email($account = null, $respect_privacy = true) {
     $account = user_load($account);
 
   $cp = nycc_get_user_profile($account);
-  dpm($cp);
   if(!$cp || !$account)
     return '';
     
