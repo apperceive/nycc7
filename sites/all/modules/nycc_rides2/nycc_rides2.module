@@ -34,7 +34,6 @@ function nycc_rides2_output_ride_buttons($ride) {
   // also, has_status not used here
   
   $ride_status = nycc_rides_get_ride_status($ride);
-  $has_status = isset($ride->field_ride_status) && is_array($ride->field_ride_status) && array_key_exists('und', $ride->field_ride_status);
   
   $is_pending = ($ride_status == 'Pending' ) ? true : FALSE;
   $is_approved = ($ride_status  == 'Approved' ) ? true : FALSE;
@@ -43,9 +42,7 @@ function nycc_rides2_output_ride_buttons($ride) {
   $is_revised = ($ride_status  == 'Revised' ) ? true : FALSE;
   $is_flagged = ($ride_status  == 'Flagged' ) ? true : FALSE;
 
-  // todo: refactor (has_spots not used here)
-  $has_spots = isset($ride->field_ride_spots) && is_array($ride->field_ride_spots) && array_key_exists('und', $ride->field_ride_spots);
-  $no_of_spots = $has_spots && is_numeric($ride->field_ride_spots['und'][0]['value']) ? $ride->field_ride_spots['und'][0]['value'] : 0;
+  $no_of_spots = nycc_field_get_text_value($ride->field_ride_spots['und'][0]['value']);
   $available_spots = $no_of_spots ? $no_of_spots - $no_of_riders : 0;
 
   // ride node properties used in building button links
@@ -53,7 +50,7 @@ function nycc_rides2_output_ride_buttons($ride) {
   $title = $ride->title;
   $path = "node/$nid";
   
-  if ($can_approve && $is_submitted) 
+  if ($can_approve && ($is_submitted || $is_revised)) 
     $buttons[] = nycc_rides2_nycc_ride_link('Approve Ride', "node/$nid/approve");
     //Ride Coordinator
 
@@ -89,17 +86,16 @@ function nycc_rides2_output_ride_buttons($ride) {
     $buttons[] = nycc_rides2_nycc_ride_link('Roster & Waiver Form', "/printpdf/nycc-riders-roster-pdf/$nid");
     //Leader
 
-  if (!$is_cancelled && ($is_submitted || $is_approved) && $can_modify)
+  if (!$is_cancelled && ($is_submitted || $is_approved || $is_revised) && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Cancel Ride', "node/$nid/cancel");
     //Leader
   
-  if (!$is_approved && !$is_submitted && !$is_pending && $can_modify)
-    $buttons[] = nycc_rides2_nycc_ride_link('Resubmit Ride For Approval', "node/$nid/edit/resubmit");
+  if ($can_modify && !$is_pending &&!$is_approved && !$is_submitted  && !$is_revised ) {
+    $submit_text = ($is_cancelled ) ? "Resubmit Ride For Approval" : "Submit Ride For Approval";
+    $buttons[] = nycc_rides2_nycc_ride_link($submit_text, "node/$nid/edit/resubmit");
     //Leader
+  }
   
-  if (!$is_pending && !$is_cancelled && !$is_approved && !$is_submitted && !$is_revised && $can_modify)
-    $buttons[] = nycc_rides2_nycc_ride_link('Submit Ride For Approval', "node/$nid/edit/resubmit");
-    //Leader
   
   if ($no_of_riders && $can_modify)
     $buttons[] = nycc_rides2_nycc_ride_link('Email Participants', "mailto:". nycc_rides_get_all_rider_emails($ride) ."?subject=Ride: $title");

@@ -252,8 +252,17 @@ function nycc_noderefs2userrefs($nrefs) {
   return $urefs;
 }
 
+
+function nycc_field_property_has_value($node, $field) {
+  if(property_exists($node, $field)) {
+    return nycc_field_has_value($node->{$field});
+  }
+  return FALSE;
+}
+
 function nycc_field_get_property_value($node, $field) {
   if(property_exists($node, $field)) {
+    //dpm("property $field exists ");
     return nycc_field_get_value($node->{$field});
   }
   return array(0=>array('value'=>''));
@@ -274,6 +283,7 @@ function nycc_field_get_value($field) {
    *  array inside of ['und'] -> return values under ['und']
    *  non-array value stored in either #value or #default_value -> return as array with value element
    */
+  //dpm($field);
   if(nycc_field_has_value($field)) {
     if(is_object($field))
       return array(0=>array('value'=>$field));
@@ -359,6 +369,45 @@ function nycc_field_has_value($field, $lang_code='und') {
     
   return true;
 }
+
+
+/*
+ *compares a field value across 2 nodes (generally 2 revisions of the same node)
+ *
+ */
+
+function nycc_compare_values($node1, $node2, $field_name) {
+  if(!$node1  ||
+     !is_object($node1) ||
+     !$node2 ||
+     !is_object($node2) ||
+     !$field_name){
+    return FALSE;
+  }
+  
+  $value1 = nycc_field_get_property_value($node1, $field_name);
+  
+  if(is_array($value1) && (!array_values($value1) === $value1)) {
+    foreach($value1 as $idx=>$val) {
+      if(array_key_exists('safe_value', $val)) {
+        unset($value1[$idx]['safe_value'] );
+      }
+    }    
+  }
+
+  $value2 = nycc_field_get_property_value($node2, $field_name);
+  
+  if(is_array($value2) && (!array_values($value2) === $value2)) {
+    
+    foreach($value2 as $idx=>$val) {
+      if(array_key_exists('safe_value', $val)) {
+        unset($value2[$idx]['safe_value'] );
+      }
+    }    
+  }
+  return $value1 === $value2;
+}
+
 
 
 function nycc_get_test_data($lang_code='und') {
@@ -576,17 +625,6 @@ function nycc_field_get_value_test($verbose = FALSE) {
 
 
 
-/*
- *compares a field value across 2 nodes (generally 2 revisions of the same node)
- *
- */
-
-function nycc_compare_values($node1, $node2, $field_name) {
-  if (property_exists($node1, $field_name) && property_exists($node2, $field_name)) {
-    return (nycc_field_get_value($node1->{$field_name}) == nycc_field_get_value($node2->{$field_name}));
-  }
-  return FALSE;
-}
 
 
 //END GENERAL UTILITY FUNCTIONS
