@@ -1455,7 +1455,7 @@ function nycc_rides_get_ride_description_formatted($ride) {
   if (!is_object($ride))
       return null;  
   
-  return nycc_field_get_property_text_value($ride, 'field_ride_description')
+  return nycc_field_get_property_text_value($ride, 'field_ride_description');
   
 }
 function nycc_rides_get_ride_time($ride) {
@@ -1890,21 +1890,10 @@ function nycc_rides_ride_has_changed($ride, $value_name = null) {
     $fields_to_check = array_map('trim', explode(",", variable_get('nycc_rides_fields_trigger_approval', 'title, field_ride_description, field_ride_spots, field_ride_select_level, field_ride_distance_in_miles, field_ride_speed, field_ride_timestamp')));
     
     foreach($fields_to_check as $field) {
-      
       if (nycc_field_get_property_value($ride, $field) != nycc_field_get_property_value($rev, $field)) {
         dpm("field $field: Value does not match") ;
-        
-        watchdog("nycc_rides_ride_has_changed", "Ride with nid !nid has changed. value of field !field was !old_value, now !new_value",
-                 array('!nid'=>$ride->nid, '!field'=>$field, '!old_value'=>$rev->{$field}, '!new_value'=>$ride->{$field}), WATCHDOG_INFO);
         return true;
       }
-      //if ($field=='field_ride_timestamp') {
-
-      //}
-      //dpm("field $field: Value " .
-      //    nycc_field_get_property_value($ride, $field) .
-      //    " matches Value " .
-      //    nycc_field_get_property_value($rev, $field));
     }
     return FALSE;
   } else {
