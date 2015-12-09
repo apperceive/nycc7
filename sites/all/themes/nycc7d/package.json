@@ -1,16 +1,13 @@
 {
-  "name": "haml",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "dependencies": {
-    "gulp-haml": "^0.1.6",
-    "hamljs": "^0.6.2"
-  },
+  "name": "nycc7d",
+  "version": "0.0.0",
+  "description": "<!-- @file Instructions for subtheming using the LESS Starterkit. --> <!-- @defgroup subtheme_less --> <!-- @ingroup subtheme --> # LESS Starterkit",
+  "main": "gulpfile.js",
+  "dependencies": {},
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "BSD"
 }
