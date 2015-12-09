@@ -1,0 +1,70 @@
+<?php
+/**
+ * @file
+ * bootstrap_ux.install
+ * Install, update and uninstall functions for the Bootstrap UX module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function bootstrap_ux_requirements($phase) {
+  $requirements = array();
+
+  // Ensure translations don't break during installation.
+  $t = get_t();
+
+  // Generate a status report.
+  if ($phase === 'runtime') {
+    $themes = list_themes();
+    $theme_default = variable_get('theme_default', 'bartik');
+
+    // Check if the Bootstrap base-theme is installed and enabled.
+    if (!in_array('bootstrap', array_keys($themes))) {
+      $requirements['bootstrap_ux'] = array(
+        'title' => $t('Bootstrap UX'),
+        'description' => $t('This module requires the <a href="!url" target="_blank">Bootstrap</a> base-theme to be installed and enabled.', array(
+          '!url' => 'https://www.drupal.org/project/bootstrap',
+        )),
+        'value' => drupal_system_listing('/bootstrap\.info$/', 'themes') ? $t('Bootstrap not enabled') : $t('Bootstrap not installed'),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+    elseif (!in_array('bootstrap', _bootstrap_ux_base_themes($themes, $theme_default))) {
+      $requirements['bootstrap_ux'] = array(
+        'title' => $t('Bootstrap UX'),
+        'description' => $t('This module is intended to work directly with the <a href="!url" target="_blank">Bootstrap</a> base-theme or a sub-theme variation. The site-wide default theme, %theme_default, is not a Bootstrap based theme. Some features may not work as expected or may break entirely. Use at your own risk.', array(
+          '%theme_default' => $themes[$theme_default]->info['name'] . ' (' . $theme_default . ')',
+          '!url' => 'https://www.drupal.org/project/bootstrap',
+        )),
+        'value' => $t('Potential theme incompatibility'),
+        'severity' => REQUIREMENT_WARNING,
+      );
+    }
+  }
+  return $requirements;
+}
+
+/**
+ * Helper function for building a flattened array of inherited base theme names.
+ *
+ * @param array $themes
+ *   The array of enabled themes provided by list_themes().
+ * @param string $theme_key
+ *   The theme machine name to use for retrieving all base-themes associated.
+ *
+ * @return array
+ *   An indexed array of theme names, including $theme_key.
+ */
+function _bootstrap_ux_base_themes($themes, $theme_key) {
+  $base_themes = array();
+  if (isset($themes[$theme_key])) {
+    $base_themes[] = $theme_key;
+    if (isset($themes[$theme_key]->base_themes)) {
+      foreach (array_keys($themes[$theme_key]->base_themes) as $theme) {
+        $base_themes = array_merge($base_themes, _bootstrap_ux_base_themes($themes, $theme));
+      }
+    }
+  }
+  return array_unique(array_filter($base_themes));
+}

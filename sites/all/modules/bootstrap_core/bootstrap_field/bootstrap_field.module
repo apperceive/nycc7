@@ -1,0 +1,90 @@
+<?php
+/**
+ * @file
+ * bootstrap_field.module
+ */
+
+require_once dirname(__FILE__) . '/includes/carousel.inc';
+
+/**
+ * Implements hook_image_default_styles().
+ */
+function bootstrap_field_image_default_styles() {
+  $styles['bootstrap_carousel'] = array(
+    'label' => t('Bootstrap carousel image'),
+    'effects' => array(
+      array(
+        'name' => 'image_scale_and_crop',
+        'data' => array(
+          'width' => 1200,
+          'height' => 450,
+        ),
+        'weight' => 0,
+      ),
+    ),
+  );
+  return $styles;
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function bootstrap_field_field_formatter_info() {
+  $formatters = array(
+    'bootstrap_carousel' => array(
+      'label' => t('Bootstrap Carousel'),
+      'field types' => array('image'),
+      'settings' => array(
+        // Due to a bug in core, the "image_style" key used here must be
+        // prefixed so it isn't overridden by the original field type "image"
+        // settings, which defaults to being empty; "Original image".
+        'bootstrap_carousel_image_style' => 'bootstrap_carousel',
+        'interval' => 5000,
+        'controls' => 1,
+        'indicators' => 1,
+        'pause' => 1,
+        'wrap' => 1,
+      ),
+    ),
+  );
+  return $formatters;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function bootstrap_field_form_field_ui_field_edit_form_alter(&$form, &$form_state, $context) {
+  // Add a Bootstrap carousel title and description option for all image fields.
+  if ($form['#field']['type'] === 'image') {
+    $settings = $form['#instance']['widget']['settings'];
+    $form['instance']['widget']['settings']['bootstrap_carousel'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Enable <em>Bootstrap Carousel</em> captions'),
+      '#description' => t('Allows each image of the carousel to contain individual caption settings: title, description and URL.'),
+      '#default_value' => $settings['bootstrap_carousel'],
+      '#weight' => 12,
+    );
+  }
+}
+
+/**
+ * Implements hook_field_widget_info_alter().
+ */
+function bootstrap_field_field_widget_info_alter(&$info) {
+  // Add a setting to a widget type.
+  $info['image_image']['settings'] += array(
+    'bootstrap_carousel' => FALSE,
+  );
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ */
+function bootstrap_field_field_widget_form_alter(&$element, &$form_state, $context) {
+  if ($context['field']['module'] === 'image' && $context['field']['type'] === 'image' && $context['instance']['widget']['settings']['bootstrap_carousel']) {
+    foreach (element_children($element) as $delta) {
+      $element[$delta]['#process'][] = 'bootstrap_field_image_widget_carousel_process';
+      $element[$delta]['#file_value_callbacks'][] = 'bootstrap_field_image_widget_carousel_value';
+    }
+  }
+}
