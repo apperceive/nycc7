@@ -1,0 +1,143 @@
+!!! 5
+%head
+  %title NYCC 
+  
+  %meta{name: "generator", content: "apperceive and haml"}
+
+  %link{href: "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css", rel: "stylesheet", integrity: "sha256-7s5uDGW3AHqw6xtJmNNtr+OBRJUlgkNJEo78P4b0yRw= sha512-nNo+yCHEyn0smMxSswnf/OnX6/KwJuZTlNZBjauKhTK0c+zT+q5JOCx0UFhXQ6rJR9jg6Es8gPuD2uZcYDLqSw==", crossorigin: "anonymous"}
+ 
+ %link{href: "styles.css", rel: "stylesheet"}
+
+%body 
+  %header#header.header
+    .container
+      %nav.navbar
+        .brand NYCC
+        .menu-left menu left here
+        .logo img 
+        .menu-right menu right here
+
+  .container
+    .row
+      .col-xs-12.col-md-8
+        .potw
+          .overlay-wrapper
+            %h3.overlay overlay text here
+          // TODO: use img bg instead?          
+          %img{src: "http://placekitten.com/g/800/600", alt: "photo of the week", class: "img-responsive"}
+      .col-xs-12.col-md-4
+        .upcoming
+          %span.content upcoming here
+    .row
+      .col-xs-12.col-md-8
+        .club-news
+          %h2.title Club News
+          %span.content club news here
+      .col-xs-12.col-md-4
+        .photos
+          .row
+            %a{src: "url to contributed photos page", alt: "Member images"}
+              %ul
+                // - for (var i = 0; i < 7; ++i)
+                %li
+                  %a.thumbnail{href: "http://placekitten.com/g/600/600"} %img{src: "http://placekitten.com/g/96/96"}
+                %li
+                  %a.thumbnail{href: "http://placekitten.com/g/600/600"} %img{src: "http://placekitten.com/g/96/96"}
+                %li
+                  %a.thumbnail{href: "http://placekitten.com/g/600/600"} %img{src: "http://placekitten.com/g/96/96"}
+                %li
+                  %a.thumbnail{href: "http://placekitten.com/g/600/600"} %img{src: "http://placekitten.com/g/96/96"}
+                %li
+                  %a.thumbnail{href: "http://placekitten.com/g/600/600"} %img{src: "http://placekitten.com/g/96/96"}
+                %li
+                  %a.thumbnail{href: "http://placekitten.com/g/600/600"} %img{src: "http://placekitten.com/g/96/96"}
+                %li
+                  %a.thumbnail{href: "http://placekitten.com/g/600/600"} %img{src: "http://placekitten.com/g/96/96"}
+                %li
+                  %a.thumbnail{src: "http://placekitten.com/g/96/96"} %img.club-images-icon
+    .row
+      .col-xs-12.col-md-8
+        .member-profile
+          %h2.title Member Profile
+          %img{src: "http://placehold.it/300x300", alt: "member profile", class: "img-responsive"}
+          %span.content member profile here
+      .col-xs-12.col-md-4
+        .gear
+          %span.content gear here
+    .row
+      .col-xs-12
+        .newsletter
+          %h2.title Subscribe to the NYCC Newsletter
+          %span.content Club &amp; New York cycling news in your inbox every week
+          %form{method: "post", action: "subscribe url here"}
+            %input{type: "email", name: "email"}
+            %input{type: "submit", value: "Send"}
+    .row
+      .col-xs-12.col-md-8
+        .cycling-news
+          %h2.title New York Cycling News
+          .row
+            .col-xs-12
+              .more
+                %a.more-link more link goes here
+          .row
+            .col-xs-12
+              %span.content news view with 3 items here
+          .row
+            .col-xs-12
+              .center-block.showcase
+                  %h3.heading showcase article title here
+                  .summary
+                    %a.more-link summary link to showcase article
+      .col-xs-12.col-md-4
+        .countdown
+          %span.content countdown here
+    .row
+      .col-xs-12.col-md-8
+        .tipotw.page-header
+          %h2.title Tip of the Week
+          %h3.author Nomad Cycle
+          .more
+            %a.more-link more link goes here
+          %h4.summary article summary here
+          %span.content article teaser goes here
+      .col-xs-12.col-md-4
+        .social-media
+          %span.content social media icons here
+    .row
+      .col-xs-6.col-sm-4.col-md-2  
+        .advert
+          %span.content advert
+      .col-xs-6.col-sm-4.col-md-2  
+        .advert
+          %span.content advert
+      .col-xs-6.col-sm-4.col-md-2  
+        .advert
+          %span.content advert
+      .col-xs-6.col-sm-4.col-md-2  
+        .advert
+          %span.content advert
+      .col-xs-6.col-sm-4.col-md-2  
+        .advert
+          %span.content advert
+      .col-xs-6.col-sm-4.col-md-2  
+        .advert
+          %span.content advert
+   
+  .container 
+    %footer#footer.footer
+      .row
+        .col-xs-12.col-md-offset-1.col-md-4
+          .site-menu
+            %span.content site menu goes here
+        .col-xs-12.col-sm-6.col-md-3
+          .social-media-icons
+            %span.content three icons here
+        .col-xs-12.col-sm-6.col-md-3
+          .contact
+            %span.content 
+              mailling address
+              and email addy here
+      .row
+        .col-xs-12
+          .center-block.legal copyright and legal goes here
