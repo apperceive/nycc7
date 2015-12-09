@@ -2,18 +2,18 @@
 // Require the needed packages 
 var gulp = require('gulp');
 var haml = require('gulp-haml');
-var haml = require('gulp-less');
+var less = require('gulp-less');
 
 gulp.task('less', function () {
   gulp.src('./less/**/*.less')
-    .pipe(haml())
+    .pipe(less())
     .pipe(gulp.dest('./css/'));
 });
  
  
 gulp.task('haml', function () {
   gulp.src('./haml/**/*.haml')
-    .pipe(haml())
+    .pipe(haml({ext: ".php"}))
     .pipe(gulp.dest('./templates/'));
 });
  
