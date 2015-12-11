@@ -36,7 +36,7 @@ gulp.task('bower', function() {
 }); 
  
 gulp.task('bootstrap:prepareLess', ['bower'], function() {
-  return gulp.src('less/bootstrap/variables.less')
+  return gulp.src('less/bootstrap/*.less')
     .pipe(gulp.dest('public/lib/bootstrap/less'));
 });
 gulp.task('bootstrap:compileLess', ['bootstrap:prepareLess'], function() {
@@ -45,11 +45,21 @@ gulp.task('bootstrap:compileLess', ['bootstrap:prepareLess'], function() {
     .pipe(gulp.dest('public/lib/bootstrap/dist/css'));
 });
 
-gulp.task('font-awesome:compileLess', ['bower'], function() {
+gulp.task('font-awesome:prepareLess', ['bower'], function() {
+  return gulp.src('less/font-awesome/*.less')
+    .pipe(gulp.dest('public/lib/font-awesome/less'));
+});
+gulp.task('font-awesome:compileLess', ['font-awesome:prepareLess'], function() {
   return gulp.src('public/lib/font-awesome/less/font-awesome.less')
     .pipe(less())
     .pipe(gulp.dest('public/lib/font-awesome/dist/css'));
 });
+
+
+gulp.task('lessbow', function(){
+  gulp.start(['font-awesome:compileLess', 'bootstrap:compileLess']); 
+});
+
 
 
 // extras
