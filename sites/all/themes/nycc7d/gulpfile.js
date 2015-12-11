@@ -25,12 +25,14 @@ gulp.task('prettify', ['haml'], function () {
     .pipe(gulp.dest('./templates/'));
 });
  
+ 
 var opts = [test: '123', rest: 'hello', base: '../nycc7/']
   , deps = [];
 gulp.task('test', deps, function() {
+  console.log('in task');
   gulp.src('../nycc7/templates/**/*.php', opts)
     //.pipe(console.log('in pipe 1'))
-    .pipe(console.log('in pipe 2'));  
+    .pipe(???);  
 });
 
 gulp.task('test2', deps, function() {
@@ -38,6 +40,9 @@ gulp.task('test2', deps, function() {
     console.log('File ' + event.path + ' was ' + event.type + ', running tasks...');
   });
 });
+
+
+
  
 // Default gulp task to run 
 gulp.task('default', function(){
