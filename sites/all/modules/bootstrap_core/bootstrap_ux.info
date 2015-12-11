@@ -1,0 +1,11 @@
+name = Bootstrap UX
+description = Provides further Bootstrap/Drupal integration integration into your site that only modules can do.
+core = 7.x
+package = Bootstrap
+
+; Information added by Drupal.org packaging script on 2015-03-13
+version = "7.x-3.x-dev"
+core = "7.x"
+project = "bootstrap_core"
+datestamp = "1426290182"
+
