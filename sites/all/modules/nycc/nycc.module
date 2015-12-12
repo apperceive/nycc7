@@ -254,24 +254,32 @@ function nycc_noderefs2userrefs($nrefs) {
 
 
 function nycc_field_property_has_value($node, $field) {
-  if(property_exists($node, $field)) {
+  if(is_object($node) && property_exists($node, $field)) {
     return nycc_field_has_value($node->{$field});
   }
+  elseif(is_array($node) && array_key_exists($node, $field)) {
+    return nycc_field_has_value($node[$field]);
+  }  
   return FALSE;
 }
 
 function nycc_field_get_property_value($node, $field) {
-  if(property_exists($node, $field)) {
-    //dpm("property $field exists ");
+  if(is_object($node) && property_exists($node, $field)) {
     return nycc_field_get_value($node->{$field});
+  }
+  elseif(is_array($node) && array_key_exists($node, $field)) {
+    return nycc_field_get_value($node[$field]);
   }
   return array(0=>array('value'=>''));
 }
 
 
 function nycc_field_get_property_text_value($node, $field) {
-  if(property_exists($node, $field)) {
+  if(is_object($node) && property_exists($node, $field)) {
     return nycc_field_get_text_value($node->{$field});
+  }
+  elseif(is_array($node) && array_key_exists($node, $field)) {
+    return nycc_field_get_text_value($node[$field]);
   }
   return "";
 }
@@ -661,6 +669,7 @@ function nycc_user_is_in_list($node, $account = NULL, $field_name){
 //  dpm("returning false");
   return FALSE;    
 }
+
 
 function nycc_get_user_address($account = null, $respect_privacy = true) {
   global $user;
