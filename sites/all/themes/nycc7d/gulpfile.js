@@ -1,4 +1,5 @@
-// gulpfile.js 
+// gulpfile.js for nycc7d bootstrap subtheme
+
 // Require the needed packages 
 var gulp = require('gulp');
 var haml = require('gulp-haml');
