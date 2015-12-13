@@ -1,0 +1,125 @@
+<?php
+
+
+
+/*TODO
+ * permissions - Manage pictures
+ * Hook_alter to ensure only manager can set status
+ * hook_validate to ensure rejection region is specified if rejected
+ *
+ * 
+ */
+//
+function nycc_pic_otw_permission() {
+  return array(
+    'manage nycc pics otw' => array(
+          'title' => t('manage nycc pics otw'),
+          'description' => t('Manage NYCC Pictures of the Week'),
+        ), 
+    'administer nycc pics otw' => array(
+          'title' => t('manadministerage nycc pics otw'),
+          'description' => t('Administer NYCC Pictures of the Week'),
+        )    
+    );
+}
+//
+//function nycc_pic_otw_node_view($node, $view_mode = NULL, $langcode = NULL) {
+//  global $user;
+//  if ($node->type == 'pic_otw') {
+//    if ($view_mode == 'full') {
+//
+//      
+//    } // full
+//  }  // pic_otw
+//} //node_view
+//
+//      
+//function nycc_pic_otw_node_update($node) {
+//  if ($node->type == 'pic_otw') {
+// 
+//  } // ridpic_otwes
+//} // node_update
+//
+//function nycc_pic_otw_node_insert($node) {
+//  if ($node->type == 'pic_otw') {
+//
+//    if($node->is_new) {
+//      //if is_new then status will either be submitted or approved
+//      global $user;
+//      rules_invoke_event('nycc_pic_otw_pic_is_submitted', $user, $node);
+//      drupal_set_message(check_markup($node->title . " successfully submitted for approval.
+//                                      </br>Approval may take 24 to 48 hours (usually, we get to it sooner.)"));
+//
+//    } // new
+//    $node->status = NODE_PUBLISHED;      // TODO: why is this necessary - default is set to published
+//      
+//  } // pic_otw
+//} //node_insert
+
+function nycc_pic_otw_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id =='editableviews_entity_form_picture_of_the_week') {
+    $form['#validate'][] = 'nycc_pic_otw_approval_view_validate';
+    //dpm($form);
+    //dpm($form_state); 
+  }
+}
+
+
+function nycc_pic_otw_approval_view_validate($form, &$form_state) {
+  if (array_key_exists('node',$form_state['values'])) {
+    foreach($form_state['values']['node'] as $idx => $node) {
+      
+      if(nycc_field_get_property_text_value($node, 'field_pic_otw_status') == 'rejected' ) {
+        if ( ! nycc_field_property_has_value($node, 'field_pic_otw_rejected_reason')) {
+          form_set_error('node][' . $idx . '][field_pic_otw_rejected_reason', "You must specify a reason if you are rejecting a picture.");
+        }
+      } else {
+        if ( nycc_field_property_has_value($node, 'field_pic_otw_rejected_reason')) {
+          form_set_error('node][' . $idx . '][field_pic_otw_rejected_reason', "You should not specify a reason if you are not rejecting a picture.");
+        }
+      }      
+    }
+  }
+} // node_validate
+
+
+
+//
+//function nycc_pic_otw_node_presave($node) {
+//  if ($node->type == 'pic_otw') {
+//    global $user;
+//    if($node->is_new) {
+//      
+//    } else {
+//
+//    }
+//  }//is type pic_otw
+//} // node_presave
+//
+//function nycc_pic_otw_node_prepare($node) {
+//  global $user;
+//  
+//  if ($node->type == 'pic_otw' ) {  
+//    if (arg(1) == 'add') {
+//
+//    }
+//    else if( arg(2) == 'edit') {
+//      
+//    }
+//
+//  } // pic_otw
+//} // node_prepare
+//
+//function nycc_pic_otw_form_alter(&$form, &$form_state, $form_id) {
+//  if ($form_id == 'pic_otw_node_form') { 
+//     //dpm($form);
+//    
+//
+//  } // pic_otw_node_form 
+//} // form_alter
+//
+//function nycc_pic_otw_views_api() {
+//  return array(
+//    'api' => 2.0,
+//  );  
+//}
