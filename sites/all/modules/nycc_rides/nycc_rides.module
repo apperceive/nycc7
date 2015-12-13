@@ -123,8 +123,8 @@ function nycc_rides_menu() {
     'file' => 'nycc_rides.pages.inc',
     'page arguments' => array(1),
     'access callback' => TRUE,
-    'access callback' => 'nycc_rides_access',
-    'access arguments' => array(2, 1),
+    //'access callback' => 'nycc_rides_access',
+    //'access arguments' => array(2, 1),
   );
 
   $items['nycc-rides-report'] = array(
