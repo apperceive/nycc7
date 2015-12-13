@@ -278,7 +278,7 @@ function nycc_field_get_property_text_value($node, $field) {
   if(is_object($node) && property_exists($node, $field)) {
     return nycc_field_get_text_value($node->{$field});
   }
-  elseif(is_array($node) && array_key_exists($node, $field)) {
+  elseif(is_array($node) && array_key_exists($field, $node)) {
     return nycc_field_get_text_value($node[$field]);
   }
   return "";

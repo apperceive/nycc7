@@ -10,7 +10,8 @@ dependencies[] = views
 dependencies[] = editableviews
 dependencies[] = colorbox
 dependencies[] = rules
-
+dependencies[] = picture
+dependencies[] = breakpoints
 
 
 
