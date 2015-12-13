@@ -82,7 +82,11 @@ function nycc_pic_otw_approval_view_validate($form, &$form_state) {
   }
 } // node_validate
 
-
+function nycc_pic_otw_views_api() {
+  return array(
+    'api' => 2.0,
+  );  
+}
 
 //
 //function nycc_pic_otw_node_presave($node) {
