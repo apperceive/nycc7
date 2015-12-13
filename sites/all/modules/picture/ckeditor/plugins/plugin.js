@@ -64,11 +64,11 @@
               id: 'imageSize',
               label: Drupal.settings.picture.label,
               items: Drupal.settings.picture.mappings,
-              'default': 'not_set',
+              'default': Drupal.settings.picture.ckeditorDefaultMapping,
               requiredContent: features.imageSize.requiredContent,
               setup: function(widget) {
                 mapping = widget.parts.image.getAttribute('data-picture-mapping');
-                this.setValue(mapping ? mapping : 'not_set');
+                this.setValue(mapping ? mapping : Drupal.settings.picture.ckeditorDefaultMapping);
               },
               // Create a custom data-picture-mapping attribute.
               commit: function(widget) {
@@ -151,7 +151,7 @@
               id: 'imageSize',
               label: Drupal.settings.picture.label,
               items: Drupal.settings.picture.mappings,
-              'default': 'not_set',
+              'default': Drupal.settings.picture.ckeditorDefaultMapping,
               onChange: function() {
                 var dialog = this.getDialog();
                 var element = dialog.originalElement;

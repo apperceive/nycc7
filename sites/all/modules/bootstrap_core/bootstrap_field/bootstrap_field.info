@@ -1,0 +1,14 @@
+name = Bootstrap Fields
+description = Provides additional field types, widgets and formatters useful for display Bootstrap output.
+core = 7.x
+package = Bootstrap
+dependencies[] = bootstrap_ux
+dependencies[] = field
+dependencies[] = image
+
+; Information added by Drupal.org packaging script on 2015-03-13
+version = "7.x-3.x-dev"
+core = "7.x"
+project = "bootstrap_core"
+datestamp = "1426290182"
+

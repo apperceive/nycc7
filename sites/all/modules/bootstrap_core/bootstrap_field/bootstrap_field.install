@@ -1,0 +1,73 @@
+<?php
+/**
+ * @file
+ * bootstrap_carousel.install
+ * Install, update and uninstall functions for the Bootstrap Carousel module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function bootstrap_field_schema() {
+  $schema = array();
+
+  $schema['bootstrap_carousel'] = array(
+    'description' => 'Stores relationship information for files and their configuration options for a Bootstrap Carousel slide.',
+    'fields' => array(
+      'cid' => array(
+        'description' => 'The primary identifier for a Bootstrap Carousel slide.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'fid' => array(
+        'description' => 'The {file_managed}.fid reference for a Bootstrap Carousel slide.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'entity_id' => array(
+        'description' => 'The entity identifier reference for a Bootstrap Carousel slide.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'entity_type' => array(
+        'description' => 'The entity type reference for a Bootstrap Carousel slide.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'entity_bundle' => array(
+        'description' => 'The entity bundle type reference for a Bootstrap Carousel slide.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'settings' => array(
+        'description' => 'The settings of a Bootstrap Carousel slide.',
+        'type' => 'blob',
+        'not null' => TRUE,
+        'size' => 'big',
+        'serialize' => TRUE,
+      ),
+    ),
+    'primary key' => array('cid'),
+    'indexes' => array(
+      'cid' => array('cid'),
+      'entity_id' => array('entity_id'),
+      'fid' => array('fid'),
+    ),
+    'foreign keys' => array(
+      'file_managed' => array(
+        'table' => 'file_managed',
+        'columns' => array('fid' => 'fid'),
+      ),
+    ),
+  );
+  return $schema;
+}

@@ -1,0 +1,21 @@
+body { background-color: #fafafa; margin: 5px; }
+div { xxxoutline: dotted thin gray;  } 
+.content { display: block; margin: 5px; padding: 5px; xxxoutline: dotted thin gray; xxxheight: 200px; }
+.club-news { color: #000; background-color: #EBE7DB; }
+.member-profile { color: #fff; background-color: #D5604D; }
+.upcoming { color: #fff; background-color: #D5604D;  height: 300px;}
+.newsletter { color: #000; background-color: #6DA6C1; xxxheight: 100px;}
+.countdown { color: #fff; background-color: #BCB38D;  height: 300px; }
+.potw { color: #000; background-color: #ECECEC; }
+.cycling-news { color: #000; background-color: #EBE7DB; }
+.tipotw { color: #fff; background-color: #D5604D; }
+.social-media { color: #fff; background-color: #244682; height: 200px;}
+.footer { color: #8F999F; background-color: #303B41; }
+.legal { xxxwidth: 250px; text-align: center; }
+.showcase { xxxwidth: 300px; text-align: center;  }
+.advert .content { height: 96px;  padding: 5px; margin 5px; outline: dotted thin black; text-align: center; }
+.overlay-wrapper { height: 0; }
+.overlay { display: inline; position: relative; top: 400px; left: 0; padding: 10px; width: 360px; margin: 0; xxxheight: 100px; text-align: right; color: white; background-color: rgba(4,4,4,.5); font-size: 2em; }
+.tipotw .title, .cycling-news .title , .member-profile .title { position: relative; left: -10px; top: 10px; background-color: white; color: #D5604D; border: solid thin #D5604D; width: 180px; font-size: 1.2em; padding: 5px; font-weight: bold; margin: 0 0 20px 0;  text-transform: uppercase; }
+.cycling-news .title { width: 250px; }
+.club-news .title { position: relative; left: -10px; top: 10px; background-color: #D5604D; color: white; border: solid thin #D5604D; width: 120px; font-size: 1.2em; padding: 5px; font-weight: bold; margin: 0 0 20px 0; text-transform: uppercase; }

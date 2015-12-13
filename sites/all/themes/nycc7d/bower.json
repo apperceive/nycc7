@@ -1,0 +1,39 @@
+{
+  "name": "all",
+  "homepage": "https://github.com/apperceive/nycc7",
+  "authors": [
+    "Markus Sandy <markus.sandy@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "moduleType": [
+    "node"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.6",
+    "font-awesome": "~4.5.0"
+  },
+  "main": [
+   "./dist/css/bootstrap.css",
+   "./dist/js/bootstrap.js",
+   "./dist/fonts/glyphicons-halflings-regular.eot",
+   "./dist/fonts/glyphicons-halflings-regular.svg",
+   "./dist/fonts/glyphicons-halflings-regular.ttf",
+   "./dist/fonts/glyphicons-halflings-regular.woff"
+   ],  
+  "overrides": {
+    "bootstrap": {
+      "main": [
+        "less/!(variables).less", "dist/fonts/*", "dist/js/*"
+      ]
+    }
+  }  
+}

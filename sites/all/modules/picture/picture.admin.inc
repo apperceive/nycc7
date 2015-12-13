@@ -197,8 +197,16 @@ function picture_admin_settings() {
     // Retrieve pre-existing settings.
     $ckeditor_mappings = variable_get('picture_ckeditor_mappings', array());
 
+    // Make option list for CKEditor default mapping.
+    $ckeditor_default_mapping_options = array('not_set' => 'Not Set');
+
     // Loop through each picture mapping and place a checkbox and weight.
     foreach ($picture_mappings as $machine_name => $display_name) {
+      // Add option to CKEditor default mapping if enabled.
+      if (isset($ckeditor_mappings[$machine_name]) && $ckeditor_mappings[$machine_name]['enabled']) {
+        $ckeditor_default_mapping_options[$machine_name] = $display_name;
+      }
+
       $form[$machine_name] = array(
         '#type' => 'fieldset',
         '#title' => t('@name picture mapping', array('@name' => $display_name)),
@@ -208,6 +216,7 @@ function picture_admin_settings() {
         '#default_value' => isset($ckeditor_mappings[$machine_name]) ? $ckeditor_mappings[$machine_name]['enabled'] : 0,
         '#title' => t('Include @name picture mapping in the CKEditor image dialog', array('@name' => $display_name)),
       );
+
       $form[$machine_name]['css'] = array(
         '#type' => 'item',
         '#markup' => t('Consider using the selector <code>span[data-picture-mapping="@machine_name"]</code> in your theme CSS.', array(
@@ -257,6 +266,13 @@ function picture_admin_settings() {
       '#title' => t('Label in the CKEditor image dialog'),
       '#description' => t('This sets the label for the drop-down select box containing these picture mappings in the CKEditor image dialog'),
       '#default_value' => variable_get('picture_ckeditor_label', 'Image size (required)'),
+    );
+    $form['ckeditor_default_mapping'] = array(
+      '#type' => 'select',
+      '#title' => t('Default CKEditor Picture Mapping'),
+      '#options' => $ckeditor_default_mapping_options,
+      '#default_value' => variable_get('picture_ckeditor_default_mapping', 'not_set'),
+      '#description' => t('This sets the default picture mapping in CKEditor'),
     );
   }
   else {
@@ -364,6 +380,7 @@ function picture_admin_settings_submit($form, &$form_state) {
     uasort($ckeditor_mappings, 'picture_compare_weights');
     variable_set('picture_ckeditor_mappings', $ckeditor_mappings);
     variable_set('picture_ckeditor_label', $form_state['values']['ckeditor_label']);
+    variable_set('picture_ckeditor_default_mapping', $form_state['values']['ckeditor_default_mapping']);
   }
 
   if (isset($form_state['values']['picture_updated_to_file_entity_2']) && $form_state['values']['picture_updated_to_file_entity_2']) {

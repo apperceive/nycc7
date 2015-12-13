@@ -131,7 +131,7 @@ function picture_library() {
     case 'min':
       $libraries['picturefill_head'] = array(
         'title' => t('Picturefill head fix'),
-        'version' => '2.3.1',
+        'version' => '3.0.1',
         'js' => array(
           'document.createElement( "picture" );' => array(
             'type' => 'inline',
@@ -146,9 +146,9 @@ function picture_library() {
       $libraries['picturefill'] = array(
         'title' => t('Picturefill'),
         'website' => 'https://github.com/scottjehl/picturefill',
-        'version' => '2.3.1',
+        'version' => '3.0.1',
         'js' => array(
-          drupal_get_path('module', 'picture') . '/picturefill2/picturefill.min.js' => array(
+          drupal_get_path('module', 'picture') . '/picturefill/picturefill.min.js' => array(
             'type' => 'file',
             'weight' => -10,
             'group' => JS_DEFAULT,
@@ -213,7 +213,7 @@ function picture_library() {
     case 'dev':
       $libraries['picturefill_head'] = array(
         'title' => t('Picturefill head fix'),
-        'version' => '2.3.1',
+        'version' => '3.0.1',
         'js' => array(
           'document.createElement( "picture" );' => array(
             'type' => 'inline',
@@ -228,9 +228,9 @@ function picture_library() {
       $libraries['picturefill'] = array(
         'title' => t('Picturefill'),
         'website' => 'https://github.com/scottjehl/picturefill',
-        'version' => '2.3.1',
+        'version' => '3.0.1',
         'js' => array(
-          drupal_get_path('module', 'picture') . '/picturefill2/picturefill.js' => array(
+          drupal_get_path('module', 'picture') . '/picturefill/picturefill.js' => array(
             'type' => 'file',
             'weight' => -10,
             'group' => JS_DEFAULT,
@@ -864,10 +864,10 @@ function picture_field_formatter_picture_view($entity_type, $entity, $field, $in
     $link_file = TRUE;
   }
   elseif ($image_link) {
-    if (isset($entity->$image_link)) {
+    if (isset($entity->{$image_link})) {
       // Support for field translations.
-      $language = field_language($entity_type, $entity, $field['field_name']);
-      $link_field = $entity->$image_link;
+      $language = field_language($entity_type, $entity, $image_link, $langcode);
+      $link_field = $entity->{$image_link};
 
       if (isset($link_field[$language])) {
         $link_values = $link_field[$language];
@@ -1093,10 +1093,10 @@ function picture_field_formatter_picture_sizes_formatter_view($entity_type, $ent
     $link_file = TRUE;
   }
   elseif ($image_link) {
-    if (isset($entity->$image_link)) {
+    if (isset($entity->{$image_link})) {
       // Support for field translations.
-      $language = field_language($entity_type, $entity, $field['field_name']);
-      $link_field = $entity->$image_link;
+      $language = field_language($entity_type, $entity, $image_link, $langcode);
+      $link_field = $entity->{$image_link};
 
       if (isset($link_field[$language])) {
         $link_values = $link_field[$language];
@@ -1575,7 +1575,8 @@ function theme_image_srcset(array $variables) {
         }
         elseif (isset($src['multiplier']) && !empty($src['multiplier'])) {
           $source .= ' ' . $src['multiplier'];
-          $key = (int) ((float) drupal_substr($src['multiplier'], -1) * 100);
+          // Convert 1x to 100, 1.5x to 150  and so on.
+          $key = (int) ((float) drupal_substr($src['multiplier'], 0, -1) * 100);
         }
         $srcsets[$key] = $source;
       }
@@ -1836,6 +1837,7 @@ function picture_page_build(&$page) {
       'picture' => array(
         'mappings' => $mappings,
         'label' => variable_get('picture_ckeditor_label', 'Image size (required)'),
+        'ckeditorDefaultMapping' => variable_get('picture_ckeditor_default_mapping', 'not_set'),
       )), 'setting');
   }
 }
@@ -1990,9 +1992,20 @@ function _picture_image_style_url($style_name, $path, $timestamp = NULL) {
     $url = image_style_url($style_name, $path);
   }
 
+  $token_query = array();
   if (!empty($timestamp)) {
-    $url .= (strpos($url, '?') !== FALSE ? '&' : '?') . drupal_http_build_query(array('timestamp' => $timestamp));
+    $token_query['timestamp'] = $timestamp;
   }
+
+  // Allow modules to alter the $token_query for the given style.
+  $context = array('uri' => $url, 'style_name' => $style_name, 'path' => $path);
+  drupal_alter('image_style_uri_token_query', $token_query, $context);
+
+  // Append the query string with the token, if necessary.
+  if ($token_query) {
+    $url .= (strpos($url, '?') !== FALSE ? '&' : '?') . drupal_http_build_query($token_query);
+  }
+
   return $url;
 }
 
