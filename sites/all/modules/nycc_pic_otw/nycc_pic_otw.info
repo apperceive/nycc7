@@ -1,0 +1,16 @@
+name = NYCC Picture of the Week
+description = Handle all Picture of the Week functionality
+package = NYCC
+core = 7.x 
+files[]=nycc_pic_otw.module
+files[]=nycc_pic_otw.rules.inc
+files[]=nycc_pic_otw.views.inc
+dependencies[] = nycc
+dependencies[] = views
+dependencies[] = editableviews
+dependencies[] = colorbox
+dependencies[] = rules
+
+
+
+
