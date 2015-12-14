@@ -372,7 +372,10 @@ function nycc_field_has_value($field, $lang_code='und') {
             empty($field[$lang_code][0]['uid']) &&
             empty($field[$lang_code][0]['tid']) &&
             empty($field[$lang_code][0]['eid']) &&
-            empty($field[$lang_code][0]['nid']))
+            empty($field[$lang_code][0]['nid']) &&
+            empty($field[$lang_code][0]['title']) &&
+            empty($field[$lang_code][0]['url'])
+            )
     return FALSE;  
     
   return true;
