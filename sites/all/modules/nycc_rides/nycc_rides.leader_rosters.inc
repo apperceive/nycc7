@@ -1,5 +1,10 @@
 <?php
 
+/*
+
+// this is duplicate code was refactored but not checked in until after it had already been recreated
+// real code in nycc_rides.pages.inc
+
 //RIDE ROSTER RELATED FUNCTIONS
 function nycc_rides_output_riders_roster_pdf($nid = NULL) {
   $output = "";
@@ -34,6 +39,7 @@ function nycc_rides_output_riders_roster_pdf($nid = NULL) {
 
   return $output;
 }
+*/
 
 // UTILITY FUNCTION, not callback, no UI
 function nycc_rides_ride_roster_email($timestamp, $hrs) {

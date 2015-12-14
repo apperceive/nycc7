@@ -117,10 +117,14 @@ function nycc_rides_menu() {
   );
 
   // used for printpdf
-  $items['nycc-riders-roster-pdf'] = array(
+  $items['nycc-riders-roster-pdf/%node'] = array(
     'page callback' => 'nycc_rides_output_riders_roster_pdf',
     'type' => MENU_CALLBACK,
+    'file' => 'nycc_rides.pages.inc',
+    'page arguments' => array(1),
     'access callback' => TRUE,
+    //'access callback' => 'nycc_rides_access',
+    //'access arguments' => array(2, 1),
   );
 
   $items['nycc-rides-report'] = array(
@@ -2056,95 +2060,3 @@ function nycc_rides_views_api() {
     'api' => 2.0,
   );  
 }
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-//OLD FUNCTIONS - CAN THESE BE REMOVED?
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-function nycc_rides_ride_has_images($data) {
-    if (is_numeric($data)) {
-    $node = node_load($data);
-    $images = $node->field_ride_image;
-    } else if (is_array($data))
-    $images = $data;
-    else if (is_object($data))
-    $images = $data->field_ride_image;
-    else
-    return FALSE;
-
-    //dsm($data);
-    if (is_array($images)) {
-    foreach($images as $img){
-        if (drupal_strlen($img['view']))
-        return true;
-    }
-    }
-    return FALSE;
-}
-
-function nycc_rides_ride_has_attachments($data) {
-  if (is_numeric($data)) {
-    $node = node_load($data);
-    $attachments = $node->field_ride_attachments;
-  } else if (is_array($data))
-    $attachments = $data;
-  else if (is_object($data))
-    $attachments = $data->field_ride_attachments;
-  else
-    return FALSE;
-  //dsm($data);
-  if (is_array($attachments)) {
-    foreach($attachments as $attachment){
-      if (drupal_strlen($attachment['filename']))
-        return true;
-    }
-  }
-  return FALSE;
-}
-
-
-//function nycc_rides_output_existing_rides($ride_date) {
-//  $found = FALSE;
-//  $ride_date_ui = nycc_rides_get_date($ride_date, "F d, Y");
-//  $ride_date_db = nycc_rides_get_date($ride_date);
-//  $output = "<div class='existing-rides'>";
-//  $output .= "<h3>" .t("Rides planned for"). " $ride_date_ui ($ride_date_db)</h3>";
-//  $output .= "<ul>";
-//  $sql =<<<EOS
-//    SELECT n.nid, n.title, l.field_ride_select_level_value
-//    FROM {node} n, {field_data_field_ride_select_level} l, {field_data_field_ride_timestamp} t
-//    WHERE n.nid = l.entity_id AND n.vid = l.revision_id AND
-//    n.nid = t.entity_id AND n.vid = t.revision_id AND
-//    n.status <> 0 AND t.field_ride_timestamp_value LIKE ':s%'
-//EOS;
-//  $q = db_query($sql,
-//          array(':s'=>$ride_date_db));
-//  foreach($q as $row) {
-//    $found = TRUE;
-//    $output .= "<li class='ride'><a target='_blank' title='View ride details...' href=\"/node/". $row['nid'] ."\"> " . $row['title'] . "</a> - Level: " . $row['level'] . "</li>";
-//  }
-//  if (!$found)
-//    $output .= "<li class='no-rides'>" .t("No other rides found for this date."). "</li>";
-//  $output .= "</ul>";
-//  $output .= "</div>";
-//  return $output;
-//}
-
-//function nycc_rides_approve_rides() {
-//  global $user;
-//  $output = "Access denied";
-//  $title = "Approve Rides";
-//  $profile_node = profile2_load_by_user($user->uid, "profile");
-//  
-//  if(isset($profile_node->field_ride_coordinator['und'][0]['value'])) {
-//    $level = substr($profile_node->field_ride_coordinator['und'][0]['value'], 0, 1);
-//    $title = "Approve $level-Rides";
-//    $output = views_embed_view('roster_of_rides', 'page_1', $level);
-//  }
-//  else if (in_array("vp of rides", $user->roles) || in_array("administer", $user->roles) ) {
-//    $output = views_embed_view('roster_of_rides', 'page_2');
-//  }
-//  drupal_set_title($title);
-//  return $output;
-//}
