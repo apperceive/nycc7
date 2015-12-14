@@ -152,13 +152,12 @@ function nycc_rides_output_riders_roster_pdf($ride) {
 }
 
 
-// return array of uids, nids or values from a field
+// return array of id's or values from an array (e.g., a node field)
 function _nycc_field2array($f) { 
   $a = array();
   $keys = array('nid', 'uid', 'tid', 'value', '#value');
   if (!$f || !is_array($f) || !count($f)) return $a;
-  if (array_key_exists(LANGUAGE_NONE, $f))
-    $f = $f[LANGUAGE_NONE];
+  if (array_key_exists(LANGUAGE_NONE, $f)) $f = $f[LANGUAGE_NONE];
   foreach ($f as $i) {
     foreach ($keys as $key) {
       if (array_key_exists($key, $f)) {
@@ -168,7 +167,6 @@ function _nycc_field2array($f) {
     }
   }
   return $a;
-
 }
 
 

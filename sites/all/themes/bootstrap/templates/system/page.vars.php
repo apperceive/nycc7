@@ -14,8 +14,6 @@
  * @ingroup theme_preprocess
  */
 function bootstrap_preprocess_page(&$variables) {
-  //dpm('bootstrap_preprocess_page');
-
   // Add information about the number of sidebars.
   if (!empty($variables['page']['sidebar_first']) && !empty($variables['page']['sidebar_second'])) {
     $variables['content_column_class'] = ' class="col-sm-6"';
@@ -27,9 +25,7 @@ function bootstrap_preprocess_page(&$variables) {
     $variables['content_column_class'] = ' class="col-sm-12"';
   }
 
-// dpm('bootstrap_preprocess_page');
-  
-  if(bootstrap_setting('fluid_container') == 1) {
+  if (bootstrap_setting('fluid_container') == 1) {
     $variables['container_class'] = 'container-fluid';
   }
   else {
@@ -59,7 +55,7 @@ function bootstrap_preprocess_page(&$variables) {
   if (bootstrap_setting('navbar_position') !== '') {
     $variables['navbar_classes_array'][] = 'navbar-' . bootstrap_setting('navbar_position');
   }
-  elseif(bootstrap_setting('fluid_container') == 1) {
+  elseif (bootstrap_setting('fluid_container') == 1) {
     $variables['navbar_classes_array'][] = 'container-fluid';
   }
   else {
@@ -83,6 +79,5 @@ function bootstrap_preprocess_page(&$variables) {
  * @ingroup theme_process
  */
 function bootstrap_process_page(&$variables) {
-  //dpm('bootstrap_preprocess_page');
   $variables['navbar_classes'] = implode(' ', $variables['navbar_classes_array']);
 }
