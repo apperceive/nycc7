@@ -8,7 +8,7 @@
 
 class OgMigrateContent extends Migration {
 
-  public function __construct() {
+  public function __construct($arguments = array()) {
     $this->description = t('Upgrade nodes that are group-content, by settings the correct field value.');
 
     foreach (node_type_get_names() as $bundle => $value) {
@@ -28,7 +28,7 @@ class OgMigrateContent extends Migration {
 
     $this->query = $query;
 
-    parent::__construct();
+    parent::__construct($arguments);
 
     $source_key = array(
       'nid' => array(
