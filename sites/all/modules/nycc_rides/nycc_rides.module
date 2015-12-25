@@ -278,9 +278,30 @@ function nycc_rides_node_view($node, $view_mode = NULL, $langcode = NULL) {
       );
     } // full
     
+        //handle images from Ride With GPS
+    
+    if(nycc_field_property_has_value($node, 'field_ride_rwgps_link')) {
+      $count = 0;
+      foreach (nycc_field_get_value($node,'field_ride_rwgps_link') as $urls) {
+        
+        if(is_array($urls) && array_key_exists('url', $urls)) {
+          $title = $urls['title'];
+          $url = drupal_parse_url($urls['url']);
+          $route_id = basename($url['path']);
+          if($route_id) {
+            $node->content['rwgps_images'][$count] = array('value' => "http://ridewithgps.com/routes/full/$route_id.png");
+            $count++;
+          } //if route_id
+        } //if is_array
+      }//for each
+    } // if has Values in RWGPS URL
+    
+    
+    //TODO: Need to remove images if RWGPS value was there but is being removed
     $node->content['field_ride_spots']['#title'] = t("Remaining/Spots");
     //$node->content['field_ride_spots'][0]['#markup'] = nycc_rides_get_ride_spots_text($node);
     $node->content['field_ride_spots'][0]['#markup'] = nycc_rides_spots_remaining($node);
+    dpm($node);
   }  // ride
 } // nycc_rides_node_view
 
@@ -359,29 +380,6 @@ function nycc_rides_node_validate($node, $form, &$form_state) {
     if($numleaders == 0) {
       form_set_error("field_ride_current_leaders", "You must have at least one leader.");
     }
-    
-    
-    //handle images from Ride With GPS
-    
-    if(nycc_field_property_has_value($form_state['values'], 'field_ride_rwgps_link')) {
-      foreach (nycc_field_get_value($form_state['values']['field_ride_rwgps_link']) as $urls) {
-        if(is_array($urls) && array_key_exists('url', $urls)) {
-          $title = $urls['title'];
-          $url = drupal_parse_url($urls['url']);
-          $route_id = basename($url['path']);
-          if($route_id) {
-            $img_url = "http://ridewithgps.com/routes/full/$route_id.png";
-            $image = file_get_contents($img_url); // string
-            $file = file_save_data($image, "public://$route_id.png", FILE_EXISTS_REPLACE);
-            $form_state['values']['field_ride_image']['und'][]['fid'] = $file->fid ; 
-            dpm($form_state);
-          } //if route_id
-        } //if is_array
-      }//for each
-    } // if has Values in RWGPS URL
-    
-    
-    //TODO: Need to remove images if RWGPS value was there but is being removed
     
   } //if rides
 } // nycc_rides_node_validate
