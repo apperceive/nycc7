@@ -1,0 +1,11 @@
+name = "NYCC D6 to D7 migration"
+description = "Migrate content from NYCC D6 site to D7"
+package = "NYCC"
+core = 7.x
+hidden = TRUE
+
+dependencies[] = migrate
+dependencies[] = migrate_d2d
+dependencies[] = migrate_d2d_ui
+dependencies[] = date
+dependencies[] = date_api

@@ -125,6 +125,9 @@ function nycc_rides_copy_ride_form_submit($form, &$form_state) {
   } // if additional dates
 } // nycc_rides_copy_ride_form_submit
 
+// output ride roster
+// print ride info, waiver, riders, waitlist and extra blank lines
+// uses node for waiver
 // used with printpdf
 function nycc_rides_output_riders_roster_pdf($ride) {
   if ($ride) {
@@ -136,29 +139,23 @@ function nycc_rides_output_riders_roster_pdf($ride) {
     $waiver = $waiver ? $waiver->body[LANGUAGE_NONE][0]['value'] : "";
     $timestamp = $ride->field_ride_timestamp[LANGUAGE_NONE][0]['value'];
     $title = $ride->title . "-" . substr($timestamp, 0, 10);
-    
-    // use timestamp
-    // field body?
-    
     drupal_set_title($title);
     $output = "";
-    $output .= views_embed_view('rides_detail_on_riders_list', 'block_1', $nid, $nid);
+    $output .= views_embed_view('nrides_detail_on_riders_list', 'block_1', $nid);
     $output .= $waiver;
     $output .= views_embed_view('ride_participants', 'block_2', implode("+", array_merge($leaders, $riders)));
     $output .= views_embed_view('ride_participants', 'block_3', implode("+", $waiters));
-    //$output .= var_export(implode("+", $waiters),1);
   }
-  return $output;
+  print $output;
 }
 
 
-// return array of uids, nids or values from a field
+// return array of id's or values from an array (e.g., a node field)
 function _nycc_field2array($f) { 
   $a = array();
   $keys = array('nid', 'uid', 'tid', 'value', '#value');
   if (!$f || !is_array($f) || !count($f)) return $a;
-  if (array_key_exists(LANGUAGE_NONE, $f))
-    $f = $f[LANGUAGE_NONE];
+  if (array_key_exists(LANGUAGE_NONE, $f)) $f = $f[LANGUAGE_NONE];
   foreach ($f as $i) {
     foreach ($keys as $key) {
       if (array_key_exists($key, $f)) {
@@ -168,7 +165,6 @@ function _nycc_field2array($f) {
     }
   }
   return $a;
-
 }
 
 

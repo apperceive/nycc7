@@ -1,0 +1,119 @@
+
+.print-site_name { display:none; }
+.print-breadcrumb { display:none; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+body {
+  font-family: sans-serif, arial;
+  font-size: 10pt;
+  padding: 0 20px;
+}
+
+#pdf-costum-text h2 {
+  text-align: center;
+  width: 100%;
+}
+
+.views-admin-links,
+.statistics_counter {
+  display: none;
+}
+
+#pdf-costum-text p {
+  text-indent: -10px;
+  margin-left: 10px;
+  font-size: 80%;
+}
+
+.view .view-content .views-table {
+  width: 100%; 
+}
+
+.view .view-content .views-table,
+.view .view-content .views-table tr,
+.view .view-content .views-table td,
+.view .view-content .views-table th {
+  border: solid 1px black;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  border-collapse: collapse;
+}
+
+.view .view-content .views-table td,
+.view .view-content .views-table th {
+  padding: 3px;
+  /*height: 30px;*/
+}
+
+.nycc_rae {
+  padding-left: 45px; 
+  font-size: 10pt;
+  page-break-before: always;
+}
+
+.nycc_pdf_page_break {
+  page-break-before: always;
+}
+
+.nycc_read_release {
+  color: #ccc;
+}
+
+.view-rides-detail-on-riders-list .views-field-title,
+.view-rides-detail-on-riders-list .views-field-field-date-ride-first-value,
+.view-rides-detail-on-riders-list .views-field-field-ride-leaders-nid  {
+  display: inline-block;
+  max-width: 120px;
+  padding-right: 10px;
+}
+
+.view-rides-detail-on-riders-list .views-field-field-ride-leaders-nid {
+  max-width: 400px;
+  padding-right: 0px;
+}
+
+.view-rides-detail-on-riders-list .views-field-field-ride-leaders-nid .field-content {
+  display: inline;
+}
+
+.view-rides-detail-on-riders-list .views-field-field-ride-leaders-nid .field-item {
+  display: inline;
+  padding-right: 10px;
+}
+
+.view-rides-detail-on-riders-list .field-content hr {
+  border: 1px black solid;
+}
+
+.view-rides-detail-on-riders-list .field-content b {
+  display: block;
+  margin-top: 25px;
+}
+
+.print-logo {
+  width: 100%;
+  text-align: right;
+  padding-right: 60px;
+}
+
+.print-logo img {
+  margin: 0;
+  padding: 0;
+}

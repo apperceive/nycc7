@@ -14,8 +14,6 @@
  * @ingroup theme_preprocess
  */
 function bootstrap_preprocess_html(&$variables) {
-  
-  //dpm('bootstrap_preprocess_html');
   // Backport from Drupal 8 RDFa/HTML5 implementation.
   // @see https://www.drupal.org/node/1077566
   // @see https://www.drupal.org/node/1164926
@@ -71,7 +69,6 @@ function bootstrap_preprocess_html(&$variables) {
  * @ingroup theme_process
  */
 function bootstrap_process_html(&$variables) {
-  //dpm('bootstrap_process_html');
   $variables['html_attributes'] = drupal_attributes($variables['html_attributes_array']);
   $variables['body_attributes'] = drupal_attributes($variables['body_attributes_array']);
 }

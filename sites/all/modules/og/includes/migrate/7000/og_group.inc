@@ -5,7 +5,7 @@
  * Upgrade nodes that are groups, by settings the correct field value.
  */
 
-class OgMigrateGroup extends DynamicMigration {
+class OgMigrateGroup extends Migration {
 
   /**
    * Indicate we are updating existing data.
@@ -13,9 +13,9 @@ class OgMigrateGroup extends DynamicMigration {
   protected $systemOfRecord = Migration::DESTINATION;
 
 
-  public function __construct(array $arguments) {
+  public function __construct($arguments = array()) {
     $this->arguments = $arguments;
-    parent::__construct();
+    parent::__construct($arguments);
     $bundle = $arguments['bundle'];
     $this->description = t('Upgrade nodes that are groups, by settings the correct field value.');
 
