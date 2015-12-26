@@ -158,23 +158,14 @@ function nycc_rides_output_ride_coordinators() {
   $output .= "<label>". t("Ride Coordinators:") ."</label>";
   $coordinators = nycc_rides_ride_coordinators();
   foreach ($coordinators as $coordinator) {
-    if (strtoupper($coordinator['level']) == "A")
-      $output .= "<div class='coordinator-a-rides'>A-rides: <a href='/user/" .
-      $coordinator['uid'] . "' title='View profile in another tab or window...' target=_blank'>" .
-      $coordinator['name'] . "</a>,<br/>" .
-      $coordinator['phone'] . ",<br/><a title='Send email...' href=mailto:a-rides@nycc.org>a-rides@nycc.org</a></br></br></div>";
-
-    if (strtoupper($coordinator['level']) == "B")
-      $output .= "<div class='coordinator-b-rides'>B-rides: <a href='/user/" .
-      $coordinator['uid'] . "' title='View profile in another tab or window...' target=_blank'>" .
-      $coordinator['name'] . "</a>,<br/>" .
-      $coordinator['phone'] . ",<br/><a title='Send email...' href=mailto:b-rides@nycc.org>b-rides@nycc.org</a></br></br></div>";
-
-    if (strtoupper($coordinator['level']) == "C")
-      $output .= "<div class='coordinator-c-rides'>C-rides: <a href='/user/" .
-      $coordinator['uid'] . "' title='View profile in another tab or window...' target=_blank'>" .
-      $coordinator['name'] . "</a>,<br/>" .
-      $coordinator['phone'] . ",<br/><a title='Send email...' href=mailto:c-rides@nycc.org>c-rides@nycc.org</a></div>";
+    $level = $coordinator['level'];
+    $uid = $coordinator['uid'];
+    $name = $coordinator['name'];
+    $phone = $coordinator['phone'];
+    
+    $output .= "<div class='coordinator-$level-rides'>$level-rides: <a href='/user/$uid' title='View profile in another tab or window...' target=_blank'>$name</a>,<br/>" .
+      "<a href='tel:$phone'>$phone</a><br/>" .
+      "<a title='Send email...' href=mailto:$level-rides@nycc.org>$level-rides@nycc.org</a></div>";
   }
   $output .= "</div>";
   return $output;
