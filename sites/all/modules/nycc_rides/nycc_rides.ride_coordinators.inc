@@ -171,8 +171,6 @@ function nycc_rides_output_ride_coordinators() {
   return $output;
 }
 
-
-
 //RIDE COORDINATOR EMAIL FORM
 function nycc_rides_ride_coordinators_email($form, &$form_state) {
   global $user;
