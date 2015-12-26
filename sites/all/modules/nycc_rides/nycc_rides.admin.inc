@@ -62,7 +62,7 @@ function nycc_rides_admin() {
 			'#title' => t('A-Ride Coordinator'),
        '#description' => t('Select the name of the A-Rides coordinator. Only names with the ride coordinator role are displayed. <br/>If you are not not seeing the expected names then check the roles assigned to the expected users'),
 			 '#required' => TRUE,
-			 '#default_value' => variable_get('nycc_rides_a-ride-coordinators', ''),
+			 '#default_value' => variable_get('nycc_rides_a-ride-coordinators', null),
 			);
 		
 		$form['nycc_rides_b-ride-coordinators'] = array(
@@ -71,7 +71,7 @@ function nycc_rides_admin() {
 			'#title' => t('B-Ride Coordinator'),
        '#description' => t('Select the name of the B-Rides coordinator. Only names with the ride coordinator role are displayed. <br/>If you are not not seeing the expected names then check the roles assigned to the expected users'),
 			 '#required' => TRUE,
-			 '#default_value' => variable_get('nycc_rides_b-ride-coordinators', ''),
+			 '#default_value' => variable_get('nycc_rides_b-ride-coordinators', null),
 			);
 
 		$form['nycc_rides_c-ride-coordinators'] = array(
@@ -80,7 +80,7 @@ function nycc_rides_admin() {
 			'#title' => t('C-Ride Coordinator'),
        '#description' => t('Select the name of the C-Rides coordinator. Only names with the ride coordinator role are displayed. <br/>If you are not not seeing the expected names then check the roles assigned to the expected users'),
 			 '#required' => TRUE,
-			 '#default_value' => variable_get('nycc_rides_c-ride-coordinators', ''),
+			 '#default_value' => variable_get('nycc_rides_c-ride-coordinators', null),
 			);				
 	}
 	

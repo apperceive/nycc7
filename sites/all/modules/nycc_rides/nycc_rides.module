@@ -1136,14 +1136,6 @@ function nycc_rides_can_approve($account = NULL) {
     return FALSE;
   if (in_array('administer', $roles) || in_array('vp of rides', $roles) || in_array('ride coordinator', $roles))
     return true;
-  // just check for ride coordinator role and do not check for level as we are not comparing with ride level anyway
-  /*
-  $cp = content_profile_load('profile', $account->uid);
-  foreach ($cp->field_ride_coordinator as $rc) {
-    if (drupal_strlen($rc['value']))
-      return true;
-  }
-  */
   return FALSE;
 }
 
