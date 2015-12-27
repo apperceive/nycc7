@@ -213,7 +213,7 @@ function nycc_og_join_group($nid, $user_id = null) {
   } catch (Exception $e) {
     dpm($e->getTrace());
   }
-
+}
 //Functions related to OG Groups for SIGs
 
 /* function used to add a member to the group as either a rider or a waitlister.
@@ -565,7 +565,3 @@ function nycc_og_check_validate(&$form, &$form_state)  {
 
 
 //END HOOK FUNCTIONS
-
-
-
-
