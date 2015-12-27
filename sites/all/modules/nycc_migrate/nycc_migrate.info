@@ -9,3 +9,6 @@ dependencies[] = migrate_d2d
 dependencies[] = migrate_d2d_ui
 dependencies[] = date
 dependencies[] = date_api
+
+files[] = nycc_migrate_users.inc
+// profiles, rides, etc

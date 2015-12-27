@@ -1,4 +1,10 @@
 <?php
+
+define('NYCC_MIGRATION_DATABASE_NAME', variable_get('nycc_migration_database', 'd6test'));
+define('NYCC_MIGRATION_FILES_DIRECTORY', variable_get('nycc_migration_file_path', '/d6/sites/default/files'));
+
+
+
 /**
  * @file nycc_migrate.migrate.inc
  */
@@ -48,22 +54,29 @@ function nycc_migrate_flush_caches() {
    * We should do Performance -> Clear All Caches or "drush cc all" to enable migration options in the Content menu
    * Please note, migrate module uses hook_migrate_api() to handle migrations but migrate_d2d works like below
    */
-  nycc_migrate_users($common_arguments);
-  nycc_migrate_user_pictures($common_arguments);
+  _nycc_migrate_users($common_arguments);
+  _nycc_migrate_user_pictures($common_arguments);
+  // _nycc_migrate_user_profiles($common_arguments);
+  _nycc_migrate_node_page($common_arguments);
+  // _nycc_migrate_node_rides($common_arguments);
+  // _nycc_migrate_node_cuesheet($common_arguments);
+  // _nycc_migrate_node_event($common_arguments);
+  // _nycc_migrate_node_forum($common_arguments);
 }
   
 
 // User migration
-function nycc_migrate_users($common_arguments) {
+function _nycc_migrate_users($common_arguments) {
 
   $args = $common_arguments + array(
     'description' => t('Import users from Drupal 6'),
-    'machine_name' => 'UserMigration',
+    'machine_name' => 'NYCCUserMigration',
   );
  
   // Call Drupal-to-Drupal Migration module (using native class)
-  Migration::registerMigration($migration_class="DrupalUser6Migration", 
-    $args['machine_name'], $args);
+  // Migration::registerMigration($migration_class="DrupalUser6Migration", $args['machine_name'], $args);
+
+  Migration::registerMigration($migration_class="NYCCUserMigration", $args['machine_name'], $args);
 
 }
 
@@ -72,34 +85,40 @@ function nycc_migrate_users($common_arguments) {
 // User picture migration
 // https://www.drupal.org/node/1819706
 // http://drupal.stackexchange.com/questions/155113/migrating-user-profile-picture-from-d6-to-d7
-function nycc_migrate_user_pictures($common_arguments) {
+function _nycc_migrate_user_pictures($common_arguments) {
 
   $picture_arguments = $common_arguments + array(
-    'machine_name' => 'UserPicturesMigration',
+    'machine_name' => 'NYCCUserPicturesMigration',
     'description' => t('Import Drupal 6 picture files'),
     'default_uid' => 1,
     'source_dir' => '/var/www/html/d6/sites/default/files/pictures',
     'destination_dir' => 'public://pictures',
   );
   
-  Migration::registerMigration('DrupalPicture6Migration', 
-    $picture_arguments['machine_name'], $picture_arguments);
-    
-  // do we need this?
-  // see:https://www.drupal.org/node/1819706#comment-6835928
-  /*
-  $user_arguments = $common_arguments + array(
-    'machine_name' => 'ExampleUser',
-    'description' => t('Import Drupal 6 users'),
-    'picture_migration' => 'ExamplePicture',
-    'soft_dependencies' => array('ExamplePicture'),
-  );
-  Migration::registerMigration('DrupalUser6Migration', 
-    $user_arguments['machine_name'], $user_arguments);  
-  */
+  Migration::registerMigration('DrupalPicture6Migration', $picture_arguments['machine_name'], $picture_arguments);
+
+  //Migration::registerMigration($migration_class="NYCCUserPictureMigration", $args['machine_name'], $args);
+
 }
 
 
 
+
+
+function _nycc_migrate_node_page($common_arguments) {
+
+  $args = $common_arguments + array(     
+    'description' => t('Import NYCC page nodes from Drupal 6'),
+    'machine_name' => 'PageMigration', // Call name of this migration through this module
+    'source_type' => 'page',
+    'destination_type' => 'page',
+    //'user_migration' => 'UserMigration', // Migrate users before migrating the content type
+    'dependencies' => array(),
+  );
+  
+  // Call Drupal-to-Drupal Migration module (using overridden class)
+  Migration::registerMigration($migration_class="NYCCPageNodeMigrator", $args['machine_name'], $args);
+  
+}
 
 

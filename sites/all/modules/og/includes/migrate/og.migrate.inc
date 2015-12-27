@@ -9,7 +9,7 @@ abstract class OgEntityMigration extends Migration {
 
   public $keyName = 'id';
 
-  public function __construct() {
+  public function __construct($arguments = array()) {
     parent::__construct(MigrateGroup::getInstance('og_7200'));
 
     // Create a map object for tracking the relationships between source

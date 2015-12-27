@@ -7,8 +7,8 @@
 
 class OgUiMigrateAddField extends MigrationBase {
 
-  public function __construct() {
-    parent::__construct();
+  public function __construct($arguments = array()) {
+    parent::__construct($arguments);
     $this->description = t('Add OG UI related fields to group node-types.');
     $this->enabled = !$this->isComplete();
 

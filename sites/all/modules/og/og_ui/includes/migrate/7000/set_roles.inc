@@ -12,8 +12,8 @@ class OgUiSetRoles extends Migration {
    */
   protected $systemOfRecord = Migration::DESTINATION;
 
-  public function __construct() {
-    parent::__construct();
+  public function __construct($arguments = array()) {
+    parent::__construct($arguments);
     $this->description = t('Set permissions on group to upgrade group visibility.');
 
     foreach (node_type_get_names() as $bundle => $value) {
