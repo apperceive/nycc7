@@ -2,7 +2,26 @@
 
 function nycc_og_admin() {
   $form = array();
+	$role_names = og_roles('node', 'Group');
+	
+  $form['nycc_og_rider_role_id'] = array(
+       '#type' => 'select',
+       '#title' => t('Confirmed Rider Role Name'),
+       '#options' => $role_names,
+       '#default_value' => variable_get('nycc_og_rider_role_id', '5'),
+       '#description' => t('Name of the role assigned to confirmed riders'),
+			 '#required' => TRUE
+  );
 
+  $form['nycc_og_waiter_role_id'] = array(
+       '#type' => 'select',
+       '#title' => t('Watlisted Rider Role Name'),
+       '#options' => $role_names,
+       '#default_value' => variable_get('nycc_og_waiter_role_id', '7'),
+       '#description' => t('Name of the role assigned to waitlisted riders'),
+			 '#required' => TRUE
+  );  
+  
   $form['nycc_og_group_domain_suffix'] = array(
     '#type' => 'textfield', 
     '#title' => t('Domain Suffix for Group Emails'),
