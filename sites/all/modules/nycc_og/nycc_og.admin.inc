@@ -1,27 +1,46 @@
 <?php
 
-function nycc_og_email_admin() {
+function nycc_og_admin() {
   $form = array();
+	$role_names = og_roles('node', 'Group');
+	
+  $form['nycc_og_rider_role_id'] = array(
+       '#type' => 'select',
+       '#title' => t('Confirmed Rider Role Name'),
+       '#options' => $role_names,
+       '#default_value' => variable_get('nycc_og_rider_role_id', '5'),
+       '#description' => t('Name of the role assigned to confirmed riders'),
+			 '#required' => TRUE
+  );
 
-  $form['nycc_og_email_group_domain_suffix'] = array(
+  $form['nycc_og_waiter_role_id'] = array(
+       '#type' => 'select',
+       '#title' => t('Watlisted Rider Role Name'),
+       '#options' => $role_names,
+       '#default_value' => variable_get('nycc_og_waiter_role_id', '7'),
+       '#description' => t('Name of the role assigned to waitlisted riders'),
+			 '#required' => TRUE
+  );  
+  
+  $form['nycc_og_group_domain_suffix'] = array(
     '#type' => 'textfield', 
     '#title' => t('Domain Suffix for Group Emails'),
     '#description' => t('Enter the domain suffix to be used for group emails (do not include the @ sign)'),
-    '#default_value' => variable_get('nycc_og_email_group_domain_suffix', '')
+    '#default_value' => variable_get('nycc_og_group_domain_suffix', '')
   );    
 
-  $form['nycc_og_email_signing_domain'] = array(
+  $form['nycc_og_signing_domain'] = array(
     '#type' => 'textfield', 
     '#title' => t('Signing Domain for Group Emails'),
     '#description' => t('Enter the domain to be used to sign group emails (do not include the @ sign)'),
-    '#default_value' => variable_get('nycc_og_email_signing_domain', '')
+    '#default_value' => variable_get('nycc_og_signing_domain', '')
   );    
 
-  $form['nycc_og_email_inbound_url'] = array(
+  $form['nycc_og_inbound_url'] = array(
     '#type' => 'textfield', 
     '#title' => t('Url suffix configured in Mandrill Webhook'),
     '#description' => t("The webhook must be configured in <a href='https://mandrillapp.com/inbound' target='_blank'>Mandrill</a> before you configure this setting. (do not include the hostname or a leading slash)"),
-    '#default_value' => variable_get('nycc_og_email_inbound_url', '')
+    '#default_value' => variable_get('nycc_og_inbound_url', '')
   ); 
 
   $form['nycc_og_bcc_errors'] = array(
@@ -30,10 +49,10 @@ function nycc_og_email_admin() {
     '#description' => t('Leave blank if you only want the logged'),
     '#default_value' => variable_get('nycc_og_bcc_errors', '')
   );   
-  $form['nycc_og_email_debug_to_log'] = array(
+  $form['nycc_og_debug_to_log'] = array(
     '#type' => 'checkbox', 
     '#title' => t('Write debug messages to Database Log'),
-    '#default_value' => variable_get('nycc_og_email_debug_to_log', '')
+    '#default_value' => variable_get('nycc_og_debug_to_log', '')
   );    
   
   $key = variable_get('nycc_mandrill_api_key', '');
@@ -64,17 +83,17 @@ function nycc_og_email_admin() {
       '#markup' => theme('table', array('header' => $header, 'rows' => $rows)),
     ); 
   }  
-  //$form['#submit'][] = 'nycc_og_email_admin_settings_submit';
+  //$form['#submit'][] = 'nycc_og_admin_settings_submit';
   return system_settings_form($form);
 }
 
-function nycc_og_email_admin_validate($form, &$form_state) {
+function nycc_og_admin_validate($form, &$form_state) {
   
   //Confirm that signing domain is valid (if specified)
-  if ( (!empty($form_state['values']['nycc_og_email_group_domain_suffix']))
-        && (!checkdnsrr($form_state['values']['nycc_og_email_group_domain_suffix'], "MX"))) {
+  if ( (!empty($form_state['values']['nycc_og_group_domain_suffix']))
+        && (!checkdnsrr($form_state['values']['nycc_og_group_domain_suffix'], "MX"))) {
 
-    form_set_error('nycc_og_email_group_domain_suffix',
+    form_set_error('nycc_og_group_domain_suffix',
       t('Error: Can not verify MX Records for specified domain. Please visit the !link and confirm the MX records are setup correctly.',
           array(
                 '!link' => l(
@@ -89,10 +108,10 @@ function nycc_og_email_admin_validate($form, &$form_state) {
     }
     
   //check to confirm inbound domain is configured in Mandrill
-  if ( (!empty($form_state['values']['nycc_og_email_inbound_url']))
-        && (! nycc_mandrill_url_is_valid($form_state['values']['nycc_og_email_inbound_url']))) {
+  if ( (!empty($form_state['values']['nycc_og_inbound_url']))
+        && (! nycc_mandrill_url_is_valid($form_state['values']['nycc_og_inbound_url']))) {
 
-    form_set_error('nycc_og_email_inbound_url',
+    form_set_error('nycc_og_inbound_url',
       t('Error: Cannot verify Inbound URL specified. Please visit the !link and confirm the inbound domain settings.',
           array(
                 '!link' => l(
@@ -106,9 +125,9 @@ function nycc_og_email_admin_validate($form, &$form_state) {
     }
 
   //check to confirm inbound domain is specified 
-  if ( empty($form_state['values']['nycc_og_email_inbound_url'])){
+  if ( empty($form_state['values']['nycc_og_inbound_url'])){
 
-    form_set_error('nycc_og_email_inbound_url',
+    form_set_error('nycc_og_inbound_url',
       t('Error: You must specifiy an inbound domain. Please visit the !link to configure the inbound domain settings.',
           array(
                 '!link' => l(
@@ -124,10 +143,10 @@ function nycc_og_email_admin_validate($form, &$form_state) {
     
     
   //confirm that signing domain is valid  
-  if ( (!empty($form_state['values']['nycc_og_email_signing_domain']))
-        && (!checkdnsrr($form_state['values']['nycc_og_email_signing_domain'], "MX"))) {
+  if ( (!empty($form_state['values']['nycc_og_signing_domain']))
+        && (!checkdnsrr($form_state['values']['nycc_og_signing_domain'], "MX"))) {
 
-    form_set_error('nycc_og_email_signing_domain',
+    form_set_error('nycc_og_signing_domain',
       t('Error: Can not verify MX Records for specified domain. Please visit the !link and confirm the MX records are setup correctly.',
           array(
                 '!link' => l(

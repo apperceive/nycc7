@@ -211,8 +211,6 @@ function nycc_should_redirect_to_membership_review($account=null) {
 
 //GENERAL UTILITY FUNCTIONS
 
-
-
 function nycc_refs2ids($refs) {
   //takes in array of arrays and returns just the value(generally used for UIDs returned as an array arrays)
   $ids = array();

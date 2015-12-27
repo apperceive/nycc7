@@ -10,7 +10,9 @@ TODO:
 function nycc_rides_get_ride_coordinator_email($ride) {
   $ride = nycc_rides_get_ride_object($ride);
   if (isset($ride)){
-    return nycc_field_get_text_value($ride->field_ride_select_level) . '-rides@nycc.org';
+    $level = nycc_field_get_property_text_value($ride, 'field_ride_select_level');
+    if ($level)
+      return strtolower($level) . '-rides@nycc.org';
   }
 }
 
@@ -23,20 +25,58 @@ function nycc_rides_get_ride_coordinator_names($data) {
   return _nycc_rides_get_ride_coordinator_info($data, 'realname');
 }
 
+//function _nycc_rides_get_ride_coordinator_info($data, $field_to_get) {
+//  if(is_string($data) && strtolower($data) == "all") {
+//    $level = "%";
+//  } else {  
+//    if (is_object($data) && $data->type && ($data->type == 'rides')) {
+//      $level_array = nycc_field_get_value($data->field_ride_select_level);
+//      $level=$level_array[0]['value'];
+//    }
+//    else if (is_numeric($data)) {
+//      $ride = node_load($data);
+//    
+//      if ($ride){
+//        $level_array = nycc_field_get_value($ride->field_ride_select_level);
+//        $level=$level_array[0]['value'];
+//      }
+//    }
+//    else if (strlen($data) == 1 && in_array(strtolower($data), array('a', 'b', 'c'))) {
+//      $level = $data;
+//    } else {
+//      return "";
+//    }
+//   $level .= "-ride" ;
+//  }
+//
+//  //TODO: Need to fix Profile table since 2 profiles exist or each user. bringing back old values
+//  $sql = "SELECT DISTINCT u.mail, rn.realname,c.field_ride_coordinator_value  FROM {users} u  join {profile} p on p.uid=u.uid join {field_data_field_ride_coordinator} c on c.entity_id = p.pid join {realname} rn on u.uid=rn.uid WHERE  c.field_ride_coordinator_value like :level";
+//
+//  $q = db_query($sql, array(':level'=>$level));
+//  $ret="";
+//  foreach($q as $r) {
+//    if (drupal_strlen($ret))
+//      $ret .= ",";
+//      $ret .= $r->{$field_to_get};
+//
+//  }
+//  return $ret;
+//}
+
+
 function _nycc_rides_get_ride_coordinator_info($data, $field_to_get) {
   if(is_string($data) && strtolower($data) == "all") {
-    $level = "%";
+    $level = "all";
+
   } else {  
     if (is_object($data) && $data->type && ($data->type == 'rides')) {
-      $level_array = nycc_field_get_value($data->field_ride_select_level);
-      $level=$level_array[0]['value'];
+      $level = nycc_field_get_property_text_value($data, 'field_ride_select_level');
     }
     else if (is_numeric($data)) {
       $ride = node_load($data);
     
       if ($ride){
-        $level_array = nycc_field_get_value($ride->field_ride_select_level);
-        $level=$level_array[0]['value'];
+        $level = nycc_field_get_property_text_value($data, 'field_ride_select_level');
       }
     }
     else if (strlen($data) == 1 && in_array(strtolower($data), array('a', 'b', 'c'))) {
@@ -44,43 +84,72 @@ function _nycc_rides_get_ride_coordinator_info($data, $field_to_get) {
     } else {
       return "";
     }
-   $level .= "-ride" ;
+    
   }
-
-  //TODO: Need to fix Profile table since 2 profiles exist or each user. bringing back old values
-  $sql = "SELECT DISTINCT u.mail, rn.realname,c.field_ride_coordinator_value  FROM {users} u  join {profile} p on p.uid=u.uid join {field_data_field_ride_coordinator} c on c.entity_id = p.pid join {realname} rn on u.uid=rn.uid WHERE  c.field_ride_coordinator_value like :level";
-
-  $q = db_query($sql, array(':level'=>$level));
-  $ret="";
-  foreach($q as $r) {
-    if (drupal_strlen($ret))
+  $ret = "";  
+  $all_uids = array_unique(call_user_func_array('array_merge', _nycc_rides_get_ride_coordinator_uids($level)));;
+  foreach(user_load_multiple($all_uids) as $user) {
+    if (drupal_strlen($ret)) {
       $ret .= ",";
-      $ret .= $r->{$field_to_get};
-
+    }
+    
+    $ret .= $user->{$field_to_get};    
   }
   return $ret;
 }
 
+function _nycc_rides_get_ride_coordinator_uids($level = 'all') {
+  if ($level == 'all') {
+    return array('a'=> array_filter( array_values(variable_get('nycc_rides_a-ride-coordinators'))),
+                 'b'=> array_filter( array_values(variable_get('nycc_rides_b-ride-coordinators'))),
+                 'c'=> array_filter( array_values(variable_get('nycc_rides_c-ride-coordinators'))),
+                );
+    
+  } elseif (in_array(strtolower($level), array('a', 'b', 'c'))) {
+    $var_name = 'nycc_rides_' . $level . '-ride-coordinators';
+    return array($level => array_filter( array_values(variable_get($var_name))));
+  }
+  return array();
+}
+
+
 
 function nycc_rides_ride_coordinators() {
   $coordinators = array();
+  
+  //$all_uids = array_unique(call_user_func_array('array_merge', ));
+
+  foreach(_nycc_rides_get_ride_coordinator_uids() as $level => $level_rc) {
+    foreach(user_load_multiple($level_rc) as $user) {
+      $coordinators[] = array(
+                           'level'=>$level,
+                           'uid'=>$user->uid,
+                           'name'=>nycc_get_user_full_name($user),
+                           'mail'=>$user->mail,
+                           'phone'=>nycc_format_phone_no(nycc_get_user_phone($user, false))
+                           );
+       
+    }
+  }
+
+  
   //$sql = 'SELECT c.field_ride_coordinator_value AS level, n.title as name, p.field_phone_value as phone, u.mail, u.uid FROM {content_field_ride_coordinator} c, {content_type_profile} p, {node} n, {users} u WHERE n.nid=c.nid AND p.nid=n.nid AND u.uid=n.uid AND field_ride_coordinator_value IS NOT NULL ORDER BY 1';
   
   //TODO need to fix this QUERY. Are we pulling the right profile?
-  $sql =<<<EOS
-SELECT DISTINCT u.uid, u.mail, rn.realname as name,c.field_ride_coordinator_value as level, p.field_phone_value AS phone
-FROM {users} u  
-join {profile} pr on pr.uid=u.uid 
-join {field_data_field_ride_coordinator} c on c.entity_id = pr.pid 
-join {realname} rn on u.uid=rn.uid
-join {field_data_field_phone} p on p.entity_id = pr.pid
-ORDER BY 1;
-EOS;
-  $results = db_query($sql);
-  foreach ($results as $coordinator) {
-    $coordinator->level = strtoupper(substr($coordinator->level,0,1)); // lcfirst($coordinator->level);
-    $coordinators[] = $coordinator;
-  }
+//  $sql =<<<EOS
+//SELECT DISTINCT u.uid, u.mail, rn.realname as name,c.field_ride_coordinator_value as level, p.field_phone_value AS phone
+//FROM {users} u  
+//join {profile} pr on pr.uid=u.uid 
+//join {field_data_field_ride_coordinator} c on c.entity_id = pr.pid 
+//join {realname} rn on u.uid=rn.uid
+//join {field_data_field_phone} p on p.entity_id = pr.pid
+//ORDER BY 1;
+//EOS;
+//  $results = db_query($sql);
+//  foreach ($results as $coordinator) {
+//    $coordinator->level = strtoupper(substr($coordinator->level,0,1)); // lcfirst($coordinator->level);
+//    $coordinators[] = $coordinator;
+//  }
   return $coordinators;
 }
 
@@ -89,29 +158,18 @@ function nycc_rides_output_ride_coordinators() {
   $output .= "<label>". t("Ride Coordinators:") ."</label>";
   $coordinators = nycc_rides_ride_coordinators();
   foreach ($coordinators as $coordinator) {
-    if (strtoupper($coordinator->level) == "A")
-      $output .= "<div class='coordinator-a-rides'>A-rides: <a href='/user/" .
-      $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" .
-      $coordinator->name . "</a>,<br/>" .
-      $coordinator->phone . ",<br/><a title='Send email...' href=mailto:a-rides@nycc.org>a-rides@nycc.org</a></br></br></div>";
-
-    if (strtoupper($coordinator->level) == "B")
-      $output .= "<div class='coordinator-b-rides'>B-rides: <a href='/user/" .
-      $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" .
-      $coordinator->name . "</a>,<br/>" .
-      $coordinator->phone . ",<br/><a title='Send email...' href=mailto:b-rides@nycc.org>b-rides@nycc.org</a></br></br></div>";
-
-    if (strtoupper($coordinator->level) == "C")
-      $output .= "<div class='coordinator-c-rides'>C-rides: <a href='/user/" .
-      $coordinator->uid . "' title='View profile in another tab or window...' target=_blank'>" .
-      $coordinator->name . "</a>,<br/>" .
-      $coordinator->phone . ",<br/><a title='Send email...' href=mailto:c-rides@nycc.org>c-rides@nycc.org</a></div>";
+    $level = $coordinator['level'];
+    $uid = $coordinator['uid'];
+    $name = $coordinator['name'];
+    $phone = $coordinator['phone'];
+    
+    $output .= "<div class='coordinator-$level-rides'>$level-rides: <a href='/user/$uid' title='View profile in another tab or window...' target=_blank'>$name</a>,<br/>" .
+      "<a href='tel:$phone'>$phone</a><br/>" .
+      "<a title='Send email...' href=mailto:$level-rides@nycc.org>$level-rides@nycc.org</a></div>";
   }
   $output .= "</div>";
   return $output;
 }
-
-
 
 //RIDE COORDINATOR EMAIL FORM
 function nycc_rides_ride_coordinators_email($form, &$form_state) {
