@@ -2,12 +2,20 @@
 
 /*
  * fix user passwords after Drupal 6 -> 7 users table migration
+ *
+ * run from drush
+ *
+ * from http://stackoverflow.com/questions/6205605/drupal-6-user-password-import-to-drupal-7
+ *
  */
-
+ 
+  define('DRUPAL_ROOT', getcwd());
+  include_once DRUPAL_ROOT . '/includes/bootstrap.inc';
+  drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+  require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
 
   // Lower than DRUPAL_HASH_COUNT to make the update run at a reasonable speed.
   $hash_count_log2 = 11;
-
 
   $result = db_query("SELECT uid, pass FROM {users} WHERE uid > 0");
   foreach ($result as $account) {
