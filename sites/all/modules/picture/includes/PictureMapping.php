@@ -180,24 +180,29 @@ class PictureMapping {
   protected function cleanMappings() {
     foreach ($this->mapping as $breakpoint => $multipliers) {
       foreach ($multipliers as $multiplier => $mapping_definition) {
-        switch ($mapping_definition['mapping_type']) {
-          case '_none':
-            unset($mapping_definition['image_style']);
-            unset($mapping_definition['sizes']);
-            unset($mapping_definition['sizes_image_styles']);
-            break;
+        if (!empty($mapping_definition) && isset($mapping_definition['mapping_type'])) {
+          switch ($mapping_definition['mapping_type']) {
+            case '_none':
+              unset($mapping_definition['image_style']);
+              unset($mapping_definition['sizes']);
+              unset($mapping_definition['sizes_image_styles']);
+              break;
 
-          case 'image_style':
-            unset($mapping_definition['sizes']);
-            unset($mapping_definition['sizes_image_styles']);
-            break;
+            case 'image_style':
+              unset($mapping_definition['sizes']);
+              unset($mapping_definition['sizes_image_styles']);
+              break;
 
-          case 'sizes':
-            unset($mapping_definition['image_style']);
-            $mapping_definition['sizes_image_styles'] = array_filter($mapping_definition['sizes_image_styles']);
-            break;
+            case 'sizes':
+              unset($mapping_definition['image_style']);
+              $mapping_definition['sizes_image_styles'] = array_filter($mapping_definition['sizes_image_styles']);
+              break;
+          }
+          $this->mapping[$breakpoint][$multiplier] = $mapping_definition;
         }
-        $this->mapping[$breakpoint][$multiplier] = $mapping_definition;
+        else {
+          unset($this->mapping[$breakpoint][$multiplier]);
+        }
       }
     }
   }
