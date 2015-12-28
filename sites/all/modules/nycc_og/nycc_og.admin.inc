@@ -3,7 +3,25 @@
 function nycc_og_admin() {
   $form = array();
 	$role_names = og_roles('node', 'Group');
-	
+
+  $form['nycc_og_caotain_role_id'] = array(
+       '#type' => 'select',
+       '#title' => t('Captain Role Name'),
+       '#options' => $role_names,
+       '#default_value' => variable_get('nycc_og_caotain_role_id', '6'),
+       '#description' => t('Name of the role assigned to Captains'),
+			 '#required' => TRUE
+  );
+  
+  $form['nycc_og_leader_role_id'] = array(
+       '#type' => 'select',
+       '#title' => t('Leader Role Name'),
+       '#options' => $role_names,
+       '#default_value' => variable_get('nycc_og_leader_role_id', '4'),
+       '#description' => t('Name of the role assigned to leaders'),
+			 '#required' => TRUE
+  );
+    
   $form['nycc_og_rider_role_id'] = array(
        '#type' => 'select',
        '#title' => t('Confirmed Rider Role Name'),

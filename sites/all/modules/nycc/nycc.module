@@ -185,6 +185,28 @@ function nycc_has_valid_review_date($account = null) {
   return false;
 }
 
+function nycc_get_user_object($user_id = null) {
+  if (!isset($user_id )) {
+    global $user;
+    return $user;
+  } elseif (is_object($user_id)) {
+    return $user_id;
+  } elseif (is_numeric($user_id)) {
+    return user_load($user_id);
+  }
+  return null;
+}
+
+
+function nycc_is_paid_member($user_id = null) {
+  $user = nycc_get_user_object($user_id);
+
+  if (isset($user) && (is_object($user))) {
+    return in_array("paid member", $user->roles) == 1;
+  }
+  return false;
+}
+
 function nycc_should_redirect_to_membership_review($account=null) {
   if(!$account) {
     global $user;
@@ -774,33 +796,67 @@ function nycc_get_user_profile($account = NULL) {
   return profile2_load_by_user($uid, "profile");  
 }
 
-function nycc_get_user_full_name($account = NULL) {
+function nycc_get_user_full_name_multiple($accounts = array()) {
   global $user;
-  if (!$account){
-    $account = $user;
-    $uid = $account->uid;
-  } else if (is_object($account)) {
-    $uid = $account->uid;
-  } else if (is_numeric($account)) {
-    $account = user_load($account);
-    $uid = $account->uid;
-  }
-  
-  if(!$uid)
-    return "";
-  
-  if(function_exists('realname_load'))
-    return realname_load($account);
+  $names = array();
+  if(empty($accounts))
+    $accounts = array ($user);
     
-
-  $cp = profile2_load_by_user($uid, "profile");
-  if($cp) {
-    return $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
-  } else {
-    //TODO: Add Watchdog.
-    drupal_set_message(check_plain("nycc_get_user_full_name: Could not load profile for user: $uid"), "error");
+  foreach($accounts as $account) {
+    if (is_object($account)) {
+      $uid = $account->uid;
+    } else if (is_numeric($account)) {
+      $account = user_load($account);
+      $uid = $account->uid;
+    }
+    
+    if(!$uid)
+      continue;
+    
+    if(function_exists('realname_load'))
+      $names[$uid] = realname_load($account);
+      
+  
+    $cp = profile2_load_by_user($uid, "profile");
+    if($cp) {
+       $names[$uid] = $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
+    } else {
+      //TODO: Add Watchdog.
+      drupal_set_message(check_plain("nycc_get_user_full_name: Could not load profile for user: $uid"), "error");
+    }
+    continue;
   }
-  return "";
+  return $names;
+}
+function nycc_get_user_full_name($account = NULL) {
+  $names = nycc_get_user_full_name_multiple(array($account));
+  return reset($names);
+  //global $user;
+  //if (!$account){
+  //  $account = $user;
+  //  $uid = $account->uid;
+  //} else if (is_object($account)) {
+  //  $uid = $account->uid;
+  //} else if (is_numeric($account)) {
+  //  $account = user_load($account);
+  //  $uid = $account->uid;
+  //}
+  //
+  //if(!$uid)
+  //  return "";
+  //
+  //if(function_exists('realname_load'))
+  //  return realname_load($account);
+  //  
+  //
+  //$cp = profile2_load_by_user($uid, "profile");
+  //if($cp) {
+  //  return $cp->field_first_name['und'][0]['value'] . " " . $cp->field_last_name['und'][0]['value'];
+  //} else {
+  //  //TODO: Add Watchdog.
+  //  drupal_set_message(check_plain("nycc_get_user_full_name: Could not load profile for user: $uid"), "error");
+  //}
+  //return "";
 }
 
 function nycc_get_nid_from_uid($account = NULL) {
