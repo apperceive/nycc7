@@ -6,6 +6,9 @@
  * run from drush
  *
  * from http://stackoverflow.com/questions/6205605/drupal-6-user-password-import-to-drupal-7
+ * also http://drupal.stackexchange.com/questions/2279/how-do-i-migrate-users-passwords-from-drupal-6-to-drupal-7
+ *
+ * TODO: make this idempotent, use highwater mark?
  *
  */
  
