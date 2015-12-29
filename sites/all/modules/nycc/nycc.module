@@ -887,11 +887,19 @@ class NyccException extends Exception
   private $goto_path;
   private $goto_querystring;
 
-  public function __construct($message, $goto_path = '', $goto_qs = array(), $code = 0, Exception $previous = null) {
+  public function __construct($message, $code = 0, Exception $previous = null, $goto_path = '', $goto_qs = array()) {
     parent::__construct($message, $code, $previous);
     $this->goto_path = $goto_path;
     $this->goto_querystring = $goto_qs;
   }
+  
+  public static function with_goto($message, $goto_path = '', $goto_qs = array(), Exception $previous = null ) {
+    $instance = new self($message, 0, $previous);
+    $instance->goto_path = $goto_path;
+    $instance->goto_querystring = $goto_qs;
+    return $instance;
+  }  
+  
   public function getGotoPath() {
     return $this->goto_path ;
   }

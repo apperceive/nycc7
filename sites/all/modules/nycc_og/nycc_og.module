@@ -3,9 +3,8 @@ module_load_include('inc', 'nycc_og', 'nycc_og.email_integration');
 /*TODO LIST
  *Add validation to ensure max count is >= current confirmed riders
  *confirm profile edit URL
- *Add function to return buttons based on roles
- *add hook to catch update to max and process waitlist
- *Fix Rules and re-add invokation
+  *add hook to catch update to max and process waitlist
+ *Fix Rules and re-add invocation
  */
 
 function nycc_og_menu() {
@@ -149,7 +148,7 @@ function nycc_og_join_group($nid, $user_id = null) {
 
   if(!nycc_has_required_profile_info($user)) {
     if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because profile is missing info.', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;
-    throw new NyccException ("Please update your Emergency Contact No and Name (required for SIG signup).", array("user/" . $user->uid . "/edit/profile", array('query'=>drupal_get_destination())));
+    throw NyccException::with_goto("Please update your Emergency Contact No and Name (required for SIG signup).", "user/" . $user->uid . "/edit/profile", array('query'=>drupal_get_destination()));
     }
     //TODO: Confirm this URL is still correct  
 
@@ -196,11 +195,17 @@ function nycc_og_join_group($nid, $user_id = null) {
     }
     return;
   } catch (Exception $e) {
-    throw new NyccException("Error: Unable added user with $uid to group with ID $nid.", null, 0 ,  $e);
+    throw new NyccException("Error: Unable added user with $uid to group with ID $nid.", 0 ,  $e);
   }
 }
  
- 
+function nycc_og_test_exception($uid) {
+  try {
+      throw NyccException::with_goto("Please update your Emergency Contact No and Name (required for SIG signup).", "user/" . $user->uid . "/edit/profile", array('query'=>drupal_get_destination()));
+  } catch (NyccException $e) {
+    dpm($e->getGotoQeuryString());
+  }
+}
  
  
 function nycc_withdraw_from_group_callback($gid) {
@@ -243,7 +248,7 @@ function nycc_og_withdraw_from_group($nid, $user_id = null) {
   $user_id = $user->uid;
   
   if(!nycc_og_is_member($nid, $user_id)) {
-    throw new NyccException( "Withdraw failed. You are not a member of this group.", "<front>", array('query'=>drupal_get_destination()));
+    throw new NyccException( "Withdraw failed. You are not a member of this group.");
   }
   
   if(nycc_og_is_captain_or_leader_or_admin($nid, $user_id)) {
@@ -281,7 +286,7 @@ function nycc_og_withdraw_from_group($nid, $user_id = null) {
       }
     } catch (Exception $e) {
       watchdog('nycc_og',  'Unable to delete membership for user: @uid for group @gid. Messages is <pre>@message</pre>', array('@uid' => $uid, '@gid' => $gid, '@message' => $e->getMessage()), WATCHDOG_ERROR);
-      throw new NyccException( "Unable to delete membership for user: $uid for group $gid.", null, 0, $e);
+      throw new NyccException( "Unable to delete membership for user: $uid for group $gid.", 0, $e);
     }
   } else {
     watchdog('nycc_og',  'Unable to load membership for user: @uid from group @nid.', array('@uid' => $user_id, '@nid' => $nid), WATCHDOG_ERROR) ;
@@ -304,17 +309,12 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
   $grp_node = nycc_og_get_group_object($nid);
   if (!isset($grp_node)) {
     watchdog("nycc_og", "nycc_og_get_buttons - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
-    drupal_set_message(check_plain("nycc_og_get_buttons: This operation could not be completed. No Group ID was passed."),"error");   
-    drupal_goto("<front>");
     return;
   }
   
   $user = nycc_get_user_object($user_id);
   if(!isset($user)) {
     watchdog("nycc_og", "nycc_og_get_buttons - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
-    
-    drupal_set_message(check_plain("nycc_og_get_buttons: This operation could not be completed. Unable to load user $user_id."),"error");
-    drupal_goto("node/$nid");
     return;
   }
   $grp_max = nycc_og_get_group_max($grp_node);
@@ -755,8 +755,11 @@ function nycc_og_og_membership_delete( $og_membership) {
 //}
 
 
-
-
+function nycc_og_node_update($node) {
+  if ($node->type == 'groups') {
+    dpm($node);
+  } // groups
+} // nycc_og_node_update
 
 
 function nycc_og_form_alter(&$form, &$form_state, $form_id)  {
@@ -765,9 +768,6 @@ function nycc_og_form_alter(&$form, &$form_state, $form_id)  {
     $form['#validate'][] = 'nycc_og_check_validate';
   }
 }
-
-
-
 
 function nycc_og_check_validate(&$form, &$form_state)  {
   //Validation logic for group email address
@@ -803,7 +803,12 @@ function nycc_og_check_validate(&$form, &$form_state)  {
       form_set_error('field_group_leaders_email', $form_state['values']['field_group_leaders_email']['und'][0]['value']
       . " is not valid. Please enter a valid e-mail address.");
     }
-  } 
+  }
+  
+  
+  
+  //Check for updates to the Max Count and confirm that it's >= the currently registered users
+  //if the max count changes the flag it as dirty so that the udpate can trigger a recalculation of the waitlist
 }
 
 
