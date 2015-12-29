@@ -679,7 +679,7 @@ function nycc_og_confirm_waiter($gid, $uid) {
 
 /* reviews the waitlist for a given group and moves waiters up if there is room
  */
-function _nycc_og_process_waitlist($gid) {
+function _nycc_og_process_waitlist($gid, $new_max = 0) {
   if(is_object($gid))
     $gid = $gid->nid;
 
@@ -692,9 +692,12 @@ function _nycc_og_process_waitlist($gid) {
   
   $waiter_rid = variable_get('nycc_og_waiter_role_id', '7');
   $rider_rid = variable_get('nycc_og_rider_role_id', '5');  
-  $max_spots = nycc_og_get_group_max($gid); 
   $rider_count =nycc_og_get_user_count_by_role($gid, $rider_rid);
   $waiter_count = nycc_og_get_user_count_by_role($gid, $waiter_rid);
+  
+  // max can come from node or from param passed in. This allows it to be called from hook_node_update where the database tables are not yet updated
+  $max_spots =  $new_max == 0 ? nycc_og_get_group_max($gid) : $new_max; 
+  
   $open_spots =  $max_spots - $rider_count;
   
   if($debug)
@@ -756,9 +759,15 @@ function nycc_og_og_membership_delete( $og_membership) {
 
 
 function nycc_og_node_update($node) {
-  if ($node->type == 'groups') {
-    dpm($node);
-  } // groups
+  
+  if ($node->type == 'group') {
+    $original_max = nycc_field_get_property_text_value($node->original, 'field_group_max_participants' );
+    $current_max =  nycc_field_get_property_text_value($node, 'field_group_max_participants' );
+    if ($original_max < $current_max) {
+      watchdog('nycc_og',  'Max count changed from @orig to @curr for group @gid. Executing _nycc_og_process_waitlist().', array('@orig' => $original_max, '@curr' => $original_max, '@gid' => $node->nid), WATCHDOG_NOTICE) ;
+      _nycc_og_process_waitlist($node, $current_max);
+    }
+  } // is group
 } // nycc_og_node_update
 
 
@@ -808,7 +817,15 @@ function nycc_og_check_validate(&$form, &$form_state)  {
   
   
   //Check for updates to the Max Count and confirm that it's >= the currently registered users
-  //if the max count changes the flag it as dirty so that the udpate can trigger a recalculation of the waitlist
+    //TODO Fix this. 
+    $original_max = nycc_field_get_property_text_value($node->original, 'field_group_max_participants' );
+    $current_max =  nycc_field_get_property_text_value($node, 'field_group_max_participants' );
+    if ($original_max != $current_max) { // if the value changed then check if it's too low
+      $rider_count = nycc_og_count_riders($node->nid);
+      if($rider_count < $current_max) {
+        form_set_error('field_group_max_participants', 'You can not set the max lower than the currently registered rider count(' . $rider_count );
+      }
+    }  
 }
 
 
