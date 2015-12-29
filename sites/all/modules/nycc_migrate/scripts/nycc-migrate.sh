@@ -29,6 +29,7 @@ mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/users.sql
 
 # fix passwords
 drush $targetalias scr $scriptsdir/users-convert-pass.php
+drush $targetalias scr $scriptsdir/users-convert-pictures.php
 
 mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/users-roles.sql
 mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/node.sql
