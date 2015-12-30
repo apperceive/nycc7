@@ -54,8 +54,10 @@ function nycc_rides_admin() {
 		foreach ($users as $user) {
 			$users_names[$user->uid] = nycc_get_user_full_name($user);
 		}
-	
-	
+		
+		if(len($users_names) == 0) {
+			    drupal_set_message(filter_xss("No users with the Ride Coordinator specified could be found.<br/>Check the selected role above or visit <a href='/admin/people' target='_blank'>/admin/people</a> and assign the Ride Coordinator Role to at least one person."), "error");
+		} else {
 		$form['nycc_rides_a-ride-coordinators'] = array(
 			'#type' => 'checkboxes',
 			'#options' => $users_names,
@@ -81,7 +83,13 @@ function nycc_rides_admin() {
        '#description' => t('Select the name of the C-Rides coordinator. Only names with the ride coordinator role are displayed. <br/>If you are not not seeing the expected names then check the roles assigned to the expected users'),
 			 '#required' => TRUE,
 			 '#default_value' => variable_get('nycc_rides_c-ride-coordinators', null),
-			);				
+			);
+		}
+	
+	
+			
+	} else {
+			    drupal_set_message(filter_xss("Please select the Ride Coordinator Role and click <b>Submit</b> to save the settings and confinue the configuration."), "error");		
 	}
 	
 	$form['#submit'][] = 'nycc_rides_admin_submit';

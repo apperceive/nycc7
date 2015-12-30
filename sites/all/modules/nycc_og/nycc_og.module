@@ -1,11 +1,9 @@
 <?php
 module_load_include('inc', 'nycc_og', 'nycc_og.email_integration');
 /*TODO LIST
- *Add validation to ensure max count is >= current confirmed riders
- *confirm profile edit URL
- *Add function to return buttons based on roles
- *add hook to catch update to max and process waitlist
- *Fix Rules and re-add invokation
+  *confirm profile edit URL
+  *add hook to catch update to max and process waitlist
+ *Fix Rules and re-add invocation
  */
 
 function nycc_og_menu() {
@@ -777,6 +775,19 @@ function nycc_og_og_membership_insert($og_membership) {
 
 
 
+function nycc_og_node_update($node) {
+  
+  if ($node->type == 'group') {
+    $original_max = nycc_field_get_property_text_value($node->original, 'field_group_max_participants' );
+    $current_max =  nycc_field_get_property_text_value($node, 'field_group_max_participants' );
+    if ($original_max < $current_max) {
+      watchdog('nycc_og',  'Max count changed from @orig to @curr for group @gid. Executing _nycc_og_process_waitlist().', array('@orig' => $original_max, '@curr' => $original_max, '@gid' => $node->nid), WATCHDOG_NOTICE) ;
+      // note: need to pass in the new max capacity because it has not yet been written to the database (race condition.)
+      _nycc_og_process_waitlist($node, $current_max);
+    }
+  } // is group
+} // nycc_og_node_update
+
 
 function nycc_og_form_alter(&$form, &$form_state, $form_id)  {
   //adds validation to group node form
@@ -822,7 +833,15 @@ function nycc_og_check_validate(&$form, &$form_state)  {
       form_set_error('field_group_leaders_email', $form_state['values']['field_group_leaders_email']['und'][0]['value']
       . " is not valid. Please enter a valid e-mail address.");
     }
-  } 
+  }
+    
+  //Check for updates to the Max Count and confirm that it's >= the currently registered users
+  $current_max =  $form_state['values']['field_group_max_participants']['und'][0]['value'];
+  $rider_count = nycc_og_count_riders($form_state['values']['nid']);
+  
+  if($rider_count > $current_max) {
+    form_set_error('field_group_max_participants', 'You can not set the max lower than the currently registered rider count (' . $rider_count . ')');
+  }  
 }
 
 function nycc_og_node_view($node, $view_mode, $langcode) {
