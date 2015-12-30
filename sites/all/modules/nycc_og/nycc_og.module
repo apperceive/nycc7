@@ -38,7 +38,7 @@ function nycc_og_menu() {
     'type' => MENU_CALLBACK,
   );  
   
-  $url_sufix = variable_get('nycc_og_inbound_url', '');
+  $url_sufix = variable_get('nycc_og_inbound_url', '/nycc');
   if ($url_sufix != '') {
     $items[$url_sufix] = array(
       'title' => t('NYCC Group Email'),
@@ -825,5 +825,43 @@ function nycc_og_check_validate(&$form, &$form_state)  {
   } 
 }
 
+function nycc_og_node_view($node, $view_mode, $langcode) {
+  global $user;
+  if($node->type == 'group' && $view_mode == 'full') {
+    $node->content['nycc_group_buttons']['#markup'] = _nycc_og_output_group_buttons($node);
 
+    $node->content['nycc_group_available_spots']['#markup'] =  _nycc_og_output_group_field('Available Spots: ', 'AVAILABLE SPOTS CALC HERE');
+
+    $node->content['nycc_group_leaders']['#markup'] = _nycc_og_output_group_field('Leaders: ', 'LEADERS GO HERE');
+
+    $node->content['nycc_group_members']['#markup'] = _nycc_og_output_group_field('Members: ', 'MEMBERS GO HERE');
+    
+    $node->content['nycc_group_waitlist']['#markup'] = _nycc_og_output_group_field('Waitlisted Members: ', 'WAITLISTED MEMBERS GO HERE');
+  }
+}
+
+// return simple field-like looking output
+function _nycc_og_output_group_field($label, $value = '') {
+  $children = theme_container(array('element' => array('#children' => $value)));
+  return theme_form_element(array('element' => array('#title' => $label, '#children' => $children )));
+}
+
+// return list of group button links 
+function _nycc_og_output_group_buttons($node) {
+  global $user;
+  // returns array of title, action, message
+  $buttons = nycc_og_get_buttons($node->nid, $user->uid);
+  //$buttons[] = array('title' => 'test', 'action' => 'testy', 'message' => 'testz');
+  $items = array();
+  foreach ($buttons as $button) {
+    $items[] = l($button['title'], $button['action'], array('attributes' => array('title' => $button['message'], ))); 
+  }
+  $item_list = array(
+    'title' => '',
+    'items' => $items,
+    'type' => 'ul',
+    'attributes' => array(), 
+  );
+  return theme_item_list($item_list);
+}
 //END HOOK FUNCTIONS
