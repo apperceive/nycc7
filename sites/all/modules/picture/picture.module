@@ -420,7 +420,7 @@ function picture_field_formatter_info() {
     'settings' => array(
       'sizes' => '',
       'image_styles' => array(),
-      'fallback_image_style' => '',
+      'fallback_image_style' => PICTURE_EMPTY_IMAGE,
       'lazyload' => '',
       'lazyload_aspect_ratio' => '',
       'image_link' => '',
@@ -688,7 +688,7 @@ function picture_field_formatter_settings_picture_sizes_formatter_form($field, $
   $element['fallback_image_style'] = array(
     '#title' => t('Fallback image style'),
     '#type' => 'select',
-    '#default_value' => $settings['fallback_image_style'],
+    '#default_value' => $settings['fallback_image_style'] ? $settings['fallback_image_style'] : PICTURE_EMPTY_IMAGE,
     '#options' => $image_styles + array(
         PICTURE_EMPTY_IMAGE => t('Empty image'),
         PICTURE_ORIGINAL_IMAGE => t('Original image'),
@@ -823,7 +823,7 @@ function picture_field_formatter_settings_picture_sizes_formatter_summary($field
     )
   );
 
-  $summary[] = t('Fallback image style: @style', array('@style' => $image_styles[$settings['fallback_image_style']]));
+  $summary[] = t('Fallback image style: @style', array('@style' => isset($image_styles[$settings['fallback_image_style']]) ? $image_styles[$settings['fallback_image_style']] : $image_styles[PICTURE_EMPTY_IMAGE]));
 
   $link_types = picture_link_types($instance);
   // Display this setting only if image is linked.
@@ -1135,7 +1135,7 @@ function picture_field_formatter_picture_sizes_formatter_view($entity_type, $ent
       '#theme' => 'picture_sizes_formatter',
       '#item' => $item,
       '#image_styles' => array_filter($settings['image_styles']),
-      '#fallback_image_style' => $settings['fallback_image_style'],
+      '#fallback_image_style' => $settings['fallback_image_style'] ? $settings['fallback_image_style'] : PICTURE_EMPTY_IMAGE,
       '#sizes' => $settings['sizes'],
       '#path' => isset($uri) ? $uri : '',
     );
@@ -1993,7 +1993,7 @@ function _picture_image_style_url($style_name, $path, $timestamp = NULL) {
   }
 
   $token_query = array();
-  if (!empty($timestamp)) {
+  if (!empty($timestamp) && !variable_get('image_suppress_itok_output', FALSE)) {
     $token_query['timestamp'] = $timestamp;
   }
 
