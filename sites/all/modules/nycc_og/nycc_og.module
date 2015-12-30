@@ -1,17 +1,10 @@
 <?php
 module_load_include('inc', 'nycc_og', 'nycc_og.email_integration');
 /*TODO LIST
-<<<<<<< HEAD
   *confirm profile edit URL
   *add hook to catch update to max and process waitlist
  *Fix Rules and re-add invocation
-=======
- *Add validation to ensure max count is >= current confirmed riders
- *confirm profile edit URL
- *Add function to return buttons based on roles
- *add hook to catch update to max and process waitlist
- *Fix Rules and re-add invokation
->>>>>>> 948341dec9476b2eec3c45dba5a6ce24c930230c
+
  */
 
 function nycc_og_menu() {
@@ -87,9 +80,6 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
     drupal_goto("<front>");
     return;
   }
-<<<<<<< HEAD
-  drupal_goto("node/$gid"); 
-=======
   
   $user = nycc_get_user_object($user_id);
   if(!isset($user)) {
@@ -165,7 +155,6 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
                        'message' =>"" );  
 
   return $buttons;
->>>>>>> 948341dec9476b2eec3c45dba5a6ce24c930230c
 }
 
 
@@ -786,9 +775,7 @@ function nycc_og_og_membership_insert($og_membership) {
 
 
 
-<<<<<<< HEAD
 function nycc_og_node_update($node) {
-  
   if ($node->type == 'group') {
     $original_max = nycc_field_get_property_text_value($node->original, 'field_group_max_participants' );
     $current_max =  nycc_field_get_property_text_value($node, 'field_group_max_participants' );
@@ -799,8 +786,6 @@ function nycc_og_node_update($node) {
     }
   } // is group
 } // nycc_og_node_update
-=======
->>>>>>> 948341dec9476b2eec3c45dba5a6ce24c930230c
 
 
 function nycc_og_form_alter(&$form, &$form_state, $form_id)  {
@@ -847,7 +832,14 @@ function nycc_og_check_validate(&$form, &$form_state)  {
       form_set_error('field_group_leaders_email', $form_state['values']['field_group_leaders_email']['und'][0]['value']
       . " is not valid. Please enter a valid e-mail address.");
     }
-  } 
+  }
+  //Check for updates to the Max Count and confirm that it's >= the currently registered users
+  $current_max =  $form_state['values']['field_group_max_participants']['und'][0]['value'];
+  $rider_count = nycc_og_count_riders($form_state['values']['nid']);
+  
+  if($rider_count > $current_max) {
+    form_set_error('field_group_max_participants', 'You can not set the max lower than the currently registered rider count (' . $rider_count . ')');
+  }  
 }
 
 function nycc_og_node_view($node, $view_mode, $langcode) {
@@ -866,19 +858,6 @@ function nycc_og_node_view($node, $view_mode, $langcode) {
     
     $node->content['nycc_group_waitlist']['#markup'] = _nycc_og_output_group_field('Waitlisted Members: ', join(',', nycc_og_get_group_waiters($gid)));
   }
-<<<<<<< HEAD
-  
-  
-  
-  //Check for updates to the Max Count and confirm that it's >= the currently registered users
-  $current_max =  $form_state['values']['field_group_max_participants']['und'][0]['value'];
-  $rider_count = nycc_og_count_riders($form_state['values']['nid']);
-  
-  if($rider_count > $current_max) {
-    form_set_error('field_group_max_participants', 'You can not set the max lower than the currently registered rider count (' . $rider_count . ')');
-  }  
-=======
->>>>>>> 948341dec9476b2eec3c45dba5a6ce24c930230c
 }
 
 // return simple field-like looking output
