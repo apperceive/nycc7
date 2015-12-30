@@ -19,7 +19,7 @@ function nycc_mandrill_admin() {
 		'#description' => t('Domain to be used to track mesages'),
 		'#default_value' => variable_get('nycc_mandrill_tracking_domain', 'nycc.org')
   	);  
-  $key = variable_get('nycc_mandrill_api_key', '');
+  $key = variable_get('mandrill_api_key', '');
   
   if (empty($key)) {
     drupal_set_message(filter_xss("You must configure the Mandrill module with an API key"), "error");

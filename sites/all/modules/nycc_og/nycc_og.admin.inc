@@ -73,7 +73,7 @@ function nycc_og_admin() {
     '#default_value' => variable_get('nycc_og_debug_to_log', '')
   );    
   
-  $key = variable_get('nycc_mandrill_api_key', '');
+  $key = variable_get('mandrill_api_key', '');
   
   if (empty($key)) {
     drupal_set_message(filter_xss("You must configure the <a href='admin/config/services/mandrill' target='_blank'>Mandrill module</a> with an API key  "), "error");
@@ -101,12 +101,15 @@ function nycc_og_admin() {
       '#markup' => theme('table', array('header' => $header, 'rows' => $rows)),
     ); 
   }  
-  //$form['#submit'][] = 'nycc_og_admin_settings_submit';
+  $form['#submit'][] = 'nycc_og_admin_settings_submit';
   return system_settings_form($form);
 }
 
+function nycc_og_admin_settings_submit($form, &$form_state) {
+  cache_clear_all(NULL, 'cache_menu'); 
+}
+
 function nycc_og_admin_validate($form, &$form_state) {
-  
   //Confirm that signing domain is valid (if specified)
   if ( (!empty($form_state['values']['nycc_og_group_domain_suffix']))
         && (!checkdnsrr($form_state['values']['nycc_og_group_domain_suffix'], "MX"))) {
