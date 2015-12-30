@@ -3,8 +3,9 @@ module_load_include('inc', 'nycc_og', 'nycc_og.email_integration');
 /*TODO LIST
  *Add validation to ensure max count is >= current confirmed riders
  *confirm profile edit URL
-  *add hook to catch update to max and process waitlist
- *Fix Rules and re-add invocation
+ *Add function to return buttons based on roles
+ *add hook to catch update to max and process waitlist
+ *Fix Rules and re-add invokation
  */
 
 function nycc_og_menu() {
@@ -22,7 +23,7 @@ function nycc_og_menu() {
   
   $items['node/%/join_group'] = array(
     'title' => 'Join Group',
-    'page callback' => 'nycc_join_group_callback',
+    'page callback' => 'nycc_og_join_group',
     'access callback' => TRUE,
     'page arguments' => array(1),
     'type' => MENU_CALLBACK,
@@ -31,7 +32,7 @@ function nycc_og_menu() {
 
   $items['node/%/withdraw_group'] = array(
     'title' => 'Withdraw From Group',
-    'page callback' => 'nycc_withdraw_from_group_callback',
+    'page callback' => 'nycc_og_withdraw_from_group',
     'access callback' => TRUE,
     'page arguments' => array(1),
     'type' => MENU_CALLBACK,
@@ -42,9 +43,9 @@ function nycc_og_menu() {
     $items[$url_sufix] = array(
       'title' => t('NYCC Group Email'),
       'description' => t('Group email'),
-      'type' => MENU_CALLBACK,
-      'page callback' => 'nycc_og_group_email_callback',
-      'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'page callback' => 'nycc_og_group_email_callback',
+        'access callback' => TRUE,
     );    
   } else {
     watchdog('nycc_og', 'could not retrieve variable for url_suffix: @suffix. Inbound emails will not be processed', array('@suffix' => $url_sufix), WATCHDOG_ERROR) ; 
@@ -63,239 +64,6 @@ function nycc_og_permission() {
     );
 }
 //Functions related to OG Groups for SIGs
-////Functions related to OG Groups for SIGs
-
-/* function used to add a member to the group as either a rider or a waitlister.
- * function can be called from url (in which case $user_id will be null) or directly from code (in which case a $user_id is required)
- * if function is called directly then all messages are suppressed.
- */
-
- 
- function nycc_join_group_callback($gid) {
-  try {
-    $result = nycc_og_join_group($gid);
-    drupal_set_message($result);
-  } catch (NyccException $e) {
-    drupal_set_message( $e->getMessage(),  "error");
-    $goto_path =$e->getGotoPath();
-    $goto_qs = $e->getGotoQeuryString();
-    if(isset($goto_path) && (!empty($goto_qs))) {
-      drupal_goto($goto_path, $goto_qs);
-    } elseif(isset($goto_path)) {
-      drupal_goto($goto_path);
-    }
-  }
-  drupal_goto("node/$gid");
-  
-}
- 
- 
- /* function used to add a member to the group as either a rider or a waitlister.
- * function can be called from url (in which case $user_id will be null) or directly from code (in which case a $user_id is required)
- * if function is called directly then all messages are suppressed.
- */
-function nycc_og_join_group($nid, $user_id = null) {
-  if (variable_get('nycc_og_debug_to_log', '1') == 1) {
-    $debug = TRUE;
-  }
-  else {
-    $debug = FALSE;
-  }
-
-  $grp_node = nycc_og_get_group_object($nid);
-  if (!isset($grp_node)) {
-    watchdog("nycc_og", "nycc_og_join_group - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
-    throw new NyccException ("nycc_og_join_group: This operation could not be completed. No Group ID was passed.");   
-  }
-  
-  $user = nycc_get_user_object($user_id);  
-  if(!isset($user)) {
-    watchdog("nycc_og", "nycc_og_join_group - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
-    throw new NyccException ("nycc_og_join_group: This operation could not be completed. Unable to load user $user_id.");
-  }
-  
-  $user_id = $user->uid;
-  
-  if(nycc_og_is_confirmed($nid, $user_id)) {
-    if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because they are already confirmed', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;
-    throw new NyccException ("You cannot join this group because you are already a confirmed member");
-  }
-
-  if(nycc_og_is_waiter($nid, $user_id)) {
-    if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because they are already waitlisted', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;    
-    throw new NyccException ("You cannot join this group because you are already on the waitlist");
-  }  
-
-  if(nycc_og_is_captain_or_leader_or_admin($nid, $user_id)) {
-    if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because they are a leader or captain', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;
-    throw new NyccException ("You cannot join this group because you are already a leader or captain");
-  }
-
-  
-  $group = node_load($nid);
-  if (!isset($group)) {
-    watchdog("nycc_og", "nycc_og_join_group - Unable to load group with ID $nid. Cancelling function.", array(), WATCHDOG_WARNING);
-    throw new NyccException ("Unable to load group with ID $nid.");
-  }
-  
-  $grp_signup_enable_time = nycc_field_get_property_text_value($group, 'field_group_reg_open_date');
-  if ($debug ) watchdog('nycc_og',  'Group signup enable time is @time.', array('@time' => $grp_signup_enable_time), WATCHDOG_NOTICE) ;
-  
-  if ($grp_signup_enable_time != '' && $grp_signup_enable_time > REQUEST_TIME) {    
-    throw new NyccException ("Error! Registration will open at $grp_signup_enable_time. Please revisit this page at that time.");
-  }
-
-
-  if(!nycc_has_required_profile_info($user)) {
-    if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because profile is missing info.', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;
-    throw NyccException::with_goto("Please update your Emergency Contact No and Name (required for SIG signup).", "user/" . $user->uid . "/edit/profile", array('query'=>drupal_get_destination()));
-    }
-    //TODO: Confirm this URL is still correct  
-
-  $max_spots = nycc_field_get_property_text_value($group, 'field_group_max_participants');
-  $rider_rid = variable_get('nycc_og_rider_role_id', '5');
-  $waiter_rid = variable_get('nycc_og_waiter_role_id', '7');
-  
-  // Add the user to the group
-  try {
-    if ($debug ) watchdog('nycc_og',  'Attempting to add user @uid to group @nid.', array('@uid' => $user_id, '@nid' => $nid), WATCHDOG_NOTICE) ;
-    og_group('node', $nid,
-           array(
-            "entity type" => "user",
-            "entity" => $user,
-            "membership type" => OG_MEMBERSHIP_TYPE_DEFAULT,
-          )
-        );
-    
-    if ($debug ) watchdog('nycc_og',  'Successfully added user @uid to group @nid.', array('@uid' => $user_id, '@nid' => $nid), WATCHDOG_NOTICE) ;    
-    
-    
-    $rider_count = nycc_og_get_user_count_by_role($nid, $rider_rid);
-    if ($debug ) watchdog('nycc_og',  'Count of current riders is @count and max is set to @max.', array('@count' => $rider_count, '@max' => $max_spots), WATCHDOG_NOTICE) ;    
-    if ($max_spots == '' || $rider_count < $max_spots) {
-      og_role_grant('node', $nid, $user->uid, $rider_rid);
-      if ($debug )
-        watchdog('nycc_og',  'Confirming user @uid to group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_NOTICE) ;
-     
-     return "Congratulations! You are now confirmed as a member of this group. You should recieve an email confirming this.";
-      
-      rules_invoke_event('nycc_og_member_confirmed',  $group, $user);    
-    } else {
-      //Add waitlister role to user
-      og_role_grant('node', $nid, $user->uid, $waiter_rid);
-      
-      if ($debug )
-        watchdog('nycc_og',  'Waitlisting user @uid to group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_NOTICE) ;
-      
-      $waiter_count = nycc_og_get_user_count_by_role($nid, $waiter_rid);
-      
-      rules_invoke_event('nycc_og_member_waitlisted', $group, $user);
-      
-     return "You are # $waiter_count on the waitlist for this group. You'll receive an email confirming this. If a spot opens you'll be automatically added and will be notified by email";
-    }
-    return;
-  } catch (Exception $e) {
-    throw new NyccException("Error: Unable added user with $uid to group with ID $nid.", 0 ,  $e);
-  }
-}
- 
-function nycc_og_test_exception($uid) {
-  try {
-      throw NyccException::with_goto("Please update your Emergency Contact No and Name (required for SIG signup).", "user/" . $user->uid . "/edit/profile", array('query'=>drupal_get_destination()));
-  } catch (NyccException $e) {
-    dpm($e->getGotoQeuryString());
-  }
-}
- 
- 
-function nycc_withdraw_from_group_callback($gid) {
-  try {
-    watchdog('nycc_og', 'withdraw called at ' . microtime()); 
-    $result = nycc_og_withdraw_from_group($gid);
-    drupal_set_message($result);
-  } catch (NyccException $e) {
-    drupal_set_message( $e->getMessage(),  "error");
-    $goto_path =$e->getGotoPath();
-    $goto_qs = $e->getGotoQeuryString();
-    if(isset($goto_path) && (!empty($goto_qs))) {
-      drupal_goto($goto_path, $goto_qs);
-    } elseif(isset($goto_path)) {
-      drupal_goto($goto_path);
-    }
-  } 
-  drupal_goto("node/$gid");
-}
-
-function nycc_og_withdraw_from_group($nid, $user_id = null) {
-  if (variable_get('nycc_og_debug_to_log', '1') == 1) {
-    $debug = TRUE;
-  }
-  else {
-    $debug = FALSE;
-  }
-
-  $grp_node = nycc_og_get_group_object($nid);
-  if (!isset($grp_node)) {
-    watchdog("nycc_og", "nycc_og_withdraw_from_group - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
-    throw new NyccException("nycc_og_withdraw_from_group: This operation could not be completed. No Group ID was passed.");   
-  }
-  
-  $user = nycc_get_user_object($user_id);
-  if(!isset($user)) {
-    watchdog("nycc_og", "nycc_og_withdraw_from_group - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
-    throw new NyccException("nycc_og_withdraw_from_group: This operation could not be completed. Unable to load user $user_id.");
-  }
-  $user_id = $user->uid;
-  
-  if(!nycc_og_is_member($nid, $user_id)) {
-    throw new NyccException( "Withdraw failed. You are not a member of this group.");
-  }
-  
-  if(nycc_og_is_captain_or_leader_or_admin($nid, $user_id)) {
-    throw new NyccException ("You cannot withdraw from this group because you are a leader or captain");
-  } 
-    
-   if(nycc_og_is_leader($nid, $user_id) || nycc_og_is_captain($nid, $user_id) || nycc_og_is_admin($nid, $user_id)) {
-    throw new NyccException( "Withdraw failed. You are leader or captain of this group.");
-  }
-  
-  $membership = og_get_membership('node', $grp_node->nid, 'user', $user_id);
-  if(isset($membership)) {
-    $was_confirmed = nycc_og_is_confirmed($nid, $user_id);
-    $was_waiter = nycc_og_is_waiter($nid, $user_id);
-    //remove the membership
-    
-    try {
-      og_membership_delete($membership->id);
-      
-      if(!nycc_og_is_rider_or_waiter($grp_node->nid, $user_id)) {
-        if($was_confirmed) {
-          rules_invoke_event('nycc_og_confirmed_member_withdraws',  $grp_node, $user); 
-          if ($debug ) watchdog('nycc_og',  'Removing user @uid from group @nid.', array('@uid' => $user_id, '@nid' => $nid), WATCHDOG_NOTICE) ;
-          return "You have withdrawn from this group. You should recieve an email confirming this.";
-        }
-        if($was_waiter) { 
-          rules_invoke_event('nycc_og_waitlisted_member_withdraws',  $grp_node, $user); 
-          if ($debug ) watchdog('nycc_og',  'Removing user @uid from waitlist on group @nid.', array('@uid' => $user_id, '@nid' => $nid), WATCHDOG_NOTICE) ;
-          return "You have withdrawn from the waitlist of this group. You should recieve an email confirming this.";
-        }
-      } //if delete was successful
-      else {
-        watchdog('nycc_og',  'Unable to delete membership for user: @uid from group @nid.', array('@uid' => $user_id, '@nid' => $nid), WATCHDOG_ERROR) ;
-        throw new NyccException( "Unable to withdraw you from this group. Please try again or contact the webmaster");
-      }
-    } catch (Exception $e) {
-      watchdog('nycc_og',  'Unable to delete membership for user: @uid for group @gid. Messages is <pre>@message</pre>', array('@uid' => $uid, '@gid' => $gid, '@message' => $e->getMessage()), WATCHDOG_ERROR);
-      throw new NyccException( "Unable to delete membership for user: $uid for group $gid.", 0, $e);
-    }
-  } else {
-    watchdog('nycc_og',  'Unable to load membership for user: @uid from group @nid.', array('@uid' => $user_id, '@nid' => $nid), WATCHDOG_ERROR) ;
-    throw new NyccException( "Unable to load your membership. Please try again or contact the webmaster");            
-  }
-  return '';
-}
-
-
 
 //DISPLAY RELATED FUNCTIONS
 function nycc_og_get_buttons($nid = null, $user_id = null) {
@@ -309,12 +77,17 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
   $grp_node = nycc_og_get_group_object($nid);
   if (!isset($grp_node)) {
     watchdog("nycc_og", "nycc_og_get_buttons - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
+    drupal_set_message(check_plain("nycc_og_get_buttons: This operation could not be completed. No Group ID was passed."),"error");   
+    drupal_goto("<front>");
     return;
   }
   
   $user = nycc_get_user_object($user_id);
   if(!isset($user)) {
     watchdog("nycc_og", "nycc_og_get_buttons - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    drupal_set_message(check_plain("nycc_og_get_buttons: This operation could not be completed. Unable to load user $user_id."),"error");
+    drupal_goto("node/$nid");
     return;
   }
   $grp_max = nycc_og_get_group_max($grp_node);
@@ -385,6 +158,280 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
   return $buttons;
 }
 
+
+//END DISPLAY FUNCTIONS
+
+
+
+/* function used to add a member to the group as either a rider or a waitlister.
+ * function can be called from url (in which case $user_id will be null) or directly from code (in which case a $user_id is required)
+ * if function is called directly then all messages are suppressed.
+ */
+function nycc_og_join_group($nid, $user_id = null) {
+  if (variable_get('nycc_og_debug_to_log', '1') == 1) {
+    $debug = TRUE;
+  }
+  else {
+    $debug = FALSE;
+  }
+
+  $grp_node = nycc_og_get_group_object($nid);
+  if (!isset($grp_node)) {
+    watchdog("nycc_og", "nycc_og_join_group - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    if (!isset($user_id)){  
+      drupal_set_message(check_plain("nycc_og_join_group: This operation could not be completed. No Group ID was passed."),"error");   
+      drupal_goto("<front>");
+    }
+    
+    return;
+  }
+  
+  $user = nycc_get_user_object($user_id);  
+  if(!isset($user)) {
+    watchdog("nycc_og", "nycc_og_join_group - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    //redirect user if fucntion was called from URL vs. via code
+    if (!isset($user_id)) {  
+      drupal_set_message(check_plain("nycc_og_join_group: This operation could not be completed. Unable to load user $user_id."),"error");
+      drupal_goto("node/$nid");
+    }
+    return;
+  }
+  
+  if(nycc_og_is_confirmed($nid, $user_id)) {
+    if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because they are already confirmed', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;
+    //redirect user if fucntion was called from URL vs. via code
+    if (!isset($user_id)) {  
+      drupal_set_message(check_plain("You cannot join this group because you are already a member"),"error");
+      drupal_goto("node/$nid");
+    }
+    return;
+  }
+
+  if(nycc_og_is_waiter($nid, $user_id)) {
+    if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because they are already waitlisted', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;    
+    //redirect user if fucntion was called from URL vs. via code
+    if (!isset($user_id)) {  
+      drupal_set_message(check_plain("You cannot join this group because you are already on the waitlist"),"error");
+      drupal_goto("node/$nid");
+    }
+    return;
+  }  
+
+
+  //Checking User Access
+  if (! nycc_is_paid_member($user)) {
+    if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because they are not a paid member', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;
+    
+    if (!isset($user_id)){  
+      drupal_set_message(check_plain("Error! You must be a paid member to join this Group.", "error"));
+      drupal_goto("node/$nid");
+    }
+  }
+  
+  $group = node_load($nid);
+  
+  $grp_signup_enable_time = nycc_field_get_property_text_value($group, 'field_group_reg_open_date');
+  if ($debug ) watchdog('nycc_og',  'Group signup enable time is @time.', array('@time' => $grp_signup_enable_time), WATCHDOG_NOTICE) ;
+  
+  if ($grp_signup_enable_time != '' && $grp_signup_enable_time > REQUEST_TIME) {
+    
+    if (!isset($user_id)){
+      drupal_set_message(check_plain("Error! Registration will open at $grp_signup_enable_time. Please revisit this page at that time.", "error"));
+      drupal_goto("node/$nid");
+    }
+  }
+
+
+  if(!nycc_has_required_profile_info($user)) {
+    if ($debug ) watchdog('nycc_og',  'cancelling join for user @uid because profile is missing info.', array('@uid' => $user->uid), WATCHDOG_NOTICE) ;
+    
+    if (!isset($user_id))  {
+      drupal_set_message("Please update your Emergency Contact No and Name (required for SIG signup).");
+      drupal_goto("user/" . $user->uid . "/edit/profile", array('query'=>drupal_get_destination()));
+    }
+    //TODO: Confirm this URL is still correct
+  }  
+
+  $max_spots = nycc_field_get_property_text_value($group, 'field_group_max_participants');
+  $rider_rid = variable_get('nycc_og_rider_role_id', '5');
+  $waiter_rid = variable_get('nycc_og_waiter_role_id', '7');
+  
+  // Add the user to the group
+  try {
+    if ($debug ) watchdog('nycc_og',  'Attempting to add user @uid to group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_NOTICE) ;
+    og_group('node', $nid,
+           array(
+            "entity type" => "user",
+            "entity" => $user,
+            "membership type" => OG_MEMBERSHIP_TYPE_DEFAULT,
+          )
+        );
+    
+    if ($debug ) watchdog('nycc_og',  'Successfully added user @uid to group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_NOTICE) ;    
+    
+    
+    $rider_count = nycc_og_get_user_count_by_role($nid, $rider_rid);
+    if ($debug ) watchdog('nycc_og',  'Count of current riders is @count and max is set to @max.', array('@count' => $rider_count, '@max' => $max_spots), WATCHDOG_NOTICE) ;    
+    if ($max_spots == '' || $rider_count < $max_spots) {
+      og_role_grant('node', $nid, $user->uid, $rider_rid);
+      if ($debug )
+        watchdog('nycc_og',  'Confirming user @uid to group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_NOTICE) ;
+     
+     //redirect user if fucntion was called from URL vs. via code
+      if (!isset($user_id))  
+        drupal_set_message("Congratulations! You are now confirmed as a member of this group. You should recieve an email confirming this.");
+      
+      //rules_invoke_event('nycc_og_member_confirmed',  $group, $user);    
+    } else {
+      //Add waitlister role to user
+      og_role_grant('node', $nid, $user->uid, $waiter_rid);
+      
+      if ($debug )
+        watchdog('nycc_og',  'Waitlisting user @uid to group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_NOTICE) ;
+      
+      $waiter_count = nycc_og_get_user_count_by_role($nid, $waiter_rid);
+      
+     // rules_invoke_event('nycc_og_member_waitlisted', $group, $user);
+      
+      //redirect user if fucntion was called from URL vs. via code
+      if (!isset($user_id)) {  
+        drupal_set_message("You are # $waiter_count on the waitlist for this group. You'll receive an email confirming this. If a spot opens you'll be automatically added and will be notified by email");
+        
+        drupal_goto("node/$nid");
+      }
+    }    
+  } catch (Exception $e) {
+    dpm($e->getTrace());
+  }
+  if (!isset($user_id)) {   
+    drupal_goto("node/$nid");
+  }
+}
+//Functions related to OG Groups for SIGs
+
+/* function used to add a member to the group as either a rider or a waitlister.
+ * function can be called from url (in which case $user_id will be null) or directly from code (in which case a $user_id is required)
+ * if function is called directly then all messages are suppressed.
+ */
+function nycc_og_withdraw_from_group($nid, $user_id = null) {
+  if (variable_get('nycc_og_debug_to_log', '1') == 1) {
+    $debug = TRUE;
+  }
+  else {
+    $debug = FALSE;
+  }
+
+  $grp_node = nycc_og_get_group_object($nid);
+  if (!isset($grp_node)) {
+    watchdog("nycc_og", "nycc_og_withdraw_from_group - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    if (!isset($user_id)){  
+      drupal_set_message(check_plain("nycc_og_withdraw_from_group: This operation could not be completed. No Group ID was passed."),"error");   
+      drupal_goto("<front>");
+    }
+    return;
+  }
+  
+  $user = nycc_get_user_object($user_id);
+  
+  if(!isset($user)) {
+    watchdog("nycc_og", "nycc_og_withdraw_from_group - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    //redirect user if fucntion was called from URL vs. via code
+    if (!isset($user_id)) {  
+      drupal_set_message(check_plain("nycc_og_withdraw_from_group: This operation could not be completed. Unable to load user $user_id."),"error");
+      drupal_goto("node/$nid");
+    }
+    return;
+  }
+  
+  if(!nycc_og_is_rider_or_waiter($nid, $user->uid)) {
+    if (!isset($user_id)) {  
+      drupal_set_message(check_plain("Withdraw failed. You are not a member of this group."),"error");
+      drupal_goto("node/$nid");
+    }
+    return;
+  }
+
+  if(nycc_og_is_leader($nid, $user->uid) || nycc_og_is_captain($nid, $user->uid)) {
+    if (!isset($user_id)) {  
+      drupal_set_message(check_plain("Withdraw failed. You are leader or captain of this group."),"error");
+      drupal_goto("node/$nid");
+    }
+    return;
+  }  
+    
+
+  $membership = og_get_membership('node', $grp_node->nid, 'user', $user->uid);
+  if(isset($membership)) {
+    $was_confirmed = nycc_og_is_confirmed($nid, $user->uid);
+    $was_waiter = nycc_og_is_waiter($nid, $user->uid);
+    //remove the membership
+    dpm(get_defined_vars());
+    try {
+      og_membership_delete($membership->id);
+      dpm(get_defined_vars());
+      if(!nycc_og_is_rider_or_waiter($grp_node->nid, $user->uid)) {
+        if($was_confirmed) {
+          //rules_invoke_event('nycc_og_confirmed_member_withdraws',  $grp_node, $user); 
+          if ($debug ) watchdog('nycc_og',  'Removing user @uid from group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_NOTICE) ;
+          
+          if (!isset($user_id))
+            drupal_set_message("You have withdrawn from this group. You should recieve an email confirming this.");
+        }
+        if($was_waiter) { 
+          //rules_invoke_event('nycc_og_waitlisted_member_withdraws',  $grp_node, $user); 
+          if ($debug ) watchdog('nycc_og',  'Removing user @uid from waitlist on group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_NOTICE) ;
+          
+          if (!isset($user_id))
+            drupal_set_message("You have withdrawn from the waitlist of this group. You should recieve an email confirming this.");
+        }
+      } //if delete was successful
+      else {
+        if (!isset($user_id))
+            drupal_set_message("Unable to withdraw you from this group. Please try again or contact the webmaster");        
+
+        if ($debug ) watchdog('nycc_og',  'Unable to delete membership for user: @uid from group @nid.', array('@uid' => $user->uid, '@nid' => $nid), WATCHDOG_ERROR) ;
+        
+      }
+    } catch (Exception $e) {
+      dpm($e->getTrace());
+      watchdog('nycc_og',  'Unable to delete membership for user: @uid for group @gid. Messages is <pre>@message</pre>', array('@uid' => $uid, '@gid' => $gid, '@message' => $e->getMessage()), WATCHDOG_ERROR);
+    }
+    finally {  
+      if (!isset($user_id))
+        drupal_goto("node/$nid");
+      return;
+    }
+  }
+
+  //redirect user if fucntion was called from URL vs. via code
+  if (!isset($user_id))
+    drupal_goto("node/$nid");
+    
+  return;
+}
+
+
+
+
+function nycc_og_get_role_id_from_name($gid, $role_name) {
+  if(is_object($gid))
+    $gid = $gid->nid;
+    
+  $roles = og_roles('node', 'Group', $gid);
+  if(isset($roles)) {
+    foreach($roles as $idx => $role) {
+      if (strcasecmp($role, $role_name) ==0) {
+        return $idx;
+      }
+    }
+  }
+  return 0;
+}
+
 function nycc_og_get_avail_spots_as_string($gid) {
   $grp_max = nycc_og_get_group_max($gid);
   $rider_count = nycc_og_count_riders($gid);
@@ -393,6 +440,21 @@ function nycc_og_get_avail_spots_as_string($gid) {
     
     
   return $avail_spots > 0 ? "$avail_spots of $grp_max spot(s)" : "$waiter_count member(s) on waiting list";
+}
+function nycc_og_count_riders($gid) {
+  $rid = variable_get('nycc_og_rider_role_id', '5');
+  return count(nycc_og_get_users_by_roles($gid, array($rid)));  
+}
+
+function nycc_og_count_waiters($gid) {
+  $rid = variable_get('nycc_og_waiter_role_id', '7');
+  return count(nycc_og_get_users_by_roles($gid, array($rid)));  
+}
+
+
+
+function nycc_og_get_user_count_by_role($gid, $rid) {
+  return count(nycc_og_get_users_by_roles($gid, array($rid)));
 }
 
 
@@ -418,51 +480,6 @@ function nycc_og_get_group_riders($gid) {
 }
 
 
-//END DISPLAY FUNCTIONS
-
-
-
-
-
-
-
-
-
-function nycc_og_get_role_id_from_name($gid, $role_name) {
-  if(is_object($gid))
-    $gid = $gid->nid;
-    
-  $roles = og_roles('node', 'Group', $gid);
-  if(isset($roles)) {
-    foreach($roles as $idx => $role) {
-      if (strcasecmp($role, $role_name) ==0) {
-        return $idx;
-      }
-    }
-  }
-  return 0;
-}
-
-
-function nycc_og_count_riders($gid) {
-  $rid = variable_get('nycc_og_rider_role_id', '5');
-  return count(nycc_og_get_users_by_roles($gid, array($rid)));  
-}
-
-function nycc_og_count_waiters($gid) {
-  $rid = variable_get('nycc_og_waiter_role_id', '7');
-  return count(nycc_og_get_users_by_roles($gid, array($rid)));  
-}
-
-
-
-function nycc_og_get_user_count_by_role($gid, $rid) {
-  return count(nycc_og_get_users_by_roles($gid, array($rid)));
-}
-
-
-
-
 function nycc_og_get_users_by_roles($gid, $rids = array()) {
   if(is_object($gid))
     $gid = $gid->nid;
@@ -480,8 +497,8 @@ function nycc_og_get_users_by_roles($gid, $rids = array()) {
   return $q;
 }
 
-///* returns a group object if one can be found with NID and/or VID
-// */
+/* returns a group object if one can be found with NID and/or VID
+ */
 function nycc_og_get_group_object($nid=null, $vid=null, $reset = FALSE){
   if (is_object($nid) && $nid->type =='group')
     return $nid;
@@ -577,72 +594,74 @@ function nycc_og_is_waiter($gid, $uid) {
   return false;
 }
 
-function nycc_og_is_member($gid, $uid) {
-  $membership = og_get_membership('node', $gid, 'user', $uid);
-  return is_object($membership);
-}
-
 function nycc_og_is_rider_or_waiter($gid, $uid) {
-  return nycc_og_member_has_role($gid, $uid,
-                                 array( variable_get('nycc_og_waiter_role_id', '7'),
-                                      variable_get('nycc_og_rider_role_id', '5'))
-                                 );
+  if(is_object($gid))
+    $gid = $gid->nid;
+    
+   if(is_object($uid))
+      $uid = $uid->uid;
+      
+  $waiter_rid = variable_get('nycc_og_waiter_role_id', '7');
+  $rider_rid = variable_get('nycc_og_rider_role_id', '5');
+  foreach (nycc_og_get_users_by_roles($gid, array($rider_rid, $waiter_rid)) as $waiter) {
+    if($waiter->uid == $uid)
+      return true;
+  }
+  return false;
 }
-
 /* checks if a given user is confirmed for a given group
  */
 function nycc_og_is_confirmed($gid, $uid) {
-  return nycc_og_member_has_role($gid, $uid, variable_get('nycc_og_rider_role_id', '5')); 
-}
-
-/* checks if a given user is a captain for a given group
- */
-function nycc_og_is_captain($gid, $uid) {
-  return nycc_og_member_has_role($gid, $uid, variable_get('nycc_og_captain_role_id', '6')); 
-}
-
-/* checks if a given user is a admin for a given group
- */
-function nycc_og_is_admin($gid, $uid) {
-  return nycc_og_member_has_role($gid, $uid, nycc_og_get_role_id_from_name($gid, "administrator member"));
- 
-}
-
-/* checks if a given user is a leader for a given group
- */
-function nycc_og_is_leader($gid, $uid) {
-  return nycc_og_member_has_role($gid, $uid, variable_get('nycc_og_leader_role_id', '4'));
-}
-
-function nycc_og_is_captain_or_leader_or_admin($gid, $uid) {
-  return nycc_og_member_has_role($gid, $uid,
-                                 array(
-                                       variable_get('nycc_og_captain_role_id', '6'),
-                                       variable_get('nycc_og_leader_role_id', '4'),
-                                       nycc_og_get_role_id_from_name($gid, "administrator member"),
-                                      )
-                                 );
-}
-
-function nycc_og_member_has_role($gid, $uid, $rids) {
   if(is_object($gid))
     $gid = $gid->nid;
     
    if(is_object($uid))
       $uid = $uid->uid;
   
-  if(!is_array($rids))
-    $rids = array($rids);  
-  
-  foreach (nycc_og_get_users_by_roles($gid, $rids) as $member) {
-    if($member->uid == $uid)
+  $rider_rid = variable_get('nycc_og_rider_role_id', '5');
+  foreach (nycc_og_get_users_by_roles($gid, $rider_rid) as $rider) {
+    if($rider->uid == $uid)
       return true;
   }
   return false;  
 }
 
-///* moves a user from the waitlist to confirmed by removing roles and then adding the rider role
-// */
+/* checks if a given user is a captain for a given group
+ */
+function nycc_og_is_captain($gid, $uid) {
+  if(is_object($gid))
+    $gid = $gid->nid;
+    
+   if(is_object($uid))
+      $uid = $uid->uid;
+  
+  $rider_rid = variable_get('nycc_og_captain_role_id', '6');
+  foreach (nycc_og_get_users_by_roles($gid, $rider_rid) as $rider) {
+    if($rider->uid == $uid)
+      return true;
+  }
+  return false;  
+}
+
+/* checks if a given user is a leader for a given group
+ */
+function nycc_og_is_leader($gid, $uid) {
+  if(is_object($gid))
+    $gid = $gid->nid;
+    
+   if(is_object($uid))
+      $uid = $uid->uid;
+  
+  $rider_rid = variable_get('nycc_og_leader_role_id', '4');
+  foreach (nycc_og_get_users_by_roles($gid, $rider_rid) as $rider) {
+    if($rider->uid == $uid)
+      return true;
+  }
+  return false;  
+}
+
+/* moves a user from the waitlist to confirmed by removing roles and then adding the rider role
+ */
 function nycc_og_confirm_waiter($gid, $uid) {
    if(is_object($gid))
     $gid = $gid->nid;
@@ -679,7 +698,7 @@ function nycc_og_confirm_waiter($gid, $uid) {
 
 /* reviews the waitlist for a given group and moves waiters up if there is room
  */
-function _nycc_og_process_waitlist($gid, $new_max = 0) {
+function _nycc_og_process_waitlist($gid) {
   if(is_object($gid))
     $gid = $gid->nid;
 
@@ -692,12 +711,9 @@ function _nycc_og_process_waitlist($gid, $new_max = 0) {
   
   $waiter_rid = variable_get('nycc_og_waiter_role_id', '7');
   $rider_rid = variable_get('nycc_og_rider_role_id', '5');  
+  $max_spots = nycc_og_get_group_max($gid); 
   $rider_count =nycc_og_get_user_count_by_role($gid, $rider_rid);
   $waiter_count = nycc_og_get_user_count_by_role($gid, $waiter_rid);
-  
-  // max can come from node or from param passed in. This allows it to be called from hook_node_update where the database tables are not yet updated
-  $max_spots =  $new_max == 0 ? nycc_og_get_group_max($gid) : $new_max; 
-  
   $open_spots =  $max_spots - $rider_count;
   
   if($debug)
@@ -745,30 +761,21 @@ function nycc_og_og_membership_delete( $og_membership) {
   }  
 }
 
-//
-//function nycc_og_og_membership_insert($og_membership) {
-//  //if('user' == $og_membership->entity_type && is_numeric($og_membership->etid)){
-//  //  $roles = og_roles('node', null, $og_membership->gid);
-//  //  foreach($roles as $key => $value){
-//  //    if ('rider' == $value) {
-//  //      og_role_grant('node', $og_membership->gid, $og_membership->etid, $key);
-//  //    }
-//  //  }
-//  //}
-//}
+
+function nycc_og_og_membership_insert($og_membership) {
+  //if('user' == $og_membership->entity_type && is_numeric($og_membership->etid)){
+  //  $roles = og_roles('node', null, $og_membership->gid);
+  //  foreach($roles as $key => $value){
+  //    if ('rider' == $value) {
+  //      og_role_grant('node', $og_membership->gid, $og_membership->etid, $key);
+  //    }
+  //  }
+  //}
+}
 
 
-function nycc_og_node_update($node) {
-  
-  if ($node->type == 'group') {
-    $original_max = nycc_field_get_property_text_value($node->original, 'field_group_max_participants' );
-    $current_max =  nycc_field_get_property_text_value($node, 'field_group_max_participants' );
-    if ($original_max < $current_max) {
-      watchdog('nycc_og',  'Max count changed from @orig to @curr for group @gid. Executing _nycc_og_process_waitlist().', array('@orig' => $original_max, '@curr' => $original_max, '@gid' => $node->nid), WATCHDOG_NOTICE) ;
-      _nycc_og_process_waitlist($node, $current_max);
-    }
-  } // is group
-} // nycc_og_node_update
+
+
 
 
 function nycc_og_form_alter(&$form, &$form_state, $form_id)  {
@@ -777,6 +784,9 @@ function nycc_og_form_alter(&$form, &$form_state, $form_id)  {
     $form['#validate'][] = 'nycc_og_check_validate';
   }
 }
+
+
+
 
 function nycc_og_check_validate(&$form, &$form_state)  {
   //Validation logic for group email address
@@ -812,34 +822,24 @@ function nycc_og_check_validate(&$form, &$form_state)  {
       form_set_error('field_group_leaders_email', $form_state['values']['field_group_leaders_email']['und'][0]['value']
       . " is not valid. Please enter a valid e-mail address.");
     }
-  }
-  
-  
-  
-  //Check for updates to the Max Count and confirm that it's >= the currently registered users
-    //TODO Fix this. 
-    $original_max = nycc_field_get_property_text_value($node->original, 'field_group_max_participants' );
-    $current_max =  nycc_field_get_property_text_value($node, 'field_group_max_participants' );
-    if ($original_max != $current_max) { // if the value changed then check if it's too low
-      $rider_count = nycc_og_count_riders($node->nid);
-      if($rider_count < $current_max) {
-        form_set_error('field_group_max_participants', 'You can not set the max lower than the currently registered rider count(' . $rider_count );
-      }
-    }  
+  } 
 }
 
 function nycc_og_node_view($node, $view_mode, $langcode) {
   global $user;
   if($node->type == 'group' && $view_mode == 'full') {
+    $gid = $node->nid;
     $node->content['nycc_group_buttons']['#markup'] = _nycc_og_output_group_buttons($node);
 
     $node->content['nycc_group_available_spots']['#markup'] =  _nycc_og_output_group_field('Available Spots: ', 'AVAILABLE SPOTS CALC HERE');
 
-    $node->content['nycc_group_leaders']['#markup'] = _nycc_og_output_group_field('Leaders: ', 'LEADERS GO HERE');
+    $node->content['nycc_group_captains']['#markup'] = _nycc_og_output_group_field('Captains: ', join(',', nycc_og_get_group_captains($gid)));
 
-    $node->content['nycc_group_members']['#markup'] = _nycc_og_output_group_field('Members: ', 'MEMBERS GO HERE');
+    $node->content['nycc_group_leaders']['#markup'] = _nycc_og_output_group_field('Leaders: ', join(',', nycc_og_get_group_leaders($gid)));
+
+    $node->content['nycc_group_members']['#markup'] = _nycc_og_output_group_field('Members: ', join(',', nycc_og_get_group_riders($gid)));
     
-    $node->content['nycc_group_waitlist']['#markup'] = _nycc_og_output_group_field('Waitlisted Members: ', 'WAITLISTED MEMBERS GO HERE');
+    $node->content['nycc_group_waitlist']['#markup'] = _nycc_og_output_group_field('Waitlisted Members: ', join(',', nycc_og_get_group_waiters($gid)));
   }
 }
 
