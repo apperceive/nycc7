@@ -124,7 +124,7 @@
         <div><?php print render($content['nycc_group_available_spots']); ?></div>
         <?php print render($content['field_group_email']); ?>
         <?php print render($content['field_group_leaders_email']); ?>
-        <?php print render($content['field_group_captain']); ?>
+        <?php print render($content['nycc_group_captains']); ?>
         <div><?php print render($content['nycc_group_leaders']); ?></div>
       </div>
     </div>
