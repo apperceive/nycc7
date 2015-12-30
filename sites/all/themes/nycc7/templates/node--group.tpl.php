@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Default theme implementation to display a node.
+ * Default theme implementation to display an og-based NYCC Group node.
  *
  * Available variables:
  * - $title: the (sanitized) title of the node.
@@ -72,44 +72,29 @@
  * desired field language; for example, $node->body['en'], thus overriding any
  * language negotiation rule that was previously applied.
  *
+ *
+ * NYCC Group variables:
+ *
+ * - $nycc_buttons
+ * - $members
+ * - $waitlist
+ * - $captains
+ * - $leaders
+ * - 
+ *
+ *
+ *
  * @see template_preprocess()
  * @see template_preprocess_node()
  * @see template_process()
  *
  * @ingroup themeable
  */
- 
-  //dpm(get_defined_vars());
-  //dpm($content['field_ride_current_riders']);
- 
-  global $user;
-  if (!$user->uid) {
-    // temp hide content from anon 
-    // todo: use new access function from iforst in nycc_rides
-   //drupal_set_message('You must be logged in to view ride details.');
-   hide($content);
-   print "You must be logged in to view ride details.";
-  } else {
 
-  // Hide comments, tags, and links now so that we can render them later.
-  /*
-  hide($content['comments']);
-  hide($content['links']);
-  hide($content['field_tags']);
-  hide($content['field_ride_current_riders']);
-  hide($content['field_ride_waitlist']);
-  hide($content['field_ride_status']);
-  hide($content['field_ride_speed']);
-  hide($content['field_ride_select_level']);
-  hide($content['field_ride_spots']);
-  hide($content['field_ride_type']);
-  hide($content['nycc_buttons']);
-  */
-  hide($content['group_group']);
-  //$content['group_group']['#title'] = "";
-  //$content['group_group']['#label_display'] = "hidden";
-  //$content['group_group'][0]['#options']['attributes']['class'][] = "btn btn-default";
-  //dpm($content);
+  hide($content['nycc_group_buttons']);
+  hide($content['nycc_group_waitlist']);
+  hide($content['nycc_group_members']);
+
 ?>
 
 <article id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
@@ -131,30 +116,38 @@
   <?php endif; ?>
 
   <div class='row'>
+  
     <div class='col-xs-12 col-sm-12 col-md-3 xcol-lg-3'>
       <div class='stats well'>
+        <?php print render($content['field_group_reg_open_date']); ?>
+        <?php print render($content['field_group_max_participants']); ?>
+        <div><?php print render($content['nycc_group_available_spots']); ?></div>
+        <?php print render($content['field_group_email']); ?>
+        <?php print render($content['field_group_leaders_email']); ?>
+        <?php print render($content['nycc_group_captains']); ?>
+        <div><?php print render($content['nycc_group_leaders']); ?></div>
+      </div>
+    </div>
+    
+    <div class='col-xs-12 col-sm-8 col-md-6 col-lg-6'>
+    
+      <div class='content well'>
         <?php print render($content); ?>
       </div>
+     
     </div>
-    <div class='col-xs-12 col-sm-8 col-md-6 col-lg-6'>
-      <div class='content well'>
-        <h2>Group Notices</h2>
-        <?php print views_embed_view('og_ghp_front_page', 'page_1'); ?>
-      </div>
-    </div>
+    
     <div class='col-xs-12 col-sm-4 col-md-3 col-lg-3'>
+    
       <div class='actions well'>
-        <div class="btn-group-vertical" role="group">
-          <?php /*print render($content['group_group']);*/ ?>
-          <a href="/group/node/68902/unsubscribe" title="Unsubscribe from group" class="group unsubscribe btn btn-default">Unsubscribe from group</a>
-          <a class='btn btn-default'>test1</a>
-          <a class='btn btn-default'>test2</a>
-          <a class='btn btn-default'>test3</a>
-        </div>   
+        <?php print render($content['nycc_group_buttons']); ?>
       </div>
-      <div class='extras well'>
-        <?php print _nycc_block_render('og_extras', 'group_info'); ?> 
+      
+      <div class='members well'>
+        <div><?php print render($content['nycc_group_members']); ?></div>
+        <div><?php print render($content['nycc_group_waitlist']); ?></div>
       </div>
+      
     </div>
   </div>
    
@@ -169,6 +162,5 @@
    
 </article>
 
-<?php } ?>
 
 
