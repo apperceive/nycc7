@@ -4,6 +4,7 @@ module_load_include('inc', 'nycc_og', 'nycc_og.email_integration');
   *confirm profile edit URL
   *add hook to catch update to max and process waitlist
  *Fix Rules and re-add invocation
+
  */
 
 function nycc_og_menu() {
@@ -771,12 +772,7 @@ function nycc_og_og_membership_insert($og_membership) {
   //}
 }
 
-
-
-
-
 function nycc_og_node_update($node) {
-  
   if ($node->type == 'group') {
     $original_max = nycc_field_get_property_text_value($node->original, 'field_group_max_participants' );
     $current_max =  nycc_field_get_property_text_value($node, 'field_group_max_participants' );
@@ -834,7 +830,7 @@ function nycc_og_check_validate(&$form, &$form_state)  {
       . " is not valid. Please enter a valid e-mail address.");
     }
   }
-    
+
   //Check for updates to the Max Count and confirm that it's >= the currently registered users
   $current_max =  $form_state['values']['field_group_max_participants']['und'][0]['value'];
   $rider_count = nycc_og_count_riders($form_state['values']['nid']);
