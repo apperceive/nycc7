@@ -76,7 +76,7 @@ function nycc_og_admin() {
   $key = variable_get('mandrill_api_key', '');
   
   if (empty($key)) {
-    drupal_set_message(filter_xss("You must configure the <a href='admin/config/services/mandrill' target='_blank'>Mandrill module</a> with an API key  "), "error");
+    drupal_set_message(filter_xss("You must configure the <a href='/admin/config/services/mandrill' target='_blank'>Mandrill module</a> with an API key  "), "error");
   }
   else {
     $form['webhooks_header'] = array(
@@ -128,26 +128,10 @@ function nycc_og_admin_validate($form, &$form_state) {
       );
     }
     
-  //check to confirm inbound domain is configured in Mandrill
-  if ( (!empty($form_state['values']['nycc_og_inbound_url']))
-        && (! nycc_mandrill_url_is_valid($form_state['values']['nycc_og_inbound_url']))) {
 
-    form_set_error('nycc_og_inbound_url',
-      t('Error: Cannot verify Inbound URL specified. Please visit the !link and confirm the inbound domain settings.',
-          array(
-                '!link' => l(
-                             'Mandrill Website', 'https://mandrillapp.com/inbound',
-                             array('attributes' => array('target'=>'_blank')
-                                   )
-                             )
-                )
-          )
-      );
-    }
 
   //check to confirm inbound domain is specified 
-  if ( empty($form_state['values']['nycc_og_inbound_url'])){
-
+  if(empty($form_state['values']['nycc_og_inbound_url'])){
     form_set_error('nycc_og_inbound_url',
       t('Error: You must specifiy an inbound domain. Please visit the !link to configure the inbound domain settings.',
           array(
@@ -159,9 +143,22 @@ function nycc_og_admin_validate($form, &$form_state) {
                              )
                 )
           )
-      );
-    }    
-    
+    );
+  }
+  else if ( ! nycc_mandrill_url_is_valid($form_state['values']['nycc_og_inbound_url'])) {
+    //check to confirm inbound domain is configured in Mandrill
+    form_set_error('nycc_og_inbound_url',
+      t('Error: Cannot verify Inbound URL specified. Please visit the !link and confirm the inbound domain settings.',
+          array(
+                '!link' => l(
+                             'Mandrill Website', 'https://mandrillapp.com/inbound',
+                             array('attributes' => array('target'=>'_blank')
+                                   )
+                             )
+                )
+          )
+    );
+  }  
     
   //confirm that signing domain is valid  
   if ( (!empty($form_state['values']['nycc_og_signing_domain']))
