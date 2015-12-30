@@ -37,14 +37,15 @@ mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/node_revision.sql
 mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/file_managed.sql
 
 # content-type-page
-mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/field_data_field_carousel_order.sql
-mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/field_data_field_date.sql
-mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/field_data_field_image_cache.sql
+# mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/field_data_field_carousel_order.sql
+# mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/field_data_field_date.sql
+# mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/field_data_field_image_cache.sql
 
-drush $targetalias scr $scriptsdir/field_copy.php carousel_order date image_cache
+# todo: add vars for folders 
+drush scr migrate/field_copy.php field_carousel_order
+drush scr migrate/field_copy.php field_date
+drush scr migrate/field_copy.php --kind=fid field_image_cache 
 
-# drush $targetalias scr $scriptsdir/field_copy.php fieldname...
-# drush $targetalias scr $scriptsdir/field_copy.php contenttype fieldname...
 
 # NOTE: field-copy.php not currently working with aliases so need to cd and omit
 
@@ -54,7 +55,9 @@ drush $targetalias scr $scriptsdir/field_copy.php --type=rides ride_description 
 
 drush $targetalias scr $scriptsdir/field_copy.php ride_image ride_waitlist ride_attachments
 
-drush scr migrate/field_copy.php --kind=fid ride_image  --sql
+drush scr migrate/field_copy.php --kind=fid ride_image
+drush scr migrate/field_copy.php --kind=uid ride_waitlist
+drush scr migrate/field_copy.php --kind=fid ride_attachments 
 
 
 # mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/field_data_ride_description.sql
