@@ -26,7 +26,7 @@
   <?php foreach($slides as $ndx => $slide) { ?>
     <div class="item <?php ($ndx == 0) ? print ' active' : print '';?> ">
       <img src="<?php print $slide['imgpath']; ?>">
-      <div class="carousel-caption"><h2><?php print $slide['title']; ?></h2><?php print $slide['body']; ?></div>
+      <div class="carousel-caption"><h2><?php print $slide['title']; ?></h2><?php print $slide['body']; ?> <small><a class='small' href='<?php print $slide['nodepath']; ?>'>More ...</a></small></div>
     </div>
   <?php }  ?>
   </div>
