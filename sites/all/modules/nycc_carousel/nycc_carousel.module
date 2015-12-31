@@ -42,11 +42,11 @@ function nycc_carousel_process_nycc_carousel(&$variables) {
 function _nycc_carousel_get_slides() {
   $slides = array();
   
-  $filesdir = variable_get('file_public_path', conf_path() . '/files');
+  $filesdir = '/' . variable_get('file_public_path', conf_path() . 'files');
   
   $sql =<<<EOS
-    SELECT n.nid, n.title, d.field_date_value, f.filename, b.body_value AS body
-    FROM {node} n, {field_data_body} b, {field_data_field_date} d, {field_data_field_image_cache} i, {files} f, {field_data_field_carousel_order} co 
+    SELECT n.nid, n.title, d.field_date_value, f.uri, b.body_value AS body
+    FROM {node} n, {field_data_body} b, {field_data_field_date} d, {field_data_field_image_cache} i, {file_managed} f, {field_data_field_carousel_order} co 
     WHERE co.entity_id = n.nid AND co.revision_id = n.vid AND n.nid = d.entity_id AND n.vid = d.revision_id AND n.nid = b.entity_id AND n.vid = b.revision_id AND n.nid = i.entity_id AND n.vid = i.revision_id AND f.fid = i.field_image_cache_fid AND ((n.promote=1) AND ((n.type='event') OR (n.type='page')) AND (n.status <> 0)) 
     ORDER BY field_carousel_order_value ASC, field_date_value ASC 
     LIMIT 4
@@ -54,12 +54,14 @@ EOS;
   
   $results = db_query($sql);
   foreach ($results as $r) {
+    $filename = str_replace('public://', "", $r->uri);
     $body = strip_tags($r->body);
     if (strlen($body) >= 90)
       $body = substr($body,0,87) .'...';
-    $imgpath = $filesdir . "/imagecache/home_page_top_banner/". $r->filename;
-    $thumbpath = $filesdir ."/imagecache/home_page_top_thumbnail/". $r->filename;
-    $nodepath = "/node/". $r->nid;
+    //$imgpath = $filesdir . $filename;
+    $imgpath =  $filesdir . "/styles/fpcarousel/public/" . $filename;
+    $thumbpath = $filesdir . "/styles/thumbnail/public/" . $filename;
+    $nodepath = drupal_get_path_alias("node/" . $r->nid);
     $date = $r->field_date_value;
     $title = $r->title;
     
