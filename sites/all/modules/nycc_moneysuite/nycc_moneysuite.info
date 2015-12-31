@@ -1,0 +1,14 @@
+name = NYCC Moneysuite Integration
+description = Handle integration with Moneysuite Membership
+package = NYCC
+core = 7.x 
+
+files[]=nycc_moneysuite.module
+files[]=nycc_moneysuite.admin.inc
+dependencies[] = nycc
+dependencies[] = ms_membership
+
+
+
+
+

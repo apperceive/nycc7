@@ -1,0 +1,47 @@
+<?php
+
+function nycc_og_menu() {
+  $items = array();
+  $items['admin/config/nycc/nycc_moneysuite'] = array(
+      'title' => 'NYCC MoneySuite Settings',
+      'description' => 'configure MoneySuite integration',
+      'page callback' => 'drupal_get_form',
+      'file' => 'nycc_moneysuite.admin.inc',
+      'access arguments' => array('administer nycc_moneysuite'),
+      'type' => MENU_NORMAL_ITEM,
+      'access callback' => TRUE,
+      'page arguments' => array('nycc_moneysuite_admin'),
+    );
+  
+  return $items;
+}
+
+function nycc_og_permission() {
+  return array(
+    'administer nycc_moneysuite' => array(
+      'title' => t('administer nycc moneysuite'),
+      'description' => t('administer nycc moneysuite'),
+        ), 
+    );
+}
+function nycc_moneysuite_get_membership_purchase_link($user = null) {
+  $user = nycc_get_user_object($user);
+  if(property_exists($user, 'ms_memberships')) {
+    foreach($user->ms_memberships as $membership) {
+      
+    }
+    
+  }
+  dpm($user);
+  
+  //ms_products_get_renewal_link
+//  if ((in_array('expired member', array_values($user->roles))) || (in_array('paid member', array_values($user->roles))))
+// {
+//	print "<p><a href=\"/user/" .  $user->uid . "/member-info\"><img alt\"\" src=\"/sites/all/themes/theme429/images/renew-membership.gif\" /></a></p>";
+//} else {
+// 	print '<p><a href="/membership/purchase/1"><img alt="" src="/sites/all/themes/theme429/images/join-nycc.gif" /></a>
+//                <a href="/membership/purchase/4"><img alt="" src="/sites/all/themes/theme429/images/join-nycc-autorenew.gif" /></a></p>';
+//}  
+  
+}
+
