@@ -91,12 +91,15 @@ header#navbar .menu-collapse ul {
   height:100%;
 }
 .carousel-indicators {
-  bottom:5px;
-  left:0;
+  /*bottom:5px;
+  left:0;*/
   width:auto;
-  padding:5px 25px 5px 25px;
+  /*padding:5px 25px 5px 25px;*/
   margin-left:0;
   background:rgba(0,0,0,0.7);
+  position: relative;
+  top: 0;
+  left: 0;
 }
 .carousel-indicators li {
   border-radius:0;
@@ -119,6 +122,7 @@ header#navbar .menu-collapse ul {
   left:auto;
   bottom:12px;
   opacity:0.85;
+  display: none;
 }
 .carousel-control.right {
   right:10px;
@@ -136,7 +140,11 @@ header#navbar .menu-collapse ul {
   background:rgba(0,0,0,0.70);
   text-align:left;
   height:auto;
-  max-width:50%;
+  /*max-width:50%;*/
+  xdisplay: none;
+    position: relative;
+  top: 0;
+  left: 0;
 }
 
 
