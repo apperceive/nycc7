@@ -799,7 +799,7 @@ function nycc_get_user_profile($account = NULL) {
 function nycc_get_user_full_name_multiple($accounts = array()) {
   $names = array();
   if(empty($accounts))
-    return '';
+    return $names;
     
   foreach($accounts as $account) {
     if (is_object($account)) {

@@ -73,12 +73,14 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
    *  Withdraw - Is rider, not leader, captain or admin - calls nycc_og_withdraw_from_group
    *  Withdraw from Waitlist - Is waitlisted, not leader, captain, or admin - calls nycc_og_withdraw_from_group
    */
+  $buttons = array();
   $grp_node = nycc_og_get_group_object($nid);
+  $nid = $grp_node->nid;
+  
   if (!isset($grp_node)) {
     watchdog("nycc_og", "nycc_og_get_buttons - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
-    drupal_set_message(check_plain("nycc_og_get_buttons: This operation could not be completed. No Group ID was passed."),"error");   
-    drupal_goto("<front>");
-    return;
+    drupal_set_message(check_plain("nycc_og_get_buttons: This operation could not be completed. No Group ID was passed."),"error");
+    return $buttons;
   }
   
   $user = nycc_get_user_object($user_id);
@@ -86,9 +88,10 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
     watchdog("nycc_og", "nycc_og_get_buttons - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
     
     drupal_set_message(check_plain("nycc_og_get_buttons: This operation could not be completed. Unable to load user $user_id."),"error");
-    drupal_goto("node/$nid");
-    return;
+    return $buttons;
   }
+  $user_id = $user->uid;
+  
   $grp_max = nycc_og_get_group_max($grp_node);
   $is_confirmed = nycc_og_is_confirmed($nid, $user_id);
   $is_waiter = nycc_og_is_waiter($nid, $user_id);
@@ -100,9 +103,9 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
   $waiter_count = nycc_og_count_waiters($nid);
   $open_spots =  $grp_max - $rider_count;  
   $signup_time = nycc_og_get_group_signup_time($grp_node);
-  $signup_enabled = REQUEST_TIME > $signup_time;
+  $signup_enabled = REQUEST_TIME > strtotime($signup_time);
   
-  $buttons = array();
+  
 
   // group node properties used in building button links
 
@@ -153,7 +156,6 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
                        'title' => "Withdraw from  $title (You will lose your spot on the waitlist!)",
                        'action' => "node/$nid/withdraw_group",
                        'message' =>"" );  
-
   return $buttons;
 }
 
@@ -844,7 +846,7 @@ function nycc_og_node_view($node, $view_mode, $langcode) {
     $gid = $node->nid;
     $node->content['nycc_group_buttons']['#markup'] = _nycc_og_output_group_buttons($node);
 
-    $node->content['nycc_group_available_spots']['#markup'] =  _nycc_og_output_group_field('Available Spots: ', 'AVAILABLE SPOTS CALC HERE');
+    $node->content['nycc_group_available_spots']['#markup'] =  _nycc_og_output_group_field('Available Spots: ', nycc_og_get_avail_spots_as_string($gid));
 
     $node->content['nycc_group_captains']['#markup'] = _nycc_og_output_group_field('Captains: ', join(',', nycc_og_get_group_captains($gid)));
 
@@ -866,7 +868,7 @@ function _nycc_og_output_group_field($label, $value = '') {
 function _nycc_og_output_group_buttons($node) {
   global $user;
   // returns array of title, action, message
-  $buttons = nycc_og_get_buttons($node->nid, $user->uid);
+  $buttons = nycc_og_get_buttons($node, $user);
   //$buttons[] = array('title' => 'test', 'action' => 'testy', 'message' => 'testz');
   $items = array();
   foreach ($buttons as $button) {
