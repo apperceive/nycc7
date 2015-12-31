@@ -368,10 +368,8 @@ function nycc_og_withdraw_from_group($nid, $user_id = null) {
     $was_confirmed = nycc_og_is_confirmed($nid, $user->uid);
     $was_waiter = nycc_og_is_waiter($nid, $user->uid);
     //remove the membership
-    dpm(get_defined_vars());
     try {
       og_membership_delete($membership->id);
-      dpm(get_defined_vars());
       if(!nycc_og_is_rider_or_waiter($grp_node->nid, $user->uid)) {
         if($was_confirmed) {
           //rules_invoke_event('nycc_og_confirmed_member_withdraws',  $grp_node, $user); 
@@ -379,6 +377,8 @@ function nycc_og_withdraw_from_group($nid, $user_id = null) {
           
           if (!isset($user_id))
             drupal_set_message("You have withdrawn from this group. You should recieve an email confirming this.");
+            
+          _nycc_og_process_waitlist($grp_node);  
         }
         if($was_waiter) { 
           //rules_invoke_event('nycc_og_waitlisted_member_withdraws',  $grp_node, $user); 
@@ -755,9 +755,7 @@ function nycc_og_og_role_revoke($entity_type, $gid, $uid, $rid) {
 }
 
 function nycc_og_og_membership_delete( $og_membership) {
-  if ($og_membership->entity_type == 'node'){
-    _nycc_og_process_waitlist($gid);
-  }  
+    _nycc_og_process_waitlist($og_membership->gid );
 }
 
 
