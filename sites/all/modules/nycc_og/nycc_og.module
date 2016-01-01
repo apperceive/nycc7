@@ -56,7 +56,7 @@ function nycc_og_menu() {
 
 function nycc_og_permission() {
   return array(
-    'administer nycc og' => array(
+    'administer nycc_og' => array(
       'title' => t('administer nycc og'),
       'description' => t('administer nycc og'),
         ), 

@@ -1,6 +1,6 @@
 <?php
 
-function nycc_og_admin() {
+function nycc_moneysuite_admin() {
   $form = array();
 	$role_names = og_roles('node', 'Group');
 
@@ -9,7 +9,7 @@ function nycc_og_admin() {
 	if((! empty($plans))) {
 		$plan_names = array();
 		foreach($plans as $plan) {
-			$plan_names[$plan->pid] = $plan->name;
+			$plan_names[$plan->sku] = $plan->name;
 		}
 		$form['nycc_moneysuite_membership_plans'] = array(
 			'#type' => 'checkboxes',
