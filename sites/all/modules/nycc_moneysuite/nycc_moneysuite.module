@@ -1,0 +1,84 @@
+<?php
+
+function nycc_moneysuite_menu() {
+  $items = array();
+  $items['admin/config/nycc/nycc_moneysuite'] = array(
+      'title' => 'NYCC MoneySuite Settings',
+      'description' => 'configure MoneySuite integration',
+      'page callback' => 'drupal_get_form',
+      'file' => 'nycc_moneysuite.admin.inc',
+      'access arguments' => array('administer nycc_moneysuite'),
+      'type' => MENU_NORMAL_ITEM,
+      'access callback' => TRUE,
+      'page arguments' => array('nycc_moneysuite_admin'),
+    );
+  
+  return $items;
+}
+
+function nycc_moneysuite_permission() {
+  return array(
+    'administer nycc_moneysuite' => array(
+      'title' => t('administer nycc moneysuite'),
+      'description' => t('administer nycc moneysuite'),
+        ), 
+    );
+}
+
+
+function nycc_moneysuite_get_membership($user = null) {
+  $user = nycc_get_user_object($user);
+  $paid_plans = variable_get('nycc_moneysuite_membership_plans');
+  $purchased_plans = ms_products_get_user_purchases($user->uid, 'ms_membership');
+  $to_be_returned = array();
+  if((!empty($purchased_plans)) && (!empty($paid_plans))) {
+    foreach($purchased_plans as $membership) {
+      foreach($paid_plans as $paid_plan_id) {
+        if($purchased_plans->sku == $paid_plan_id) {
+          $to_be_returned[]  = $membership;
+        }
+      }
+    }
+  }
+  return $to_be_returned;
+}
+
+function nycc_moneysuite_get_membership_purchase_link($user = null) {
+  /*Possible Scenarios:
+   *  Non-Member - No Membership Plan - Return Purchase Link - complete
+   *  Recurring Subscription Member with one membership- Return Nothing - complete
+   *  One-time Payment Member with one membership - Return Renew link - complete
+   *  One-time Expiring Soon Member with one membership -  Return Renew link - Complete
+   *  Expired Member - Only expired Plans. Return renewal of most recent one
+   *  Multiple Membership - One not expired - Return Renew link
+   *  Multiple Membership - Multiple not expired - Return link to Membership Tab
+   */
+  $memberships = nycc_moneysuite_get_membership($user);
+  if (empty ($memberships)) {
+    $paid_plans = variable_get('nycc_moneysuite_membership_plans');
+    reset($paid_plans);
+
+    return array(ms_products_get_purchase_url(key($paid_plans), true), "Purchase NYCC Membership");
+
+  } else if (count($memberships ==1)) {
+    //if only one membership then check if recurring or not
+    if($memberships[0]->status != 'Active - Recurring') {
+      return array(
+                   ms_products_get_renewal_link($memberships[0]->sku, $memberships[0]->id),
+                   "Renew Your NYCC Membership"
+                   );
+    }
+  } else {
+    //if there are multiple memberships purchased (there should not be!) then
+    foreach($memberships as $this_membership)
+    {
+      if( ($this_membership->expiration > REQUEST_TIME)  &&
+        in_array($this_membership->status, array('Active - Payment Completed', 'Active - Recurring', 'Cancelled' )))
+      {
+        return ms_products_get_renewal_link($this_membership->sku, $this_membership->id);
+      }
+    }
+  } 
+}
+
+
