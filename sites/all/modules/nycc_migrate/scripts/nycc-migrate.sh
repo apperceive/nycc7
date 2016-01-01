@@ -11,7 +11,7 @@
 
 readonly BASEDIR=$(cd "$(dirname "$0")" && pwd) # where the script is located
 readonly CALLDIR=$(pwd)                         # where it was called from
-readonly STATUS_SUCCESS=0                       # exit status for commands
+#readonly STATUS_SUCCESS=0                       # exit status for commands
 
 # GLOBALS - edit as needed for user and folders
 # TODO: factor out $user and $subdomain (both markus here)
@@ -25,9 +25,11 @@ readonly productiontmpdir="/tmp"
 readonly productionssh="/home/markus/.ssh/id_rsa"
 #readonly sourcedb="d6test"
 readonly sourcedb="migtest"
+export sourcedb
 #readonly sourcefilesdir="/var/www/html/d6/sites/default/files"
 readonly sourcefilesdir="/home/markus/backups/files"
-readonly targetalias="@markusTest"
+#readonly targetalias="@markusTest"
+readonly targetalias="--root=/var/www/html/markus"
 readonly targetdb="markus"
 readonly targetdir="/var/www/html/markus/sites/default/files"
 
@@ -58,10 +60,12 @@ function nycc_migrate_export_production() {
 function nycc_migrate_sync_production_to_source() {
   echo "Rsyncing production files (update)..."
   sudo rsync -azu -e "ssh -i $productionssh" --exclude="backup_migrate" --exclude="js" --exclude="css" --exclude="imagecache" $productionuser:$productionfilesdir $sourcefilesdir
-  
-  # TODO: add option to delete all files first
-  # TODO: set file perms for source files?
-  sudo chown -R nyccftp:apache $
+
+  sudo chown -R nyccftp:apache $sourcefilesdir
+  sudo chown -R 775 $sourcefilesdir
+
+  # these modules give us errors in drush
+  mysql -uroot -pXt2792b8cf $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
 }
 
 # IMPORT PRODUCTION TO SOURCE DATABASE
@@ -81,30 +85,37 @@ function nycc_migrate_import_production_to_source() {
 # TODO: also clear target file folders? optional
 function nycc_migrate_clear_target() {
   echo "Clear target database..."
-  mysql -uroot -pXt2792b8cf -e"DROP DATABASE IF EXISTS $targetdb; CREATE DATABASE $targetdb;"
+  #TODO: TRUNCATE SPECIFIC TABLES (or use standard d7 install db export?)
+  #mysql -uroot -pXt2792b8cf -e"DROP DATABASE IF EXISTS $targetdb; CREATE DATABASE $targetdb;"
+  #TODO: delete target files
 }
 
 # RUN MIGRATION "COPY" SCRIPTS FROM SOURCE TO TARGET
 function nycc_migrate_copy_source_to_target() {
   echo "Copying source to target..."
-
-  # NOTE: field-copy.php not currently working with aliases so need to cd and omit - FIX THIS
-
   # simple updates of base tables
-  mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/roles.sql
-  mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/users.sql
-  mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/users_roles.sql
-  mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/node.sql
-  mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/node_revision.sql
-  mysql -uroot --pXt2792b8cf $targetdb < $scriptsdir/file_managed.sql
+  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/role.sql
+  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/users.sql
+  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/users_roles.sql
+  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/node.sql
+  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/node_revision.sql
+  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/file_managed.sql
 
   # content-type page - multivalued fields
-  drush $targetalias scr $scriptsdir/field_copy.php field_carousel_order
-  drush $targetalias scr $scriptsdir/field_copy.php field_date
-  drush $targetalias scr $scriptsdir/field_copy.php --kind=fid field_image_cache 
+  drush $targetalias scr $scriptsdir/field_copy.php carousel_order
+  drush $targetalias scr $scriptsdir/field_copy.php date
+  drush $targetalias scr $scriptsdir/field_copy.php --kind=fid image_cache 
 
-  # content-type rides singles
-  drush $targetalias scr $scriptsdir/field_copy.php --type=rides ride_description ride_type ride_select_level ride_speed ride_type ride_distance_in_miles ride_signups ride_start_location ride_spots ride_cue_sheet ride_current_leaders ride_status ride_open_signup_days ride_token ride_from ride_from_select ride_timestamp
+  # content-type rides single values
+  drush $targetalias scr $scriptsdir/field_copy.php --type=rides ride_description ride_type ride_select_level ride_speed ride_type ride_distance_in_miles ride_signups ride_spots ride_status ride_signups ride_token ride_timestamp
+  
+  # non value fields
+  drush $targetalias scr $scriptsdir/field_copy.php --type=rides --kind=nid ride_cue_sheet 
+  drush $targetalias scr $scriptsdir/field_copy.php --type=rides --kind=nid --targetkind=uid --targetfield=ride_current_leaders ride_leaders   
+  drush $targetalias scr $scriptsdir/field_copy.php --type=rides --kind=uid ride_current_riders   
+  
+  # handle field renames
+  #drush $targetalias scr $scriptsdir/field_copy.php --type=rides --targetfield=ride_start_location_value ride_start_location   
 
   # content-type rides multis
   drush $targetalias scr $scriptsdir/field_copy.php --kind=fid ride_image
@@ -128,6 +139,8 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias scr $scriptsdir/users-convert-pictures.php > $tmpdir/users-convert-pictures.out
   
   # TODO: Additional processing:
+  # TODO: concat d6 ride_from and (stripped) ride_from_select into ride_start_location on d7
+  # TODO: strip map link from ride_from_select?
   # load/save all nodes and users to trigger other modules hooks?
   # in particular, check that profile2 pid's work as expected. what is test for this?
 }
@@ -198,20 +211,20 @@ n_value="value if option is missing"
 while getopts abcdmprstvwxyz0123456789h\? option
 do
     case $option in
-        a|6) no_copy_source_to_target=1 ;;
-        b|2) no_backups=1 ;;
-        c|5) no_clear_target=1 ;;
-        d|4) no_import_production_to_source=1 ;;
-        m|1) no_migration_init=1 ;;
-        p|3) no_production_sync=1 ;;
-        r) no_target_backup=1 ;;
-        s) no_source_backup=1 ;;
-        t|0) no_test=1 ;;
+        a|6) copy_source_to_target=1 ;;
+        b|2) backups=1 ;;
+        c|5) clear_target=1 ;;
+        d|4) import_production_to_source=1 ;;
+        m|1) migration_init=1 ;;
+        p|3) production_sync=1 ;;
+        r) target_backup=1 ;;
+        s) source_backup=1 ;;
+        t|0) test=1 ;;
         v) is_verbose=1 ;;
-        w|7) no_cleanup_target=1 ;;
-        x|8) no_cleanup_migration=1 ;;
-        y) no_report_source=1 ;;
-        z) no_report_target=1 ;;
+        w|7) cleanup_target=1 ;;
+        x|8) cleanup_migration=1 ;;
+        y) report_source=1 ;;
+        z) report_target=1 ;;
         h) nycc_migrate_usage ;;
         \?) nycc_migrate_usage 1 ;;
     esac
@@ -231,7 +244,7 @@ shift $(($OPTIND - 1));     # take out the option flags
 # MAIN
 
 
-if [ -z "$no_migration_init" ]
+if [ -z "$migration_init" ]
 then
   echo "Skipped: Migration init (-m)"
 else
@@ -239,7 +252,7 @@ else
 fi
 
 
-if [ -z "$no_backups" ]
+if [ -z "$backups" ]
 then
   echo "Skipped: Backups (-b)"
 else
@@ -247,7 +260,7 @@ else
 fi
 
 
-if [ -z "$no_production_sync" ]
+if [ -z "$production_sync" ]
 then
   echo "Skipped: Production sync (-p)"
 else
@@ -256,7 +269,7 @@ else
 fi
 
 
-if [ -z "$no_import_production_to_source" ]
+if [ -z "$import_production_to_source" ]
 then
   echo "Skipped: Import production to source (-d)"
 else
@@ -264,7 +277,7 @@ else
 fi
 
 
-if [ -z "$no_clear_target" ]
+if [ -z "$clear_target" ]
 then
   echo "Skipped: Clear target (-c)"
 else
@@ -272,7 +285,7 @@ else
 fi
 
 
-if [ -z "$no_copy_source_to_target" ]
+if [ -z "$copy_source_to_target" ]
 then
   echo "Skipped: Copy source to target (-a)"
 else
@@ -280,7 +293,7 @@ else
 fi
 
 
-if [ -z "$no_cleanup_target" ]
+if [ -z "$cleanup_target" ]
 then
   echo "Skipped: Cleanup target (-w)"
 else
@@ -288,7 +301,7 @@ else
 fi
 
 
-if [ -z "$no_cleanup_migration" ]
+if [ -z "$cleanup_migration" ]
 then
   echo "Skipped: Cleanup migration (-x)"
 else
@@ -296,7 +309,7 @@ else
 fi
 
 
-if [ -z "$no_report_source" ]
+if [ -z "$report_source" ]
 then
   echo "Skipped: Report source (-y)"
 else
@@ -304,7 +317,7 @@ else
 fi
 
 
-if [ -z "$no_report_target" ]
+if [ -z "$report_target" ]
 then
   echo "Skipped: Report target (-z)"
 else
@@ -312,12 +325,14 @@ else
 fi
 
 
-if [ -z "$no_test" ]
+if [ -z "$test" ]
 then
 #  echo "Skipped: test (-t)"
-  echo ""
+  echo "";
 else
   echo "Test run."
+  echo "Exec: drush $targetalias scr $scriptsdir/test.php"
+  drush $targetalias scr $scriptsdir/test.php
 fi
 
 
