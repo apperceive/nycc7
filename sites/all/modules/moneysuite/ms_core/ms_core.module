@@ -2381,14 +2381,14 @@ function ms_core_convert_currency($from, $to, $amount) {
  * @param MsOrder $order
  *   The Order to get the Details for.
  * @param bool $cart
- *   (optional) Whether this is a cart. Defaults to FALSE.
+ *   (optional) Whether this is a cart. Defaults to TRUE.
  *
  * @return string
  *   A themed table displaying all of the details of an order.
  *
  * @ingroup ms_core_api
  */
-function ms_core_get_order_details_table(MsOrder $order, $cart = FALSE) {
+function ms_core_get_order_details_table(MsOrder $order, $cart = TRUE) {
   // Add the CSS
   drupal_add_css(drupal_get_path('module', 'ms_core') . '/ms_core.css');
 
