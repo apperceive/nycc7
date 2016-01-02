@@ -1,8 +1,5 @@
 <?php
-/* TODO:
- * ms_membership_update_dependencies
- *
- */
+
  $debug = true;
  
  
@@ -10,29 +7,11 @@
  * Update payment types.
  */
 	drush_print("running ms_core update 7304");
-
-
-  db_update('ms_payments')
-    ->fields(array(
-      'type' => 'refund',
-    ))
-    ->condition('type', 'rec_refund')
-    ->execute();
-  db_update('ms_payments')
-    ->fields(array(
-      'type' => 'failed',
-    ))
-    ->condition('type', 'rec_failed')
-    ->execute();
-  db_update('ms_payments')
-    ->fields(array(
-      'type' => 'reversal',
-    ))
-    ->condition('type', 'rec_reversal')
-    ->execute();
+  db_update('ms_payments')->fields(array('type' => 'refund',))->condition('type', 'rec_refund')->execute();
+  db_update('ms_payments')->fields(array('type' => 'failed',))->condition('type', 'rec_failed')->execute();
+  db_update('ms_payments')->fields(array('type' => 'reversal',))->condition('type', 'rec_reversal')->execute();
 	
   drush_print("finished running ms_core update 7304");
-
 
 ?>
 

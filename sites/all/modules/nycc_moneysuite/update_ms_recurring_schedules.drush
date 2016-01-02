@@ -3,7 +3,7 @@
  $debug = true;
  
  
-     db_update('ms_recurring_schedules')->fields(array('notified' => 1,))->execute();
+  if ($debug) db_update('ms_recurring_schedules')->fields(array('notified' => 1,))->execute();
 /**
  * Remove duplicate recurring_schedule records.
  *
@@ -13,7 +13,7 @@
 drush_print("running ms_core update 7307");
   $result = db_query("SELECT * FROM {ms_recurring_schedules} a INNER JOIN (SELECT oid FROM {ms_recurring_schedules}
 GROUP BY oid HAVING count(id) > 1) dup ON a.oid = dup.oid WHERE a.status = :status", array(':status' => 'active'));
-
+  if ($debug) drush_print ("found " . $result->rowCount() . " duplicate recurring schedules to be cleaned up");
   $all = array();
   foreach ($result as $row) {
     $all[$row->oid][$row->id] = $row;
@@ -24,8 +24,7 @@ GROUP BY oid HAVING count(id) > 1) dup ON a.oid = dup.oid WHERE a.status = :stat
       db_update('ms_recurring_schedules')->fields(array())->condition('id', $row->id)->execute();
     }
   }
-  drush_print( t('Successfully completed ms_core update 7307'));
-
+  if ($debug)  drush_print( t('Successfully completed ms_core update 7307'));
 ?>
 
   

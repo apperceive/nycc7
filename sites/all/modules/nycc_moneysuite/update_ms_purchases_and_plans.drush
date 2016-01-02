@@ -1,25 +1,22 @@
 <?php
-/* TODO:
- * ms_membership_update_dependencies
- *
- */
- $debug = true;
- 
+
+  $debug = true;
+  
+  if ($debug) drush_print( t('updating notified field for all recurring schedules'));  
+  db_update('ms_recurring_schedules')->fields(array('notified' => 1,))->execute();
  
   // Set the default for all of the product plans for allow_roles and deny_roles and machine_name
   $result = db_query("SELECT * FROM {ms_products_plans}");
+  if ($debug) drush_print( $result->rowCount() . " plans selected to updated roles and name" );  
   foreach ($result as $plan) {
     $plan->allow_roles = array();
     $plan->deny_roles = array();
-    db_update('ms_products_plans')
-      ->fields(array(
+    db_update('ms_products_plans')->fields(array(
         'allow_roles' => serialize($plan->allow_roles),
-        'deny_roles' => serialize($plan->deny_roles),
-      ))
+        'deny_roles' => serialize($plan->deny_roles),))
       ->condition('pid', $plan->pid)
       ->execute();
   }
-  drush_print( t('Successfully added the new fields to the ms_products_plans database table.'));
 
 
 /**
@@ -27,6 +24,7 @@
  */
 	drush_print("running ms_products update 7302");
   $result = db_query("SELECT * FROM {ms_products_plans}");
+  if ($debug) drush_print( "ms_products update 7302: " . $result->rowCount() . " plans selected to make sure arrays are serialized correctly" );  
   foreach ($result as $plan) {
     $plan->allow_roles = _ms_products_unserialize($plan->allow_roles);
     $plan->deny_roles = _ms_products_unserialize($plan->deny_roles);
@@ -46,21 +44,12 @@
   }
 
 
-/**
- * Make sure sku is set and used for the purchases and add fixed date support.
- */
-drush_print("running ms_products update 7304");
-
-
-
   // Set the sku of the purchases table to the sku of the product plans table.
   $result = db_query("SELECT * FROM {ms_products_plans}");
+  if ($debug) drush_print( "ms_products update 7304: " . $result->rowCount() . " plans selected to set SKU" );  
   foreach ($result as $plan) {
     db_update('ms_products_purchases')
-      ->fields(array(
-        'sku' => $plan->sku,
-        'bundle' => $plan->bundle,
-      ))
+      ->fields(array('sku' => $plan->sku, 'bundle' => $plan->bundle,))
       ->condition('sku', $plan->pid)
       ->execute();
   }
@@ -79,14 +68,13 @@ drush_print("running ms_products update 7304");
   // Clear the schema cache.
   cache_clear_all('schema', 'cache');
 
-  drush_print( t('Successfully changed the sku of purchases to point to sku.'));
-
 
 /**
  * Migrate the modify options field.
  */
 drush_print("running ms_products update 7305");
   $result = db_query("SELECT * FROM {ms_products_plans}");
+  if ($debug) drush_print( "ms_products update 7305: " . $result->rowCount() . " plans selected to Migrate the modify options field" );  
   foreach ($result as $plan) {
     $modify_options = _ms_products_unserialize($plan->modify_options);
     $plan->modify_options = array(
@@ -101,29 +89,20 @@ drush_print("running ms_products update 7305");
       ->execute();
   }
 
-  drush_print( t('Successfully updated the modify options field.'));
-
-
-
 
 /**
  * Add new pid field for Purchases.
  */
   // Populate the existing purchases.
   $result = db_query("SELECT * FROM {ms_products_purchases}");
+  if ($debug) drush_print( "ms_products update: " . $result->rowCount() . " purchased selected to add pid field" );  
   foreach ($result as $purchase) {
     $plan = ms_products_plan_load($purchase->sku);
     if ($plan) {
-      db_update('ms_products_purchases')
-        ->fields(array(
-          'pid' => $plan->pid,
-        ))
-        ->condition('id', $purchase->id)
-        ->execute();
+      db_update('ms_products_purchases')->fields(array('pid' => $plan->pid,))->condition('id', $purchase->id)->execute();
     }
   }
 
-  drush_print( t('Successfully added pid field for purchases.'));
 
 ?>
 

@@ -1,13 +1,5 @@
 <?php
-/* TODO:
- * ms_membership_update_dependencies
- *
- */
  $debug = true;
-  drush_print("running ms_core update 7102");
-
-
-
     // Populate the order_key of existing orders
     // Populate the first_name and last_name and email_address of existing orders
 
@@ -34,12 +26,7 @@
       
       $key = ms_core_generate_order_key();
       db_update('ms_orders')
-        ->fields(array(
-          'order_key' => $key,
-          'first_name' => $first_name,
-          'last_name' => $last_name,
-          'email_address' => $email,          
-        ))
+        ->fields(array('order_key' => $key,'first_name' => $first_name, 'last_name' => $last_name,'email_address' => $email,))
         ->condition('oid', $row->oid)
         ->execute();
       
@@ -102,9 +89,7 @@
     $messages[] = t('Updated tokens in @count variables.', array('@count' => $variables_count));
 
     // Now we need to update all of the overridden settings in the orders.
-    $result = db_select('ms_orders', 'o')
-      ->fields('o')
-      ->execute();
+    $result = db_select('ms_orders', 'o')->fields('o')->execute();
 
     $orders_count = 0;
     foreach ($result as $order) {
@@ -123,12 +108,7 @@
       }
 
       if ($changed) {
-        db_update('ms_orders')
-          ->fields(array(
-            'data' => $order->data,
-          ))
-          ->condition('oid', $order->oid)
-          ->execute();
+        db_update('ms_orders')->fields(array('data' => $order->data,))->condition('oid', $order->oid)->execute();
         $orders_count += 1;
       }
     }
