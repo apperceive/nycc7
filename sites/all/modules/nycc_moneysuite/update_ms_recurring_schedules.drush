@@ -1,0 +1,31 @@
+<?php
+
+ $debug = true;
+ 
+ 
+     db_update('ms_recurring_schedules')->fields(array('notified' => 1,))->execute();
+/**
+ * Remove duplicate recurring_schedule records.
+ *
+ * Due to a bug in the new multi_recurring feature, there is a chance there could be duplicate recurring_schedule
+ * records for recurring orders. We remove any duplicates here.
+ */
+drush_print("running ms_core update 7307");
+  $result = db_query("SELECT * FROM {ms_recurring_schedules} a INNER JOIN (SELECT oid FROM {ms_recurring_schedules}
+GROUP BY oid HAVING count(id) > 1) dup ON a.oid = dup.oid WHERE a.status = :status", array(':status' => 'active'));
+
+  $all = array();
+  foreach ($result as $row) {
+    $all[$row->oid][$row->id] = $row;
+  }
+  foreach ($all as $records) {
+    array_pop($records);
+    foreach ($records as $row) {
+      db_update('ms_recurring_schedules')->fields(array())->condition('id', $row->id)->execute();
+    }
+  }
+  drush_print( t('Successfully completed ms_core update 7307'));
+
+?>
+
+  
