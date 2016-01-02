@@ -756,7 +756,7 @@ function ms_ppv_delete_node_price($vid) {
 /**
  * Helper Function to insert a price for a node
  */
-function ms_ppv_insert_node_price($vid, $nid, $price, $expiration_string, $protected_message, $allow_multiple = TRUE, $stock = 0, $out_of_stock_message = '') {
+function ms_ppv_insert_node_price($vid, $nid, $price, $expiration_string, $protected_message, $protected_message_format, $allow_multiple = TRUE, $stock = 0, $out_of_stock_message = '') {
   ms_ppv_delete_node_price($vid);
 
   db_insert('ms_ppv_price')
@@ -767,6 +767,7 @@ function ms_ppv_insert_node_price($vid, $nid, $price, $expiration_string, $prote
     'expiration_string' => $expiration_string,
     'allow_multiple' => $allow_multiple,
     'protected_content_message' => $protected_message,
+    'protected_content_message_format' => $protected_message_format,
     'stock' => $stock,
     'out_of_stock_message' => $out_of_stock_message,
   ))
@@ -1116,6 +1117,7 @@ function ms_ppv_node_load($nodes, $types) {
       $nodes[$nid]->ms_ppv_expiration_string = $node_info->expiration_string;
       $nodes[$nid]->ms_ppv_allow_multiple = $node_info->allow_multiple;
       $nodes[$nid]->ms_ppv_protected_content_message = $node_info->protected_content_message;
+      $nodes[$nid]->ms_ppv_protected_content_message_format = $node_info->protected_content_message_format;
       $nodes[$nid]->ms_ppv_stock = $node_info->stock;
       $nodes[$nid]->ms_ppv_out_of_stock_message = $node_info->out_of_stock_message;
     }
@@ -1125,6 +1127,7 @@ function ms_ppv_node_load($nodes, $types) {
       $nodes[$nid]->ms_ppv_expiration_string = $defaults['expiration_string'];
       $nodes[$nid]->ms_ppv_allow_multiple = $defaults['allow_multiple'];
       $nodes[$nid]->ms_ppv_protected_content_message = $defaults['protected_content_message'];
+      $nodes[$nid]->ms_ppv_protected_content_message_format = $defaults['protected_content_message_format'];
       $nodes[$nid]->ms_ppv_stock = $defaults['stock'];
       $nodes[$nid]->ms_ppv_out_of_stock_message = $defaults['out_of_stock_message'];
     }
@@ -1148,7 +1151,7 @@ function ms_ppv_node_delete($node) {
  */
 function ms_ppv_node_insert($node) {
   if (!empty($node->ms_ppv_use_override)) {
-    ms_ppv_insert_node_price($node->vid, $node->nid, $node->ms_ppv_price, $node->ms_ppv_expiration_string, $node->ms_ppv_protected_content_message, $node->ms_ppv_allow_multiple, $node->ms_ppv_stock, $node->ms_ppv_out_of_stock_message);
+    ms_ppv_insert_node_price($node->vid, $node->nid, $node->ms_ppv_price, $node->ms_ppv_expiration_string, $node->ms_ppv_protected_content_message, $node->ms_ppv_protected_content_message_format, $node->ms_ppv_allow_multiple, $node->ms_ppv_stock, $node->ms_ppv_out_of_stock_message);
   }
   else {
     // Delete any existing records
@@ -1161,7 +1164,7 @@ function ms_ppv_node_insert($node) {
  */
 function ms_ppv_node_update($node) {
   if ((isset($node->ms_ppv_use_override) AND $node->ms_ppv_use_override) OR (!isset($node->ms_ppv_use_override) AND ms_ppv_load_node_info_nid($node->nid))) {
-    ms_ppv_insert_node_price($node->vid, $node->nid, $node->ms_ppv_price, $node->ms_ppv_expiration_string, $node->ms_ppv_protected_content_message, $node->ms_ppv_allow_multiple, $node->ms_ppv_stock, $node->ms_ppv_out_of_stock_message);
+    ms_ppv_insert_node_price($node->vid, $node->nid, $node->ms_ppv_price, $node->ms_ppv_expiration_string, $node->ms_ppv_protected_content_message, $node->ms_ppv_protected_content_message_format, $node->ms_ppv_allow_multiple, $node->ms_ppv_stock, $node->ms_ppv_out_of_stock_message);
   }
   else {
     // Delete any existing records
@@ -1195,7 +1198,6 @@ function ms_ppv_node_is_in_stock($node) {
  */
 function ms_ppv_node_view($node, $view_mode = 'full') {
   global $user;
-  $protected_html=array('value'=>'','format'=>NULL);
   if (isset($node->ms_ppv_protected) AND $node->ms_ppv_protected) {
     if ((isset($node->ms_ppv_processed) AND $node->ms_ppv_processed) OR ms_ppv_has_access($user->uid, $node->nid)) {
       // The user has access
@@ -1209,15 +1211,16 @@ function ms_ppv_node_view($node, $view_mode = 'full') {
       else {
         // Show the message and purchase link
         $protected_html = $node->ms_ppv_protected_content_message;
+				$format = $node->ms_ppv_protected_content_message_format;
       }
 
       // Replace the Tokens
-      $protected_html = check_markup(token_replace($protected_html['value'],
-        array(
-          'ms_ppv' => $node,
-          'node' => $node,
-        ))
-        ,$protected_html['format']);
+      $protected_html = check_markup(token_replace($protected_html,
+																										array(
+																												'ms_ppv' => $node,
+																												'node' => $node,
+																										)),
+																			$format);
 
       if ($protected_html != 'FULL') {
         // Unset the content field
@@ -1252,6 +1255,7 @@ Get Access: [ms_ppv:price] for [ms_ppv:expirationLength] - [ms_ppv:addToCartLink
 Teaser:
 <br /><br />
 [ms_ppv:nodeTeaser]'),'format'=>NULL)),
+		'protected_content_message_format' => variable_get('ms_ppv_protected_content_message_format_' . $type, 1),
     'stock' => variable_get('ms_ppv_stock_' . $type, 0),
     'out_of_stock_message' => variable_get('ms_ppv_out_of_stock_message_' . $type, ''),
   );
@@ -1277,6 +1281,7 @@ function ms_ppv_form_alter(&$form, $form_state, $form_id) {
             $defaults['expiration_string'] = $form['#node']->ms_ppv_expiration_string;
             $defaults['allow_multiple'] = $form['#node']->ms_ppv_allow_multiple;
             $defaults['protected_content_message'] = $form['#node']->ms_ppv_protected_content_message;
+            $defaults['protected_content_message_format'] = $form['#node']->ms_ppv_protected_content_message_format;
             $defaults['stock'] = $form['#node']->ms_ppv_stock;
             $defaults['out_of_stock_message'] = $form['#node']->ms_ppv_out_of_stock_message;
           }
@@ -1336,8 +1341,9 @@ function ms_ppv_form_alter(&$form, $form_state, $form_id) {
             '#title' => t('Protected Content Message'),
             '#description' => t("Enter the message you want to show on protected content."),
             '#required' => FALSE,
-            '#default_value' => isset($defaults['protected_content_message']['value'])?$defaults['protected_content_message']['value']:'',
-            '#format' => isset($defaults['protected_content_message']['format'])?$defaults['protected_content_message']['format']:'',
+            '#default_value' => isset($defaults['protected_content_message'])?$defaults['protected_content_message']:'',
+            '#format' => isset($defaults['protected_content_message_format'])?$defaults['protected_content_message_format']:1,
+            '#element_validate' => array('_text_format_validate'),
           );
           $form['ms_ppv']['ms_ppv_protected_content_message_token_help']['tokens'] = array(
             '#theme' => 'token_tree',
@@ -1352,6 +1358,7 @@ function ms_ppv_form_alter(&$form, $form_state, $form_id) {
       //Add the stuff to the content type settings
       if (user_access('set ms nodes pricing')) {
         $defaults = ms_ppv_get_type_defaults($form['#node_type']->type);
+ 				dpm($defaults);
         $form['ms_ppv'] = array(
           '#type' => 'fieldset',
           '#title' => t('Pay Per View Settings'),
@@ -1408,8 +1415,9 @@ function ms_ppv_form_alter(&$form, $form_state, $form_id) {
           '#title' => t('Protected Content Message'),
           '#description' => t("Enter the message you want to show on protected content."),
           '#required' => FALSE,
-          '#default_value' => isset($defaults['protected_content_message']['value']) ? $defaults['protected_content_message']['value']:'',
-          '#format' => isset($defaults['protected_content_message']['format']) ? $defaults['protected_content_message']['format'] : '',
+          '#default_value' => isset($defaults['protected_content_message']) ? $defaults['protected_content_message']:'',
+          '#format' => isset($defaults['protected_content_message_format']) ? $defaults['protected_content_message_format'] : 1,
+          '#element_validate' => array('_text_format_validate'),
         );
         $form['ms_ppv']['ms_ppv_protected_content_message_token_help']['tokens'] = array(
           '#theme' => 'token_tree',
@@ -1418,15 +1426,7 @@ function ms_ppv_form_alter(&$form, $form_state, $form_id) {
         );
       }
       break;
-
-    case 'field_ui_display_overview_form':
-      if ($form['#view_mode'] == 'default') {
-        foreach ($form['#fields'] as $field_name) {
-          unset($form['fields'][$field_name]['format']['type']['#options']['ms_ppv_field_formatter']);
-        }
-      }
-      break;
-
+    
     default:
       //drupal_set_message($form_id);
       break;
@@ -1843,6 +1843,7 @@ function ms_ppv_field_formatter_info() {
         'access_period' => '',
         'access_display' => 'default',
         'message' => 'This field is premium only. Please pay [ms_ppv_field:amount] to have access for [ms_ppv_field:accessPeriod] : [ms_ppv_field:addToCartLink]',
+        'format' => NULL,
       ),
     ),
   );
@@ -1862,7 +1863,7 @@ function ms_ppv_field_formatter_settings_form($field, $instance, $view_mode, $fo
     '#title' => t('Amount'),
     '#description' => t('How much the user will have to pay to view this field.'),
     '#default_value' => $settings['amount'],
-  );
+  );	
   $element['access_period'] = array(
     '#type' => 'textfield',
     '#title' => t('Access Period'),
@@ -1884,8 +1885,9 @@ function ms_ppv_field_formatter_settings_form($field, $instance, $view_mode, $fo
     '#title' => t('Protected Message'),
     '#description' => t("Enter a message that will show if the user doesn't have access to this field.
       You may use the tokens below to add a link to 'add to cart', among other things."),
-    '#default_value' => isset$settings['message']['value'])?$settings['message']['value']:'',
-    '#format' => isset($settings['message']['format'])?$settings['message']['format']:'',
+    '#default_value' => isset($settings['message'])?$settings['message']:'',
+    '#format' => isset($settings['format'])?$settings['format']:1,
+    '#element_validate' => array('_text_format_validate'),
   );
   $element['message_token_help']['tokens'] = array(
     '#theme' => 'token_tree',
@@ -1893,6 +1895,26 @@ function ms_ppv_field_formatter_settings_form($field, $instance, $view_mode, $fo
     '#dialog' => TRUE,
   );
   return $element;
+}
+
+#function to flatten text_format fields in ppv formatter
+function _text_format_validate($element, &$form_state) {
+	if($element['#type']=='text_format') {
+		if (isset($form_state['values']['ms_ppv_protected_content_message'])) {
+				$form_state['values']['ms_ppv_protected_content_message_format']=$form_state['values']['ms_ppv_protected_content_message']['format'];
+				$form_state['values']['ms_ppv_protected_content_message']=$form_state['values']['ms_ppv_protected_content_message']['value'];
+		}
+		else {
+			$field_name=$element['#parents'][1];
+			if (isset($form_state['values']['fields'][$element['#parents'][1]]['settings_edit_form']['settings']['message'])) {
+				$values = $form_state['values']['fields'][$field_name]['settings_edit_form']['settings'];
+				$form_state['values']['fields'][$field_name]['settings_edit_form']['settings']['format'] = $values['message']['format'];
+				$form_state['values']['fields'][$field_name]['settings_edit_form']['settings']['message'] = $values['message']['value'];
+			}
+			else
+				watchdog('ms_ppv','Unknown text_format field');
+		}
+	}
 }
 
 /**
@@ -1963,17 +1985,17 @@ function ms_ppv_field_formatter_view($entity_type, $entity, $field, $instance, $
               // Override the default amounts
               $ms_ppv_field->amount = $record->amount;
               $ms_ppv_field->access_period = $record->access_period;
-              $ms_ppv_field->message = $record->message;
+//              $ms_ppv_field->message = $record->message['value'];
             }
           }
           
           // Replace the Tokens
-          $html = check_markup(token_replace($settings['message']['value'],
+          $html = check_markup(token_replace($settings['message'],
 																						 array(
 																						   'ms_ppv_field' => $ms_ppv_field,
 																	             'user' => $user,
 																             )),
-																$settings['message']['format']);
+																$settings['format']);
         }
         else {
           if ($settings['access_display'] == 'nothing') {
@@ -2064,8 +2086,9 @@ function ms_ppv_field_group_format_settings($group) {
         '#title' => t('Protected Message'),
         '#description' => t("Enter a message that will show if the user doesn't have access to this field.
           You may use the tokens below to add a link to 'add to cart', among other things."),
-        '#default_value' => isset($group->format_settings['instance_settings']['message']['value']) ? $group->format_settings['instance_settings']['message']['value'] : $formatter['instance_settings']['message']['value'],
-        '#format' => isset($group->format_settings['instance_settings']['message']['format']) ? $group->format_settings['instance_settings']['message']['format'] : $formatter['instance_settings']['message']['format'],
+        '#default_value' => isset($group->format_settings['instance_settings']['message']) ? $group->format_settings['instance_settings']['message'] : '',
+        '#format' => isset($group->format_settings['instance_settings']['format']) ? $group->format_settings['instance_settings']['format'] : 1,
+        '#element_validate' => array('_text_format_validate'),
       );
       $form['instance_settings']['message_token_help']['tokens'] = array(
         '#theme' => 'token_tree',
@@ -2102,6 +2125,7 @@ function ms_ppv_field_group_pre_render(&$element, $group, &$form) {
       $amount = isset($group->format_settings['instance_settings']['amount']) ? $group->format_settings['instance_settings']['amount'] : 0;
       $access_period = isset($group->format_settings['instance_settings']['access_period']) ? $group->format_settings['instance_settings']['access_period'] : '';
       $message = isset($group->format_settings['instance_settings']['message']) ? $group->format_settings['instance_settings']['message'] : '';
+      $format = isset($group->format_settings['instance_settings']['format']) ? $group->format_settings['instance_settings']['format'] : 0;
 
       $add = array(
         '#type' => 'markup',
@@ -2129,12 +2153,11 @@ function ms_ppv_field_group_pre_render(&$element, $group, &$form) {
         $ms_ppv_field->field_name = $group->group_name;
         // The user doesn't have access, let's show the no access message
         // Replace the Tokens
-        $protected_html = token_replace($message,
-          array(
-            'ms_ppv_field' => $ms_ppv_field,
-            'user' => $user,
-          )
-        );
+        $protected_html = check_markup(token_replace($message,
+																										 array(
+																												'ms_ppv_field' => $ms_ppv_field,
+																												'user' => $user,)),
+																				$format);
 
         $element['#markup'] = $protected_html;
       }
@@ -2928,12 +2951,12 @@ function ms_ppv_entity_info() {
     'ms_ppv_price' => array(
       'label' => t('MS PPV Custom Node Price'),
       'base table' => 'ms_ppv_price',
-      'revision table' => 'node_revision',
+#      'revision table' => 'node_revision',
       'entity class' => 'Entity',
       'controller class' => 'EntityAPIController',
       'entity keys' => array(
         'id' => 'vid',
-        'revision' => 'nid',
+#        'revision' => 'nid',
       ),
       'label callback' => 'ms_ppv_price_label',
       'fieldable' => FALSE,
@@ -2969,7 +2992,7 @@ function ms_ppv_entity_property_info_alter(&$info) {
 
   $ms_ppv_price = &$info['ms_ppv_price']['properties'];
   $ms_ppv_price['nid']['type'] = 'node';
-  $ms_ppv_price['vid']['type'] = 'node_revision';
+#  $ms_ppv_price['vid']['type'] = 'node_revision';
   $ms_ppv_price['allow_multiple']['label'] = t('Allow Multiple');
   $ms_ppv_price['expiration_string']['label'] = t('Expiration String');
   $ms_ppv_price['price']['label'] = t('Price');

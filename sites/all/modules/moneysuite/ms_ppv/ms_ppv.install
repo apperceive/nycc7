@@ -241,6 +241,10 @@ function ms_ppv_schema() {
         'type' => 'text',
         'description' => 'Protected Content Message',
       ),
+      'protected_content_message_format' => array(
+        'type' => 'int',
+        'description' => 'Protected Content Message format',
+      ),
     ),
     'primary key' => array('vid'),
   );
@@ -365,4 +369,21 @@ function ms_ppv_update_7103(&$sandbox) {
   }
 
   return t('Successfully added the stock field to the ms_ppv_price table.');
+}
+
+/**
+ * Add the format field to the ms_ppv_price table
+ */
+function ms_ppv_update_7104(&$sandbox) {
+  if (!db_field_exists('ms_ppv_price', 'protected_content_message')) {
+    db_add_field('ms_ppv_price', 'protected_content_message', array(
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 1,
+      'description' => 'protected content message format',
+    ));
+  }
+
+  return t('Successfully added the format field to the ms_ppv_price table.');
 }
