@@ -6,13 +6,15 @@ REPLACE INTO `file_managed`
 `filemime`,
 `filesize`,
 `status`,
-`timestamp`)
+`timestamp`,
+`uuid`)
 SELECT `files`.`fid`,
     `files`.`uid`,
     `files`.`filename`,
-    REPLACE(`files`.`filepath`, "sites/default/files/", "public://"),
+    REPLACE(`files`.`filepath`,'sites/default/files','public://'),
     `files`.`filemime`,
     `files`.`filesize`,
     `files`.`status`,
-    `files`.`timestamp`
-FROM `d6test`.`files`;
+    `files`.`timestamp`,
+    UUID()
+FROM `d6test`.`files` WHERE filepath LIKE 'sites/default/files%'
