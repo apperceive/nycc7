@@ -33,4 +33,3 @@ Licensed under the terms of the GNU Lesser General Public License:
     http://www.opensource.org/licenses/lgpl-license.php
 
 For further information visit:
-    http://ckeditor.com/
