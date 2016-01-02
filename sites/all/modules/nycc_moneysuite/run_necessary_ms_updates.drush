@@ -1,0 +1,581 @@
+<?php
+
+$debug =TRUE;
+// ======================================
+// Updates: MS Core
+// ======================================
+/**
+ * Update payment types.
+ */
+  if ($debug )drush_print(" runing ms_core_update_7304");
+  db_update('ms_payments')->fields(array('type' => 'refund',))->condition('type', 'rec_refund')->execute();
+  db_update('ms_payments')->fields(array('type' => 'failed',))->condition('type', 'rec_failed')->execute();
+  db_update('ms_payments')->fields(array('type' => 'reversal',))->condition('type', 'rec_reversal')->execute();
+
+
+
+
+/**
+ * Make sure there aren't any old tokens from Drupal 6.
+ */
+  if ($debug )drush_print(" runing ms_core_update_7309");
+  if (function_exists('token_update_token_text')) {
+    $replacements = array(
+      'userName' => 'user:name',
+    );
+    $variables = array();
+    $messages = array();
+
+    $settings_functions = module_invoke_all('ms_core_overrides');
+
+    if (is_array($settings_functions) && !empty($settings_functions)) {
+      foreach ($settings_functions as $module => $info) {
+        if (function_exists($module . '_token_info')) {
+          $tokens_info = call_user_func($module . '_token_info');
+
+          foreach ($tokens_info['tokens'] as $type => $tokens) {
+            foreach ($tokens as $token_key => $token_info) {
+              $replacements[$token_key] = $type . ':' . $token_key;
+            }
+          }
+        }
+
+        $t_form_state = form_state_defaults();
+        if (!empty($info['params'])) {
+          $t_form_state['build_info']['args'] = $info['params'];
+        }
+        $module_form = drupal_retrieve_form($info['form'], $t_form_state);
+
+        $settings = array();
+        _ms_core_extract_token_variables($module_form, $settings);
+
+        if (!empty($settings)) {
+          foreach ($settings as $key => $element) {
+            $variables[] = $key;
+          }
+        }
+      }
+    }
+
+    $variables_count = 0;
+
+    foreach ($variables as $variable) {
+      if ($string = variable_get($variable, '')) {
+        $new_string = token_update_token_text($string, $replacements);
+        if ($new_string != $string) {
+          variable_set($variable, $new_string);
+          $variables_count += 1;
+        }
+      }
+    }
+
+    if ($debug) drush_print( "Updated tokens in $variables_countcount variables");
+
+    // Now we need to update all of the overridden settings in the orders.
+    $result = db_select('ms_orders', 'o')
+      ->fields('o')
+      ->execute();
+
+    $orders_count = 0;
+    foreach ($result as $order) {
+      $order->data = unserialize($order->data);
+      $changed = FALSE;
+      if (!empty($order->data['override_settings'])) {
+        foreach ($order->data['override_settings'] as $key => &$string) {
+          if (in_array($key, $variables)) {
+            $new_string = token_update_token_text($string, $replacements);
+            if ($new_string != $string) {
+              $string = $new_string;
+              $changed = TRUE;
+            }
+          }
+        }
+      }
+
+      if ($changed) {
+        db_update('ms_orders')->fields(array('data' => $order->data,))->condition('oid', $order->oid)->execute();
+        $orders_count += 1;
+      }
+    }
+
+    if ($debug) drush_print("Updated tokens in override settings of $orders_count orders");
+
+    
+  } else {
+    drush_print("ERROR: There was an error updating the tokens. You may need to perform the update manually.");
+  }
+
+
+
+
+
+// ======================================
+// Updates: ms_membership
+// ======================================
+
+/**
+ * Migrate Override Settings
+ */
+  if ($debug )drush_print(" running ms_membership_update_7701");
+  module_load_include('module', 'ms_core');
+  module_load_include('inc', 'ms_core', 'ms_core.recurring');
+  module_load_include('module', 'ms_membership');
+  module_load_include('module', 'ms_products');
+
+  $result = db_query("SELECT mpid, name FROM {ms_membership_plans} ORDER BY weight ASC");
+
+  foreach ($result as $product) {
+    $product->data = unserialize($product->data);
+
+    if (isset($product->data['override_settings']) AND is_array($product->data['override_settings'])) {
+      $old_override_settings = $product->data['override_settings'];
+      $new_override_settings = array();
+
+      foreach ($old_override_settings as $info) {
+        if ($info['override']) {
+          foreach ($info['settings'] as $key => $value) {
+            if (is_array($value)) {
+              foreach ($value as $child_key => $child_value) {
+                if (!is_array($child_value)) {
+                  if ($child_value != variable_get($child_key, '')) {
+                    $new_override_settings[$child_key] = $child_value;
+                  }
+                }
+              }
+            } else {
+              if ($value != variable_get($key, '')) {
+                $new_override_settings[$key] = $value;
+              }
+            }
+          }
+        }
+      }
+
+      $product->data['override_settings'] = $new_override_settings;
+      db_update('ms_membership_plans')->fields(array('data' => serialize($product->data),))->condition('mpid', $product->mpid)->execute();
+    }
+  }
+
+
+
+/**
+ * Rebuild the memberships to fix the current payments counter
+ */
+  if ($debug )drush_print(" running ms_membership_update_7705");
+  module_load_include('module', 'ms_core');
+  module_load_include('inc', 'ms_core', 'ms_core.recurring');
+  module_load_include('php', 'ms_core', 'ms_core.classes');
+  // Update the current payments for all of the memberships to match the recurring schedules for the order
+  $result = db_query("SELECT * FROM {ms_memberships}");
+  foreach ($result as $membership) {
+    if ($membership->oid AND $order = ms_core_order_load($membership->oid)
+      AND $recurring_schedule = ms_core_load_recurring_schedule($order->oid)
+      AND !empty($recurring_schedule->current_payments)
+    ) {
+      db_update('ms_memberships')
+        ->fields(array(
+          'current_payments' => $recurring_schedule->current_payments,
+        ))
+        ->condition('oid', $order->oid)
+        ->execute();
+    }
+  }
+
+  if($debug) drush_print("Rebuilt the memberships to fix the current payments counter.");
+
+/**
+ * Move plans and memberships to the ms_products module database tables.
+ */
+  if ($debug )drush_print(" running ms_membership_update_7802");  
+  module_load_include('inc', 'ms_membership', 'ms_membership.migrate');
+
+  $skus = array();
+  $result = db_query("SELECT * FROM {ms_membership_plans}");
+  foreach ($result as $plan) {
+    // Move the fields that aren't natively supported into the data array.
+    $plan->data = unserialize($plan->data);
+    $plan->data['show_registration'] = $plan->show_registration;
+    $plan->data['show_account'] = $plan->show_account;
+    $plan->data['start_grant_roles'] = unserialize($plan->start_grant_roles);
+    $plan->data['start_remove_roles'] = unserialize($plan->start_remove_roles);
+    $plan->data['expire_grant_roles'] = unserialize($plan->expire_grant_roles);
+    $plan->data['expire_remove_roles'] = unserialize($plan->expire_remove_roles);
+    $plan->data['register_urls'] = unserialize($plan->register_urls);
+    $plan->data['grant_credit'] = variable_get('ms_membership_grant_credit', TRUE);
+
+    $plan->cart_type = ($plan->recurring) ? 'recurring' : 'cart';
+    $plan->bundle = 'ms_membership';
+    $plan->sku = 'ms_membership_' . $plan->mpid;
+    $skus[$plan->mpid] = $plan->sku;
+    ms_core_product_id_change($plan->bundle . '-' . $plan->mpid, $plan->bundle . '-' . $plan->sku);
+    $plan->recurring_schedule = array(
+      'total_occurrences' => $plan->total_occurrences,
+      'main_amount' => $plan->main_amount,
+      'main_length' => $plan->main_length,
+      'main_unit' => $plan->main_unit,
+      'has_trial' => ($plan->trial_length) ? TRUE : FALSE,
+      'trial_amount' => $plan->trial_amount,
+      'trial_length' => $plan->trial_length,
+      'trial_unit' => $plan->trial_unit,
+      'fixed_date' => $plan->fixed_date,
+      'fixed_date_discount' => $plan->fixed_date_discount,
+      'fixed_date_type' => $plan->fixed_date_type,
+      'fixed_date_string' => $plan->fixed_date_string,
+    );
+
+    // Fix the modify options.
+    $modify_options = array();
+    $plan->modify_options = _ms_membership_unserialize($plan->modify_options);
+    foreach ($plan->modify_options as $key => $value) {
+      $modify_options['ms_membership_' . $key] = $value;
+    }
+
+    $plan->modify_options = serialize($modify_options);
+
+    // Insert into the ms_products_plans database.
+    db_insert('ms_products_plans')
+      ->fields(array(
+        'sku' => $plan->sku,
+        'bundle' => $plan->bundle,
+        'uid' => $plan->uid,
+        'name' => $plan->name,
+        'cart_type' => $plan->cart_type,
+        'description' => $plan->description,
+        'signup_mail_subject' => _ms_membership_migrate_tokens($plan->signup_mail_subject),
+        'signup_mail_body' => _ms_membership_migrate_tokens($plan->signup_mail_body),
+        'eot_mail_subject' => _ms_membership_migrate_tokens($plan->eot_mail_subject),
+        'eot_mail_body' => _ms_membership_migrate_tokens($plan->eot_mail_body),
+        'cancel_mail_subject' => _ms_membership_migrate_tokens($plan->cancel_mail_subject),
+        'cancel_mail_body' => _ms_membership_migrate_tokens($plan->cancel_mail_body),
+        'modify_mail_subject' => _ms_membership_migrate_tokens($plan->modify_mail_subject),
+        'modify_mail_body' => _ms_membership_migrate_tokens($plan->modify_mail_body),
+        'expiring_mail_subject' => _ms_membership_migrate_tokens($plan->expiring_mail_subject),
+        'expiring_mail_body' => _ms_membership_migrate_tokens($plan->expiring_mail_body),
+        'expiring_mail_days' => $plan->expiring_mail_days,
+        'weight' => $plan->weight,
+        'recurring_schedule' => serialize($plan->recurring_schedule),
+        'modify_options' => $plan->modify_options,
+        'allow_roles' => $plan->allow_roles,
+        'deny_roles' => $plan->deny_roles,
+        'expire_when' => $plan->expire_when,
+        'data' => serialize($plan->data),
+      ))
+      ->execute();
+
+    // Migrate translation strings.
+    if (module_exists('i18n_string')) {
+      $local_result = db_select('locales_source', 'ls')
+        ->fields('ls')
+        ->condition('textgroup', 'ms_membership_plan')
+        ->execute();
+      foreach ($local_result as $source) {
+        // Update the tokens for these strings.
+        $local_target_result = db_select('locales_target', 'lt')
+          ->fields('lt')
+          ->condition('lid', $source->lid)
+          ->execute();
+        foreach ($local_target_result as $target) {
+          db_update('locales_target')
+            ->fields(array(
+              'translation' => _ms_membership_migrate_tokens($target->translation),
+            ))
+            ->condition('lid', $target->lid)
+            ->condition('language', $target->language)
+            ->execute();
+        }
+      }
+      module_load_install('i18n_string');
+
+      i18n_string_install_update_context('ms_membership_plan:m_plan:' . $plan->mpid . ':*', 'ms_products_plan:plan:' . $plan->sku . ':*');
+    }
+  }
+
+  // Now we move over the memberships.
+  $result = db_query("SELECT * FROM {ms_memberships}");
+  foreach ($result as $membership) {
+    db_insert('ms_products_purchases')
+      ->fields(array(
+        'oid' => $membership->oid,
+        'uid' => $membership->uid,
+        'sku' => !empty($skus[$membership->mpid]) ? $skus[$membership->mpid] : 'unkown-' . $membership->mpid,
+        'bundle' => 'ms_membership',
+        'status' => _ms_membership_migrate_status($membership->status),
+        'expiration' => $membership->expiration,
+        'start_date' => $membership->start_date,
+        'current_payments' => $membership->current_payments,
+        'max_payments' => $membership->max_payments,
+        'data' => serialize(array()),
+      ))
+      ->execute();
+  }
+
+
+  if ($debug) drush_print("Successfully migrated membership plans and memberships to use the MS Products API.");
+
+
+
+  drush_print("running ms_core update 7309");
+  if (function_exists('token_update_token_text')) {
+    $replacements = array(
+      'userName' => 'user:name',
+    );
+    $variables = array();
+    $messages = array();
+
+    $settings_functions = module_invoke_all('ms_core_overrides');
+
+    if (is_array($settings_functions) && !empty($settings_functions)) {
+      foreach ($settings_functions as $module => $info) {
+        if (function_exists($module . '_token_info')) {
+          $tokens_info = call_user_func($module . '_token_info');
+
+          foreach ($tokens_info['tokens'] as $type => $tokens) {
+            foreach ($tokens as $token_key => $token_info) {
+              $replacements[$token_key] = $type . ':' . $token_key;
+            }
+          }
+        }
+
+        $t_form_state = form_state_defaults();
+        if (!empty($info['params'])) {
+          $t_form_state['build_info']['args'] = $info['params'];
+        }
+        $module_form = drupal_retrieve_form($info['form'], $t_form_state);
+
+        $settings = array();
+        _ms_core_extract_token_variables($module_form, $settings);
+
+        if (!empty($settings)) {
+          foreach ($settings as $key => $element) {
+            $variables[] = $key;
+          }
+        }
+      }
+    }
+
+    $variables_count = 0;
+
+    foreach ($variables as $variable) {
+      if ($string = variable_get($variable, '')) {
+        $new_string = token_update_token_text($string, $replacements);
+        if ($new_string != $string) {
+          variable_set($variable, $new_string);
+          $variables_count += 1;
+        }
+      }
+    }
+
+    $messages[] = t('Updated tokens in @count variables.', array('@count' => $variables_count));
+
+    // Now we need to update all of the overridden settings in the orders.
+    $result = db_select('ms_orders', 'o')->fields('o')->execute();
+
+    $orders_count = 0;
+    foreach ($result as $order) {
+      $order->data = unserialize($order->data);
+      $changed = FALSE;
+      if (!empty($order->data['override_settings'])) {
+        foreach ($order->data['override_settings'] as $key => &$string) {
+          if (in_array($key, $variables)) {
+            $new_string = token_update_token_text($string, $replacements);
+            if ($new_string != $string) {
+              $string = $new_string;
+              $changed = TRUE;
+            }
+          }
+        }
+      }
+
+      if ($changed) {
+        db_update('ms_orders')->fields(array('data' => $order->data,))->condition('oid', $order->oid)->execute();
+        $orders_count += 1;
+      }
+    }
+
+    drush_print(t('Updated tokens in override settings of @count orders.', array('@count' => $orders_count)));
+  }
+  
+
+  
+//HELPER FUNCTIONS
+/**
+ * Recursively extracts the textarea form elements.
+ */
+function _ms_core_extract_token_variables($parent, &$settings) {
+  foreach (element_children($parent) as $child_name) {
+    if (!empty($parent[$child_name]['#type']) && $parent[$child_name]['#type'] == 'textarea') {
+      $settings[$child_name] = $parent[$child_name];
+    }
+    _ms_core_extract_token_variables($parent[$child_name], $settings);
+  }
+}
+
+
+
+
+function _token_upgrade_token_list() {
+  $tokens = array(
+    // Global tokens
+    'user-name' => 'current-user:name',
+    'user-id' => 'current-user:id',
+    'user-mail' => 'current-user:mail',
+    'site-url' => 'site:url',
+    'site-name' => 'site:name',
+    'site-slogan' => 'site:slogan',
+    'site-mission' => 'site:mission',
+    'site-mail' => 'site:mail',
+    'site-date' => 'date:short',
+    //'site-date-' => '', // Date tokens expanded below
+    'current-page-path' => 'current-page:path',
+    'current-page-url' => 'current-page:url',
+    'page-number' => 'current-page:page-number',
+
+    // Comment tokens
+    'comment-cid' => 'comment:cid',
+    'comment-nid' => 'comment:node:nid',
+    'comment-title' => 'comment:title',
+    'comment-body' => 'comment:body',
+    'comment-author-name' => 'comment:author:name',
+    'comment-author-mail' => 'comment:author:mail',
+    //'comment-body-format' => '',
+    //'comment-' => '', // Date tokens expanded below
+    'comment-node-title' => 'comment:node',
+
+    // Node tokens
+    'nid' => 'node:nid',
+    'type' => 'node:type',
+    'type-name' => 'node:type-name',
+    'language' => 'node:language',
+    'title' => 'node:title',
+    'author-uid' => 'node:author:uid',
+    'author-name' => 'node:author:name',
+    'author-mail' => 'node:author:mail',
+    'node_comment_count' => 'node:comment-count',
+    'unread_comment_count' => 'node:comment-count-new',
+    'log' => 'node:log',
+    //'' => '', // Date tokens expanded below
+    //'mod-' => '', // Date tokens expanded below
+    'menupath' => 'node:menu-link:parent:path][node:menu-link',
+    'menu' => 'node:menu-link:menu-name',
+    'menu-link-title' => 'node:menu-link',
+    'menu-link-mlid' => 'node:menu-link:mlid',
+    'menu-link-plid' => 'node:menu-link:parent:mlid',
+    //'term' => 'node:term',
+    //'term-id' => 'node:term:tid',
+    //'vocab' => 'node:term:vocabulary',
+    //'vocab-id' => 'node:term:vocabulary:vid',
+
+    // Book tokens
+    //'book' => 'node:book',
+    //'book_id' => 'node:book:bid',
+    //'bookpath' => 'node:book:path',
+
+    // Taxonomy tokens
+    'tid' => 'term:tid',
+    'cat' => 'term:name',
+    'cat-description' => 'term:description',
+    'vid' => 'term:vocabulary:vid',
+    'vocab' => 'term:vocabulary',
+    'vocab-description' => 'term:vocabulary:description',
+
+    // User tokens
+    'user' => 'user:name',
+    'uid' => 'user:uid',
+    'mail' => 'user:mail',
+    'reg-date' => 'user:created',
+    'reg-since' => 'user:created:since',
+    //'user-created' => '', // Date tokens expanded below
+    'log-date' => 'user:last-login',
+    'log-since' => 'user:last-login:since',
+    //'user-last-login' => '', // Date tokens expanded below
+    //'date-in-tz' => '',
+    'account-url' => 'user:url',
+    'account-edit' => 'user:edit-url',
+  );
+
+  // Account for date tokens which need to be expanded.
+  $tokens += _token_upgrade_token_date_list('site-', 'site:date');
+  $tokens += _token_upgrade_token_date_list('', 'node:created');
+  $tokens += _token_upgrade_token_date_list('mod-', 'node:changed');
+  //$tokens += _token_upgrade_token_date_list('node-revision-', 'node:changed');
+  $tokens += _token_upgrade_token_date_list('comment-', 'comment:created');
+  $tokens += _token_upgrade_token_date_list('user-register-', 'user:created');
+  $tokens += _token_upgrade_token_date_list('user-last-login-', 'user:last-login');
+
+  return $tokens;
+}
+
+
+function _token_upgrade_token_date_list($old_token, $new_token) {
+  $tokens = array();
+  $formats = array(
+    'yyyy' => 'Y',
+    'yy' => 'y',
+    'month' => 'F',
+    'mon' => 'M',
+    'mm' => 'm',
+    'm' => 'n',
+    'ww' => 'W',
+    'date' => 'N',
+    'day' => 'l',
+    'ddd' => 'D',
+    'dd' => 'd',
+    'd' => 'j',
+  );
+  foreach ($formats as $token_format => $date_format) {
+    $tokens[$old_token . $token_format] = "$new_token:custom:$date_format";
+  }
+  $tokens[$old_token . 'raw'] = "$new_token:raw";
+  $tokens[$old_token . 'since'] = "$new_token:since";
+  return $tokens;
+}
+
+
+function token_update_token_text($text, $updates = array(), $leading = '[', $trailing = ']') {
+  $updates += _token_upgrade_token_list();
+  $regex = '/' . preg_quote($leading, '/') . '([^\s]*)' . preg_quote($trailing, '/') . '/';
+  preg_match_all($regex, $text, $matches);
+
+  foreach ($matches[1] as $index => $old_token) {
+    if (isset($updates[$old_token])) {
+      $new_token = $updates[$old_token];
+      $text = str_replace("{$leading}{$old_token}{$trailing}", "[$new_token]", $text);
+      // Also replace any tokens that have a -raw suffix.
+      $text = str_replace("{$leading}{$old_token}-raw{$trailing}", "[$new_token]", $text);
+    }
+  }
+
+  return $text;
+}
+
+
+/**
+ * Attempts to fully unserialize a string that may have been serialized multiple times.
+ */
+function _ms_products_unserialize($object) {
+  for ($i = 0; $i < 6; $i++) {
+    if (is_array($object)) {
+      return $object;
+    }
+    $object = unserialize($object);
+  }
+
+  return array();
+}
+
+
+/**
+ * Attempts to fully unserialize a string that may have been serialized multiple times.
+ */
+function _ms_membership_unserialize($object) {
+  for ($i = 0; $i < 6; $i++) {
+    if (is_array($object)) {
+      return $object;
+    }
+    $object = unserialize($object);
+  }
+
+  return array();
+}
+
+

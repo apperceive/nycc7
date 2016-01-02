@@ -1,38 +1,6 @@
 <?php
  $debug = true;
-    // Populate the order_key of existing orders
-    // Populate the first_name and last_name and email_address of existing orders
 
-    $result = db_query("SELECT oid FROM {ms_orders}");
-    if ($debug) drush_print("ms_core update 7102: " . $result->rowCount() . " orders retrieved");
-    $update_count = 0;
-    foreach ($result as $row) {
-      
-      $last_name = '';
-      $email = '';
-
-      $name = explode(' ', $row->full_name);
-      $first_name = $name[0];
-      unset($name[0]);
-
-      if (is_array($name)) {
-        $last_name = implode(' ', $name);
-      }
-
-      if ($row->uid) {
-        $account = user_load($row->uid);
-        $email = $account->mail;
-      }
-      
-      $key = ms_core_generate_order_key();
-      db_update('ms_orders')
-        ->fields(array('order_key' => $key,'first_name' => $first_name, 'last_name' => $last_name,'email_address' => $email,))
-        ->condition('oid', $row->oid)
-        ->execute();
-      
-      $update_count++;
-    }
-    if ($debug) drush_print("Updated order key & name for $update_count orders" );
  
   drush_print("running ms_core update 7309");
   
