@@ -12,46 +12,51 @@
 // target fields and kind for changes like ride_leaders to ride_current_leaders
 
 // environment exports: 
-$sourcedb = $_ENV["sourcedb"];
+//$sourcedb = $_ENV["sourcedb"];
 
 // options:
+$sourcedb = drush_get_option(array('sourcedb'), 'd6test');
+$sourceexp = drush_get_option(array('sourceexp'), '');
 $type = drush_get_option(array('type'), '');
 $kind = drush_get_option(array('kind'), 'value');
-$debug = drush_get_option(array('sql'), FALSE);
-$no = drush_get_option(array('no'), FALSE);
 $targetfield = drush_get_option(array('targetfield'), '');
 $targetkind = drush_get_option(array('targetkind'), $kind);
+$where = drush_get_option(array('where'), '');
+$where = $where ? "WHERE $where" : '';
+$debug = drush_get_option(array('sql'), FALSE);
+$no = drush_get_option(array('no'), FALSE);
 
-$sqltemp =<<<EOS
-REPLACE INTO field_data_field_XXXXX
-(entity_type,
-bundle,
-deleted,
-entity_id,
-revision_id,
-language,
-delta,
-field_YYYYY_KKKKK)
-SELECT 
-  'node',
-  node.type,
-  0,
-  node.nid,
-  node.vid,
-  'und',
-  0,
-  $sourcedb.field_XXXXX_JJJJJ
-FROM $sourcedb.content_AAAAA INNER JOIN node ON ($sourcedb.content_AAAAA.nid=node.nid AND $sourcedb.content_AAAAA.vid=node.vid);
+// source column names (note that at least one is required, even for expression)
+$args = drush_get_arguments();
+
+$srctype = $type ? 'type' : 'field';
+
+foreach ($args as $ndx => $arg) {
+  // skip scr and this script as first two args to drush scr scriptname fielda fieldb
+  if ($ndx > 1) {
+
+    $targetcol = $targetfield ? $targetfield : $arg;
+    $srctable = $srctype . "_" . ($type ? $type : $arg);
+    $expr = $sourceexp ? $sourceexp : "content_$srctable.field_{$arg}_$kind";
+
+    $sql =<<<EOS
+REPLACE INTO field_data_field_$arg (entity_type, bundle, deleted, entity_id, revision_id, language, delta, field_{$targetcol}_$targetkind) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr FROM $sourcedb.content_$srctable INNER JOIN node ON ($sourcedb.content_$srctable.nid=node.nid AND $sourcedb.content_$srctable.vid=node.vid) $where;
 EOS;
 
-$args = drush_get_arguments();
-// skip scr and this script as first two args to drush scr ./YYYYY.php fielda fieldb
-foreach ($args as $ndx => $arg) {
-  if ($ndx > 1) {
-    $sql = str_replace(array('AAAAA', 'KKKKK', 'JJJJJ', 'ZZZZZ', 'WWWWW', 'XXXXX', 'YYYYY'), array(($type ? 'ZZZZZ_WWWWW' : 'ZZZZZ_XXXXX'), $kind, $targetkind, ($type ? 'type' : 'field'), $type, $arg, ($targetfield ? $targetfield : $arg)), $sqltemp);
-    drush_print("field_copy: executing $sourcedb $type $kind $arg -> $targetfield $targetkind");
-    if ($debug) drush_print("type: $type, kind: $kind, sql: $sql");
-    if (!$no) db_query($sql)->execute();
+    drush_print("field_copy: executing $sourcedb $type $kind $arg $expr -> $targetfield $targetkind");
+    if ($debug) drush_print('Debug: defined variables ' . var_export(get_defined_vars(),1));
+    if (!$no) {
+      try {
+        db_query($sql)->execute();
+      }
+      catch (Exception $e) {
+        $error = $e->getMessage();
+        unset($e);
+        drush_print("Error: $error");
+        if ($debug) drush_print("Defined variables: " . var_export(get_defined_vars(),1));
+        else drush_print("SQL: $sql");
+      }
+    }
   }
 }
 

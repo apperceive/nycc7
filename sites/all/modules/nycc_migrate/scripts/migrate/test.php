@@ -12,7 +12,7 @@ else
   drush_print("unable to user_load(1)");
 
 // environment exports: 
-$sourcedb = $_ENV["sourcedb"];
+//$sourcedb = $_ENV["sourcedb"];
 
-drush_print("sourcedb: $sourcedb");
+//drush_print("sourcedb: $sourcedb");
 
