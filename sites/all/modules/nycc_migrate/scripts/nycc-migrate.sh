@@ -23,15 +23,20 @@ readonly productionuser="markus@nycc.org"
 readonly productionfilesdir="/var/www/html/nycc/sites/default/files/"
 readonly productiontmpdir="/tmp"
 readonly productionssh="/home/markus/.ssh/id_rsa"
+readonly sourcealias="@d6Test"
 #readonly sourcedb="d6test"
 readonly sourcedb="migtest"
-export sourcedb
 #readonly sourcefilesdir="/var/www/html/d6/sites/default/files"
 readonly sourcefilesdir="/home/markus/backups/files"
 #readonly targetalias="@markusTest"
 readonly targetalias="--root=/var/www/html/markus"
 readonly targetdb="markus"
 readonly targetdir="/var/www/html/markus/sites/default/files"
+
+# command aliases
+readonly mysql='mysql -uroot -pXt2792b8cf'
+readonly mysqldump='mysqldump -uroot -pXt2792b8cf'
+readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb"
 
 
 # TODO: check all folders and settings for validity
@@ -43,15 +48,15 @@ function nycc_migrate_init_migration() {
 # PREPARE: EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
 function nycc_migrate_backup() {
   echo "Making backup of source database..."
-  mysqldump -uroot -pXt2792b8cf $sourcedb > $tmpdir/$sourcedb-`date +%Y-%m-%d_%H-%M`.sql
+  $mysqldump $sourcedb > $tmpdir/$sourcedb-`date +%Y-%m-%d_%H-%M`.sql
 
   echo "Making backup of target database..."
-  mysqldump -uroot -pXt2792b8cf $targetdb > $tmpdir/$targetdb-`date +%Y-%m-%d_%H-%M`.sql
+  $mysqldump $targetdb > $tmpdir/$targetdb-`date +%Y-%m-%d_%H-%M`.sql
 }
 
 function nycc_migrate_export_production() {
   echo "Exporting production database..."
-  ssh $productionuser "mysqldump -uroot -pXt2792b8cf $productiondb > $productiontmpdir/production.sql"
+  ssh $productionuser "$mysqldump $productiondb > $productiontmpdir/production.sql"
   
   echo "Rsyncing production database export..."
   sudo rsync -z -e "ssh -i $productionssh" $productionuser:$productiontmpdir/production.sql $tmpdir
@@ -65,7 +70,7 @@ function nycc_migrate_sync_production_to_source() {
   sudo chown -R 775 $sourcefilesdir
 
   # these modules give us errors in drush
-  mysql -uroot -pXt2792b8cf $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
+  $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
 }
 
 # IMPORT PRODUCTION TO SOURCE DATABASE
@@ -74,9 +79,9 @@ function nycc_migrate_import_production_to_source() {
   if [ -e $tmpdir/production.sql ] 
   then
     echo "Clear source database..."
-    mysql -uroot -pXt2792b8cf -e"DROP DATABASE IF EXISTS $sourcedb; CREATE DATABASE $sourcedb;"
+    $mysql -e"DROP DATABASE IF EXISTS $sourcedb; CREATE DATABASE $sourcedb;"
     echo "Importing production database to source..."
-    mysql -uroot -pXt2792b8cf $sourcedb < $tmpdir/production.sql
+    $mysql $sourcedb < $tmpdir/production.sql
   else
     echo "ERROR: $tmpdir/production.sql does not exist."
   fi
@@ -86,7 +91,7 @@ function nycc_migrate_import_production_to_source() {
 function nycc_migrate_clear_target() {
   echo "Clear target database..."
   #TODO: TRUNCATE SPECIFIC TABLES (or use standard d7 install db export?)
-  #mysql -uroot -pXt2792b8cf -e"DROP DATABASE IF EXISTS $targetdb; CREATE DATABASE $targetdb;"
+  #$mysql -e"DROP DATABASE IF EXISTS $targetdb; CREATE DATABASE $targetdb;"
   #TODO: delete target files
 }
 
@@ -94,33 +99,39 @@ function nycc_migrate_clear_target() {
 function nycc_migrate_copy_source_to_target() {
   echo "Copying source to target..."
   # simple updates of base tables
-  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/role.sql
-  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/users.sql
-  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/users_roles.sql
-  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/node.sql
-  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/node_revision.sql
-  mysql -uroot -pXt2792b8cf $targetdb < $scriptsdir/file_managed.sql
+  $mysql $targetdb < $scriptsdir/role.sql
+  $mysql $targetdb < $scriptsdir/users.sql
+  $mysql $targetdb < $scriptsdir/users_roles.sql
+  $mysql $targetdb < $scriptsdir/node.sql
+  $mysql $targetdb < $scriptsdir/node_revision.sql
+  $mysql $targetdb < $scriptsdir/file_managed.sql
 
   # content-type page - multivalued fields
-  drush $targetalias scr $scriptsdir/field_copy.php carousel_order
-  drush $targetalias scr $scriptsdir/field_copy.php date
-  drush $targetalias scr $scriptsdir/field_copy.php --kind=fid image_cache 
+  $fieldcopy carousel_order
+  $fieldcopy date
+  $fieldcopy --kind=fid image_cache 
 
   # content-type rides single values
-  drush $targetalias scr $scriptsdir/field_copy.php --type=rides ride_description ride_type ride_select_level ride_speed ride_type ride_distance_in_miles ride_signups ride_spots ride_status ride_signups ride_token ride_timestamp
+  $fieldcopy --type=rides ride_description ride_type ride_select_level ride_speed ride_distance_in_miles ride_signups ride_spots ride_status ride_signups ride_token ride_timestamp
   
-  # non value fields
-  drush $targetalias scr $scriptsdir/field_copy.php --type=rides --kind=nid ride_cue_sheet 
-  drush $targetalias scr $scriptsdir/field_copy.php --type=rides --kind=nid --targetkind=uid --targetfield=ride_current_leaders ride_leaders   
-  drush $targetalias scr $scriptsdir/field_copy.php --type=rides --kind=uid ride_current_riders   
+  # TODO: ride_timestamp - check for invalid dates?
+  $fieldcopy --type=rides ride_timestamp --where="not content_type_rides.field_ride_timestamp_value like '0000%'"
   
-  # handle field renames
-  #drush $targetalias scr $scriptsdir/field_copy.php --type=rides --targetfield=ride_start_location_value ride_start_location   
+  
+  # non value fields in rides content table
+  $fieldcopy --type=rides --kind=nid ride_cue_sheet 
+  
+  # omit type for simple ref copies
+  $fieldcopy --kind=uid ride_current_riders   
+  $fieldcopy --kind=nid ride_leaders
+  
+  # handle field renames and simple conversions
+  $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')" ride_start_location
 
   # content-type rides multis
-  drush $targetalias scr $scriptsdir/field_copy.php --kind=fid ride_image
-  drush $targetalias scr $scriptsdir/field_copy.php --kind=uid ride_waitlist
-  drush $targetalias scr $scriptsdir/field_copy.php --kind=fid ride_attachments 
+  $fieldcopy --kind=fid ride_image
+  $fieldcopy --kind=uid ride_waitlist
+  $fieldcopy --kind=fid ride_attachments 
 
   # TODO: more content-type copies here: events, regions, cuesheets, mb (forumn topic), obride
   # ALSO: comments (forum and ?)
@@ -138,11 +149,12 @@ function nycc_migrate_cleanup_target() {
   # convert files for d7 use
   drush $targetalias scr $scriptsdir/users-convert-pictures.php > $tmpdir/users-convert-pictures.out
   
-  # TODO: Additional processing:
-  # TODO: concat d6 ride_from and (stripped) ride_from_select into ride_start_location on d7
-  # TODO: strip map link from ride_from_select?
+  echo "Load/save nodes..."
   # load/save all nodes and users to trigger other modules hooks?
-  # in particular, check that profile2 pid's work as expected. what is test for this?
+  drush $targetalias scr $scriptsdir/node-convert-load-save.php > $tmpdir/node-convert-load-save.out
+
+  # TODO: Additional processing:
+  # check that profile2 pid's work as expected. what is test for this?
 }
 
 # TODO: delete migrate related objects not part of site (eg temp tables)
@@ -155,13 +167,13 @@ function nycc_migrate_cleanup_migration() {
 # TODO: output basic counts for comparison
 function nycc_migrate_report_target() {
   echo "nycc_migrate_report_target"
-  mysql -uroot -pXt2792b8cf -e"SELECT COUNT(*) as users FROM $targetdb.users; SELECT COUNT(*) as nodes FROM $targetdb.node; "
+  $mysql -e"SELECT COUNT(*) as users FROM $targetdb.users; SELECT COUNT(*) as nodes FROM $targetdb.node; "
 }
 
 # TODO: output basic counts for comparison
 function nycc_migrate_report_source() {
   echo "nycc_migrate_report_source"
-  mysql -uroot -pXt2792b8cf -e"SELECT COUNT(*) as users FROM $sourcedb.users; SELECT COUNT(*) as nodes FROM $sourcedb.node; "
+  $mysql -e"SELECT COUNT(*) as users FROM $sourcedb.users; SELECT COUNT(*) as nodes FROM $sourcedb.node; "
 }
 
 function nycc_migrate_usage () {
@@ -331,8 +343,14 @@ then
   echo "";
 else
   echo "Test run."
-  echo "Exec: drush $targetalias scr $scriptsdir/test.php"
-  drush $targetalias scr $scriptsdir/test.php
+  
+  
+  #echo "Exec: $drush $targetalias scr $scriptsdir/test.php"
+  #drush $targetalias scr $scriptsdir/test.php
+  
+  drush $targetalias scr $scriptsdir/node-convert-load-save.php
+
+
 fi
 
 

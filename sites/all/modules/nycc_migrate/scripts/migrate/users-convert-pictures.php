@@ -75,7 +75,7 @@
           db_update('file_managed')->fields(array('uid' => $uid))->condition('fid', $fid)->execute();
         $fmupdated++;
       } // bad uid 
-      $fmexisting++;      
+      $fmexisting++;
     } // $r
     
     if (!$fid) {
