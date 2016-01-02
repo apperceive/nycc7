@@ -8,9 +8,9 @@ dependencies[] = ms_coupons
 dependencies[] = ms_affiliates
 configure = admin/moneysuite/ms_affiliate_coupons
 
-; Information added by Drupal.org packaging script on 2015-11-20
+; Information added by Drupal.org packaging script on 2015-12-27
 version = "7.x-10.x-dev"
 core = "7.x"
 project = "moneysuite"
-datestamp = "1448040586"
+datestamp = "1451215142"
 

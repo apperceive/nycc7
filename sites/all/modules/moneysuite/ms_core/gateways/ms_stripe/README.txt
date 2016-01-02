@@ -19,7 +19,8 @@ INSTALLING MS STRIPE MODULE
 2. Enable MS Stripe and Libraries modules as usual: /admin/modules
 
 3. Download Stripe library from https://github.com/stripe/stripe-php and
-   extract it to sites/all/libraries/stripe-php
+   extract it to sites/all/libraries/stripe-php (right now working with
+   stripe version 1.18.0 instead of latest). TODO: update stripe version
 
 CONFIGURING PAYMENT METHOD
 --------------------------
