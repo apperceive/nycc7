@@ -71,9 +71,8 @@
       $fid = $r->fid;
       if ($r->uid !== $uid) {
         drush_print("UPDATE FILE_MANAGED: update file_managed SET uid = $uid WHERE fid = $fid;");
-        if (!$debug) {
+        if (!$debug) 
           db_update('file_managed')->fields(array('uid' => $uid))->condition('fid', $fid)->execute();
-        }
         $fmupdated++;
       } // bad uid 
       $fmexisting++;      
@@ -84,7 +83,10 @@
       $time = time();
       drush_print("INSERT FILE_MANAGED: uid: $uid, filename: $filename, uri: $uri, filemime: $imgtype, filesize: $filesize, timestamp: $time");
       if (!$debug) {
-         $fid = db_insert('file_managed')->fields(array('uid' => $uid, 'filename' => $filename, 'uri' => $uri, 'filemime' => $imgtype, 'filesize' => $filesize, 'timestamp' => $time))->execute();
+        // test for existing primary key (uri)
+        $q = db_select('file_managed', 'fm')->fields('fm', array('uid', 'fid'))->condition('uri', $fmuri)->execute();
+        if (!$q)
+          $fid = db_insert('file_managed')->fields(array('uid' => $uid, 'filename' => $filename, 'uri' => $uri, 'filemime' => $imgtype, 'filesize' => $filesize, 'timestamp' => $time))->execute();
       }
       if ($debug)
         $fid = "TBD";

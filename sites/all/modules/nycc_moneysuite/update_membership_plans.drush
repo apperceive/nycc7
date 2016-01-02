@@ -1,0 +1,346 @@
+<?php
+/* TODO:
+ * ms_membership_update_dependencies
+ *
+ */
+ $debug = true;
+ 
+  drush_print("running ms_membership update 7701");
+  $result = db_query("SELECT mpid, name FROM {ms_membership_plans} ORDER BY weight ASC");
+  
+  if ($debug) drush_print("update 7701: " . $result->rowCount() . " membership plans retreived");
+  
+  foreach ($result as $product) {
+    $product->data = unserialize($product->data);
+    if ($debug) drush_print("Updating plan " . $product->name );
+
+    if (isset($product->data['override_settings']) AND is_array($product->data['override_settings'])) {
+      $old_override_settings = $product->data['override_settings'];
+      $new_override_settings = array();
+
+      foreach ($old_override_settings as $info) {
+        if ($info['override']) {
+          foreach ($info['settings'] as $key => $value) {
+            if (is_array($value)) {
+              foreach ($value as $child_key => $child_value) {
+                if (!is_array($child_value)) {
+                  if ($child_value != variable_get($child_key, '')) {
+                    $new_override_settings[$child_key] = $child_value;
+                  }
+                }
+              }
+            }
+            else {
+              if ($value != variable_get($key, '')) {
+                $new_override_settings[$key] = $value;
+              }
+            }
+          }
+        }
+      }
+
+      $product->data['override_settings'] = $new_override_settings;
+
+      $num_updated = db_update('ms_membership_plans')
+        ->fields(array('data' => serialize($product->data),))
+        ->condition('mpid', $product->mpid)
+        ->execute();
+        
+      if ($debug) drush_print("ms_membership update 7703 - upated $num_updated ms_membership_plans for Product: " . $product->name);  
+    } else {
+      if ($debug) drush_print("no override settings for Product: " . $product->name );
+    }
+  }
+
+
+
+  drush_print("running ms_membership update 7703");
+    // Set the default to an empty array
+    $updated_count = db_update('ms_membership_plans')
+      ->fields(array('deny_roles' => serialize(array()),))
+      ->isNull('deny_roles')
+      ->execute();
+  
+  if ($debug) drush_print("Updated deny_roles field for $updated_count plans" );
+
+  drush_print("running ms_membership update 7705");
+  module_load_include('module', 'ms_core');
+  module_load_include('inc', 'ms_core', 'ms_core.recurring');
+  module_load_include('php', 'ms_core', 'ms_core.classes');
+  // Update the current payments for all of the memberships to match the recurring schedules for the order
+  $result = db_query("SELECT * FROM {ms_memberships}");
+  $updated_count =0;
+  foreach ($result as $membership) {
+    if ($membership->oid AND $order = ms_core_order_load($membership->oid)
+      AND $recurring_schedule = ms_core_load_recurring_schedule($order->oid)
+      AND !empty($recurring_schedule->current_payments)
+    ) {
+      //if ($debug) drush_print( "updating membership with oid ". $membership->oid );
+      $updated_count++;
+       db_update('ms_memberships')
+        ->fields(array('current_payments' => $recurring_schedule->current_payments,))
+        ->condition('oid', $order->oid)
+        ->execute();
+    }
+  }
+
+  if ($debug) drush_print( "Rebuilt the memberships to fix the current payments counter. Updated $updated_count Memberships");
+
+
+  drush_print("running ms_membership_update_7801");
+
+  if (!module_exists('ms_products')) {
+    module_enable(array('ms_products'));
+  }
+  drush_print( t('Made sure ms_products is enabled.'));
+
+
+  drush_print( " running ms_membership_update_7802") ;
+  module_load_include('inc', 'ms_membership', 'ms_membership.migrate');
+
+  $skus = array();
+  $result = db_query("SELECT * FROM {ms_membership_plans}");
+  if ($debug) drush_print("update 7802: " . $result->rowCount() . " membership plans retreived");
+  foreach ($result as $plan) {
+    // Move the fields that aren't natively supported into the data array.
+    $plan->data = unserialize($plan->data);
+    $plan->data['show_registration'] = $plan->show_registration;
+    $plan->data['show_account'] = $plan->show_account;
+    $plan->data['start_grant_roles'] = unserialize($plan->start_grant_roles);
+    $plan->data['start_remove_roles'] = unserialize($plan->start_remove_roles);
+    $plan->data['expire_grant_roles'] = unserialize($plan->expire_grant_roles);
+    $plan->data['expire_remove_roles'] = unserialize($plan->expire_remove_roles);
+    $plan->data['register_urls'] = unserialize($plan->register_urls);
+    $plan->data['grant_credit'] = variable_get('ms_membership_grant_credit', TRUE);
+
+    $plan->cart_type = ($plan->recurring) ? 'recurring' : 'cart';
+    $plan->bundle = 'ms_membership';
+    $plan->sku = 'ms_membership_' . $plan->mpid;
+    $skus[$plan->mpid] = $plan->sku;
+    ms_core_product_id_change($plan->bundle . '-' . $plan->mpid, $plan->bundle . '-' . $plan->sku);
+    $plan->recurring_schedule = array(
+      'total_occurrences' => $plan->total_occurrences,
+      'main_amount' => $plan->main_amount,
+      'main_length' => $plan->main_length,
+      'main_unit' => $plan->main_unit,
+      'has_trial' => ($plan->trial_length) ? TRUE : FALSE,
+      'trial_amount' => $plan->trial_amount,
+      'trial_length' => $plan->trial_length,
+      'trial_unit' => $plan->trial_unit,
+      'fixed_date' => $plan->fixed_date,
+      'fixed_date_discount' => $plan->fixed_date_discount,
+      'fixed_date_type' => $plan->fixed_date_type,
+      'fixed_date_string' => $plan->fixed_date_string,
+    );
+
+    // Fix the modify options.
+    $modify_options = array();
+    $plan->modify_options = _ms_membership_unserialize($plan->modify_options);
+    foreach ($plan->modify_options as $key => $value) {
+      $modify_options['ms_membership_' . $key] = $value;
+    }
+
+    $plan->modify_options = serialize($modify_options);
+    
+    $updated_fields = array(
+              'sku' => $plan->sku,
+              'bundle' => $plan->bundle,
+              'uid' => $plan->uid,
+              'name' => $plan->name,
+              'cart_type' => $plan->cart_type,
+              'description' => $plan->description,
+              'signup_mail_subject' => _ms_membership_migrate_tokens($plan->signup_mail_subject),
+              'signup_mail_body' => _ms_membership_migrate_tokens($plan->signup_mail_body),
+              'eot_mail_subject' => _ms_membership_migrate_tokens($plan->eot_mail_subject),
+              'eot_mail_body' => _ms_membership_migrate_tokens($plan->eot_mail_body),
+              'cancel_mail_subject' => _ms_membership_migrate_tokens($plan->cancel_mail_subject),
+              'cancel_mail_body' => _ms_membership_migrate_tokens($plan->cancel_mail_body),
+              'modify_mail_subject' => _ms_membership_migrate_tokens($plan->modify_mail_subject),
+              'modify_mail_body' => _ms_membership_migrate_tokens($plan->modify_mail_body),
+              'expiring_mail_subject' => _ms_membership_migrate_tokens($plan->expiring_mail_subject),
+              'expiring_mail_body' => _ms_membership_migrate_tokens($plan->expiring_mail_body),
+              'expiring_mail_days' => $plan->expiring_mail_days,
+              'weight' => $plan->weight,
+              'recurring_schedule' => serialize($plan->recurring_schedule),
+              'modify_options' => $plan->modify_options,
+              'allow_roles' => $plan->allow_roles,
+              'deny_roles' => $plan->deny_roles,
+              'expire_when' => $plan->expire_when,
+              'data' => serialize($plan->data),
+    );
+    
+    $q = db_select('ms_products_plans', 'mp')
+          ->fields('mp', array(pid))
+          ->condition('sku', $plan->sku)  
+          ->execute();
+        
+    if ($q) {
+      
+      foreach ($q as $this_plan) {
+        if ($debug) drush_print("update 7701:  exiting plan with ID " . $plan->pid . " found for sku: " . $plan->sku);
+        db_update('ms_products_plans')
+        ->fields($updated_fields)
+        ->condition('pid', $this_plan->pid)
+        ->execute();        
+      }
+    } else {
+      // Insert into the ms_products_plans database.
+      if ($debug) drush_print("update 7701:  No plan found for sku: " . $plan->sku . ". inserting new plan");
+      db_insert('ms_products_plans')
+        ->fields($updated_fields)
+        ->execute();          
+    }
+
+    // Migrate translation strings.
+    if (module_exists('i18n_string')) {
+      $local_result = db_select('locales_source', 'ls')
+                      ->fields('ls')
+                      ->condition('textgroup', 'ms_membership_plan')
+                      ->execute();
+      if ($debug) drush_print("update 7802: " . $local_result->rowCount() . " locales_source retrieved");
+      foreach ($local_result as $source) {
+        // Update the tokens for these strings.
+        $local_target_result = db_select('locales_target', 'lt')
+          ->fields('lt')
+          ->condition('lid', $source->lid)
+          ->execute();
+        foreach ($local_target_result as $target) {
+          db_update('locales_target')
+            ->fields(array(
+              'translation' => _ms_membership_migrate_tokens($target->translation),
+            ))
+            ->condition('lid', $target->lid)
+            ->condition('language', $target->language)
+            ->execute();
+        }
+      }
+      module_load_install('i18n_string');
+
+      i18n_string_install_update_context('ms_membership_plan:m_plan:' . $plan->mpid . ':*', 'ms_products_plan:plan:' . $plan->sku . ':*');
+    }
+  }
+
+  // Now we move over the memberships.
+  $result = db_query("SELECT * FROM {ms_memberships}");
+  if ($debug) drush_print("update 7802: " . $result->rowCount() . " memberships retrieved");
+  $membership_count = 0;
+  $new_record_count = 0;
+  foreach ($result as $membership) {
+    $updated_fields = array(
+        'oid' => $membership->oid,
+        'uid' => $membership->uid,
+        'sku' => !empty($skus[$membership->mpid]) ? $skus[$membership->mpid] : 'unkown-' . $membership->mpid,
+        'bundle' => 'ms_membership',
+        'status' => _ms_membership_migrate_status($membership->status),
+        'expiration' => $membership->expiration,
+        'start_date' => $membership->start_date,
+        'current_payments' => $membership->current_payments,
+        'max_payments' => $membership->max_payments,
+        'data' => serialize(array()),
+    );
+    $q = db_select('ms_products_purchases', 'mp')
+          ->fields('mp', array(id))
+          ->condition('uid', $membership->uid)
+          ->condition('oid', $membership->oid)
+          ->execute();
+        
+    if ($q) {
+      foreach ($q as $this_plan) {
+        //if ($debug) drush_print("update 7802: existing product purchase (id: " . $this_plan->id . ") found for user: " . $membership->uid . " and order: " .  $membership->oid);
+        $membership_count++;
+        db_update('ms_products_purchases')
+        ->fields($updated_fields)
+        ->condition('id', $this_plan->id)
+        ->execute();        
+      }
+    } else {
+      $new_record_count++;
+      if ($debug) drush_print("update 7802: No product purchase  record found for user: " . $membership->uid . " and order: " .  $membership->oid);
+      // Insert into the ms_products_plans database.
+    db_insert('ms_products_purchases')
+            ->fields($updated_fields)
+            ->execute();          
+    } 
+  }
+  
+  if ($debug) drush_print("update 7802: $membership_count product purchase  records. $new_record_count new product purchase created");
+
+
+  // Migrate tokens for admin emails.
+  variable_set('ms_membership_cancelled_membership_mail_body',
+    _ms_membership_migrate_tokens(variable_get('ms_membership_cancelled_membership_mail_body', '')));
+  variable_set('ms_membership_cancelled_membership_mail_subject',
+    _ms_membership_migrate_tokens(variable_get('ms_membership_cancelled_membership_mail_subject', '')));
+  variable_set('ms_membership_new_membership_mail_body',
+    _ms_membership_migrate_tokens(variable_get('ms_membership_new_membership_mail_body', '')));
+  variable_set('ms_membership_new_membership_mail_subject',
+    _ms_membership_migrate_tokens(variable_get('ms_membership_new_membership_mail_subject', '')));
+
+
+
+  drush_print( t('Successfully migrated membership plans and memberships to use the MS Products API.'));
+
+
+//HELPER FUNCTIONS
+
+
+
+/**
+ * Attempts to fully unserialize a string that may have been serialized multiple times.
+ */
+function _ms_products_unserialize($object) {
+  for ($i = 0; $i < 6; $i++) {
+    if (is_array($object)) {
+      return $object;
+    }
+    $object = unserialize($object);
+  }
+
+  return array();
+}
+
+
+/**
+ * Recursively extracts the textarea form elements.
+ */
+function _ms_core_extract_token_variables($parent, &$settings) {
+  foreach (element_children($parent) as $child_name) {
+    if (!empty($parent[$child_name]['#type']) && $parent[$child_name]['#type'] == 'textarea') {
+      $settings[$child_name] = $parent[$child_name];
+    }
+    _ms_core_extract_token_variables($parent[$child_name], $settings);
+  }
+}
+/**
+ * Removes a directory recursively
+ */
+function _ms_membership_rrmdir($dir) {
+  if (is_dir($dir)) {
+    foreach (glob($dir . '/*') as $file) {
+      if (is_dir($file))
+        _ms_membership_rrmdir($file);
+      else
+        unlink($file);
+    }
+    rmdir($dir);
+  }
+}
+
+
+/**
+ * Attempts to fully unserialize a string that may have been serialized multiple times.
+ */
+function _ms_membership_unserialize($object) {
+  for ($i = 0; $i < 6; $i++) {
+    if (is_array($object)) {
+      return $object;
+    }
+    $object = unserialize($object);
+  }
+
+  return array();
+}
+
+?>
+
+  
