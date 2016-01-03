@@ -41,7 +41,9 @@ readonly mysqldump='mysqldump -uroot -pXt2792b8cf'
 readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb"
 
 
-# TODO: check all folders and settings for validity
+# INITIALIZE MIGRATION
+# TODO: sanity check all folders and settings, issue warnings if need be
+# NOTE: this is only for migration objects, not source or target - assume no backup yet
 function nycc_migrate_init_migration() {
   echo "Migration init..."
   mkdir -p $tmpdir
@@ -50,13 +52,16 @@ function nycc_migrate_init_migration() {
   echo "$@"
 }
 
-# PREPARE: EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
-function nycc_migrate_backup() {
+# EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
+function nycc_migrate_backup_source_and_target() {
   echo "Making backup of source database..."
   $mysqldump $sourcedb > $tmpdir/$sourcedb-$timestamp.sql
 
   echo "Making backup of target database..."
   $mysqldump $targetdb > $tmpdir/$targetdb-$timestamp.sql
+  
+  # TODO: backup sourcedirs and targetdir's
+  
 }
 
 function nycc_migrate_export_production() {
@@ -74,7 +79,8 @@ function nycc_migrate_sync_production_to_source() {
   sudo chown -R nyccftp:apache $sourcefilesdir
   sudo chown -R 775 $sourcefilesdir
 
-  # these modules give us errors in drush
+  # NOTE: these modules give us errors in drush so turn them off
+  # NOTE: some are a problem on the site too, so leave off?
   $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
 }
 
@@ -113,7 +119,7 @@ function nycc_migrate_init_target() {
   drush $targetalias rules-disable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
  }
 
-# RUN MIGRATION "COPY" SCRIPTS FROM SOURCE TO TARGET
+# RUN MIGRATION sql and drush/php SCRIPTS (using SOURCE TO TARGET)
 function nycc_migrate_copy_source_to_target() {
   echo "Copying source to target..."
   # simple updates of base tables
@@ -151,15 +157,43 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --kind=uid ride_waitlist
   $fieldcopy --kind=fid ride_attachments 
 
-  # new ride fields not populated at this time
+  # new ride fields not populated at this time - skipping - do we need to init?
   # field_data_field_ride_open_signup_days
   # field_data_field_ride_rwgps_link
 
-  # Events
-  # field_data_field_event_category
-  # field_data_field_event_spots
-  # field_data_field_event_view_signups
+  # Region
+  $fieldcopy --type=region --kind=lid region_location 
   
+  # Events
+  # TODO: skip? looks like this may be different from similarly name souce field? 
+  # field_data_field_event_view_signups
+  $fieldcopy event_category event_spots
+  
+  
+  # Profile
+  field_data_field_address                                          # format
+  # field_data_field_age_range
+  # field_data_field_city                                           # format
+  # field_data_field_contact_name                                   # format
+  # field_data_field_country                                        # format
+  # field_data_field_email_list_flag
+  # field_data_field_emergency_contact_no                           # format
+  # field_data_field_first_name                                     # format
+  # field_data_field_gender
+  # field_data_field_last_name                                      # format
+  # field_data_field_phone                                          # format
+  # field_data_field_profile_extra                                  # format
+  # field_data_field_profile_last_eny_year                          # format
+  # field_data_field_publish_address_flag 
+  # field_data_field_publish_email_flag
+  # field_data_field_publish_phone_flag
+  # field_data_field_registration_date_import
+  # field_data_field_review_last_date                               # format
+  # field_data_field_state                                          # format
+  # field_data_field_terms_of_use
+  # field_data_field_waiver_last_date                               # format
+  # field_data_field_zip                                            # format
+
   # cue-sheets
   # field_data_field_cue_sheet_attachments
   # field_data_field_cue_sheet_author
@@ -175,34 +209,6 @@ function nycc_migrate_copy_source_to_target() {
   # field_data_field_cuesheet_waypoints
   # field_data_field_vertical_gain?
   
-  # region
-  # field_data_field_region_location
-  
-  # profile
-  # field_data_field_address
-  # field_data_field_age_range
-  # field_data_field_city
-  # field_data_field_contact_name
-  # field_data_field_country
-  # field_data_field_email_list_flag
-  # field_data_field_emergency_contact_no
-  # field_data_field_first_name
-  # field_data_field_gender
-  # field_data_field_last_name
-  # field_data_field_phone
-  # field_data_field_profile_extra
-  # field_data_field_profile_last_eny_year
-  # field_data_field_publish_address_flag
-  # field_data_field_publish_email_flag
-  # field_data_field_publish_phone_flag
-  # field_data_field_registration_date_import
-  # field_data_field_review_last_date
-  # field_data_field_state
-  # field_data_field_terms_of_use
-  # field_data_field_waiver_last_date
-  # field_data_field_zip  
-  
-
   
   # TODO: more content-type copies here: mb (forumn topic)?, obride?
   # ALSO: comments (forum and ?)
@@ -212,6 +218,14 @@ function nycc_migrate_copy_source_to_target() {
   echo "Copying files from source to target..."
   rsync --recursive --update --quiet --delete $sourcedir $targetdir
 }
+
+function nycc_migrate_cleanup_source() {
+  echo "Cleaning up source..."
+  # NOTE: these modules give us errors in drush so we turned them off during migration
+  # NOTE: some are a problem on the site too, so leave off?
+  # $mysql $sourcedb -e"UPDATE system SET status = 1 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');  
+}
+
 
 # RUN MIGRATION "CLEANUP" SCRIPTS ON TARGET
 function nycc_migrate_cleanup_target() {
@@ -287,7 +301,7 @@ Usage: $(basename $0) [-options] [site] [user]
     -t -0           test
     -v              verbose (nothing extra yet)
     -w -7           cleanup target
-    -x -8           cleanup migration
+    -x -8           cleanup migration (and source)
     -y              source report
     -z              target report
     -h              this usage help text
@@ -365,7 +379,7 @@ if [ -z "$backups" ]
 then
   echo "Skipped: Backups (-b)"
 else
-  nycc_migrate_backup  >> $logfile
+  nycc_migrate_backup_source_and_target  >> $logfile
 fi
 
 
@@ -404,7 +418,7 @@ fi
 
 if [ -z "$cleanup_target" ]
 then
-  echo "Skipped: Cleanup target (-w)"
+  echo "Skipped: Cleanup starget (-w)"
 else
   nycc_migrate_cleanup_target >> $logfile
 fi
@@ -412,8 +426,9 @@ fi
 
 if [ -z "$cleanup_migration" ]
 then
-  echo "Skipped: Cleanup migration (-x)"
+  echo "Skipped: Cleanup migration (and source) (-x)"
 else
+  nycc_migrate_cleanup_source >> $logfile
   nycc_migrate_cleanup_migration >> $logfile
 fi
 
@@ -441,11 +456,8 @@ then
 else
   echo "Test run."
   
-   echo "Cleaning up ride descriptions"
-  drush $targetalias vset nycc_email_trap_exclude_roles notester
-  drush $targetalias vset nycc_email_trap_enabled 0
-  
-
+   echo "Ccpy events"
+  $fieldcopy event_category event_spots
 
 fi
  
