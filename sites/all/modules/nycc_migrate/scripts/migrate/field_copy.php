@@ -25,7 +25,7 @@ $where = drush_get_option(array('where'), '');
 $where = $where ? "WHERE $where" : '';
 $debug = drush_get_option(array('sql'), FALSE);
 $no = drush_get_option(array('no'), FALSE);
-$addcol = drush_get_option(array('addcol'), "");
+$addcol = drush_get_option(array('addcol'), "");   // extra cols for format text fields, etc
 
 $extracol = "";
 $extraval = "";

@@ -174,33 +174,27 @@ function nycc_migrate_copy_source_to_target() {
   # TODO: skip? looks like this may be different from similarly name souce field? 
   # field_data_field_event_view_signups
   $fieldcopy event_category event_spots
-  
-  
+
   # Profile
-  field_data_field_address                                          # format
-  # field_data_field_age_range
-  # field_data_field_city                                           # format
-  # field_data_field_contact_name                                   # format
-  # field_data_field_country                                        # format
-  # field_data_field_email_list_flag
-  # field_data_field_emergency_contact_no                           # format
-  # field_data_field_first_name                                     # format
-  # field_data_field_gender
-  # field_data_field_last_name                                      # format
-  # field_data_field_phone                                          # format
-  # field_data_field_profile_extra                                  # format
-  # field_data_field_profile_last_eny_year                          # format
-  # field_data_field_publish_address_flag 
-  # field_data_field_publish_email_flag
-  # field_data_field_publish_phone_flag
-  # field_data_field_registration_date_import
-  # field_data_field_review_last_date                               # format
-  # field_data_field_state                                          # format
-  # field_data_field_terms_of_use
-  # field_data_field_waiver_last_date                               # format
-  # field_data_field_zip                                            # format
+  $fieldcopy --type=profile age_range, email_list_flag, gender, publish_address_flag, publish_email_flag, publish_phone_flag, registration_date_import, terms_of_use
+  
+  # content-type rides single values with formats
+  $fieldcopy --type=rides --addcol="field_city_format,5" city 
+  $fieldcopy --type=rides --addcol="field_contact_name_format,5" contact_name 
+  $fieldcopy --type=rides --addcol="field_country_format,5" country 
+  $fieldcopy --type=rides --addcol="field_emergency_contact_no_format,5" emergency_contact_no 
+  $fieldcopy --type=rides --addcol="field_first_name_format,5" first_name 
+  $fieldcopy --type=rides --addcol="field_profile_last_eny_year_format,5" profile_last_eny_year 
+  $fieldcopy --type=rides --addcol="field_last_name_format,5" last_name 
+  $fieldcopy --type=rides --addcol="field_phone_format,5" phone 
+  $fieldcopy --type=rides --addcol="field_profile_extra_format,5" profile_extra 
+  $fieldcopy --type=rides --addcol="field_review_last_date_format,5" review_last_date 
+  $fieldcopy --type=rides --addcol="field_state_format,5" state 
+  $fieldcopy --type=rides --addcol="field_waiver_last_date_format,5" waiver_last_date 
+  $fieldcopy --type=rides --addcol="field_zip_format,5" zip
 
   # cue-sheets
+  # TODO: who has formats?
   # field_data_field_cue_sheet_attachments
   # field_data_field_cue_sheet_author
   # field_data_field_cue_sheet_difficulty
