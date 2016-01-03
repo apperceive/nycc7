@@ -2,7 +2,7 @@
 
 // used for testing drush commands
 
-drush_print("drush test");
+drush_print("drush test - simple test to load user 1 and display name");
 
 $u = user_load(1);
 
