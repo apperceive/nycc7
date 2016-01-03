@@ -1,4 +1,4 @@
-
+use $targetdb;
 /*
 
 Clean up obsolete tables from initial migration/upgrate

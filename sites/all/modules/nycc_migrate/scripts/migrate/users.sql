@@ -2,7 +2,7 @@
 DELETE FROM users WHERE uid > 1;
 
 
-REPLACE INTO `users` (
+REPLACE INTO $targetdb`users` (
 `uid`,
 `name`,
 `pass`,
@@ -37,6 +37,6 @@ SELECT
 `users`.`init`,
 `users`.`data`,
 0
-FROM `d6test`.`users`
+FROM $sourcedb.`users`
 WHERE (status > 0) AND (uid > 1) /*AND ((UNIX_TIMESTAMP()-access) > 5*365*24*60*60)*/
 ;

@@ -1,4 +1,6 @@
 /* OBSOLETE: update ride field formats */
+
+
 /*
 UPDATE field_data_field_ride_description SET field_ride_description_format = 5 WHERE field_ride_description_format IS NULL;
 UPDATE field_data_field_ride_speed SET field_ride_speed_format = 7 WHERE field_ride_speed_format IS NULL;

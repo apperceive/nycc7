@@ -1,4 +1,4 @@
-REPLACE INTO `comment`
+REPLACE INTO $targetdb`comment`
 (`cid`,
 `pid`,
 `nid`,
@@ -30,4 +30,4 @@ SELECT `comments`.`cid`,
     'und',
     `comments`.`timestamp`,
     UUID()
-FROM `d6test`.`comments`;
+FROM $sourcedb.`comments`;

@@ -1,4 +1,4 @@
-replace INTO `node_revision`
+replace INTO $targetdb`node_revision`
 (`nid`,
 `vid`,
 `uid`,
@@ -19,7 +19,7 @@ SELECT `node_revisions`.`nid`,
     `node`.`comment`,
     `node`.`promote`,
     `node`.`sticky`
-FROM `d6test`.`node_revisions` INNER JOIN `node` ON node_revisions.nid=node.nid AND node_revisions.vid=node.vid;
+FROM $sourcedb`node_revisions` INNER JOIN `node` ON node_revisions.nid=node.nid AND node_revisions.vid=node.vid;
 
 
 

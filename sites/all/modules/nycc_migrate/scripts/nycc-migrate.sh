@@ -36,8 +36,9 @@ readonly logfile="$tmpdir/migrate.log"
 readonly timestamp="`date +%Y-%m-%d_%H-%M`"
 
 # command aliases
-readonly mysql='mysql -uroot -pXt2792b8cf'
+# readonly mysql='mysql -uroot -pXt2792b8cf'
 readonly mysqldump='mysqldump -uroot -pXt2792b8cf'
+readonly mysql="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
 readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb"
 
 
@@ -101,7 +102,9 @@ function nycc_migrate_import_production_to_source() {
 function nycc_migrate_init_target() {
   echo "Clear target database..."
 
-  $mysql $targetdb < $scriptsdir/target_init.sql
+  # $mysql $targetdb < $scriptsdir/target_init.sql
+  # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
+  $mysql $scriptsdir/target_init.sql
   
   # TODO: also clear target file folders? optional
   echo "Deleting target files..."
@@ -123,13 +126,13 @@ function nycc_migrate_init_target() {
 function nycc_migrate_copy_source_to_target() {
   echo "Copying source to target..."
   # simple updates of base tables
-  $mysql $targetdb < $scriptsdir/role.sql
-  $mysql $targetdb < $scriptsdir/users.sql
-  $mysql $targetdb < $scriptsdir/users_roles.sql
-  $mysql $targetdb < $scriptsdir/node.sql
-  $mysql $targetdb < $scriptsdir/node_revision.sql
-  $mysql $targetdb < $scriptsdir/file_managed.sql
-  $mysql $targetdb < $scriptsdir/comments.sql
+  $mysql $scriptsdir/role.sql
+  $mysql $scriptsdir/users.sql
+  $mysql $scriptsdir/users_roles.sql
+  $mysql $scriptsdir/node.sql
+  $mysql $scriptsdir/node_revision.sql
+  $mysql $scriptsdir/file_managed.sql
+  $mysql $scriptsdir/comments.sql
 
   # content-type page - multivalued fields
   $fieldcopy carousel_order
@@ -164,7 +167,7 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --kind=uid ride_waitlist
   $fieldcopy --kind=fid ride_attachments 
   
-  # new ride fields not populated at this time - skipping - do we need to init?
+  # TODO: new ride fields not populated at this time - skipping - do we need to init?
   # field_data_field_ride_open_signup_days
   # field_data_field_ride_rwgps_link
 
@@ -172,14 +175,13 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=region --kind=lid region_location 
   
   # Events
+  $fieldcopy event_category event_spots
   # TODO: skip? looks like this may be different from similarly name souce field? 
   # field_data_field_event_view_signups
-  $fieldcopy event_category event_spots
 
   # Profile
   $fieldcopy --type=profile age_range, email_list_flag, gender, publish_address_flag, publish_email_flag, publish_phone_flag, registration_date_import, terms_of_use
   
-  # content-type profile single values with formats
   $fieldcopy --type=profile --addcol="field_city_format,5" city 
   $fieldcopy --type=profile --addcol="field_contact_name_format,5" contact_name 
   $fieldcopy --type=profile --addcol="field_country_format,5" country 
@@ -194,26 +196,21 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=profile --addcol="field_waiver_last_date_format,5" waiver_last_date 
   $fieldcopy --type=profile --addcol="field_zip_format,5" zip
 
-  # cue-sheets
-  # TODO: who has formats?
-  # field_data_field_cue_sheet_attachments
-  # field_data_field_cue_sheet_author
-  # field_data_field_cue_sheet_difficulty
-  # field_data_field_cue_sheet_rwgps_link
-  # field_data_field_cuesheet_distance
-  # field_data_field_cuesheet_levels
-  # field_data_field_cuesheet_rating
-  # field_data_field_cuesheet_region
-  # field_data_field_cuesheet_signature_route
-  # field_data_field_cuesheet_status2
-  # field_data_field_cuesheet_tags
-  # field_data_field_cuesheet_waypoints
-  # field_data_field_vertical_gain?
-  
+  $fieldcopy --type="cue-sheet" cuesheet_rating cuesheet_distancecuesheet_status2 cuesheet_levels cue_sheet_difficulty
+
+  $fieldcopy --kind=nid cuesheet_region
+  $fieldcopy --kind=tid cuesheet_tags
+  $fieldcopy --type="cue-sheet" --kind=fid cue_sheet_attachments
+
+  $fieldcopy --type="cue-sheet" --addcol="field_data_field_cuesheet_waypoints_format,5" cuesheet_waypoints
+  $fieldcopy --type="cue-sheet" --addcol="field_data_field_cuesheet_sheet_author_format,5" sheet_author
+  $fieldcopy --type="cue-sheet" --addcol="field_data_field_vertical_gain_format,5" vertical_gain
+  $fieldcopy --type="cue-sheet" --addcol="body_format,5" body
+  $fieldcopy --type="cue-sheet" --targetfield=ride_start_location --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
+
+  # field_data_field_cue_sheet_rwgps_link                 ### link
   
   # TODO: more content-type copies here: obride, others?
-  # ALSO: comments (forum and ?)
-  
   
   # copy files from $source to $target
   echo "Copying files from source to target..."
@@ -234,7 +231,7 @@ function nycc_migrate_cleanup_target() {
 
   # cleanup rides issues such as description formats
   echo "Cleaning up rides descriptions..."
-  $mysql $targetdb < $scriptsdir/node-rides-formats.sql
+  $mysql $scriptsdir/node-rides-formats.sql
 
   echo "Convert passwords..."
   # convert users passwords for use with d7
@@ -301,10 +298,11 @@ Usage: $(basename $0) [-options] [site] [user]
     -s              source backup (not implemented yet)
     -t -0           test
     -v              verbose (nothing extra yet)
-    -w -7           cleanup target
-    -x -8           cleanup migration (and source)
-    -y              source report
-    -z              target report
+    -w -7           cleanup source
+    -x -8           cleanup target
+    -y -9           cleanup migration (and source)
+    -i              source report
+    -i              target report
     -h              this usage help text
     site            target site
 Migrate NYCC Drupal 6 to 7
@@ -345,10 +343,11 @@ do
         s) source_backup=1 ;;
         t|0) test=1 ;;
         v) is_verbose=1 ;;
-        w|7) cleanup_target=1 ;;
-        x|8) cleanup_migration=1 ;;
-        y) report_source=1 ;;
-        z) report_target=1 ;;
+        w|7) cleanup_source=1 ;;
+        x|8) cleanup_target=1 ;;
+        y|9) cleanup_migration=1 ;;
+        i) report_source=1 ;;
+        j) report_target=1 ;;
         h) nycc_migrate_usage ;;
         \?) nycc_migrate_usage 1 ;;
     esac
@@ -417,9 +416,17 @@ else
 fi
 
 
+if [ -z "$cleanup_source" ]
+then
+  echo "Skipped: Cleanup source (-w)"
+else
+  nycc_migrate_cleanup_source >> $logfile
+fi
+
+
 if [ -z "$cleanup_target" ]
 then
-  echo "Skipped: Cleanup starget (-w)"
+  echo "Skipped: Cleanup target (-x)"
 else
   nycc_migrate_cleanup_target >> $logfile
 fi
@@ -427,9 +434,8 @@ fi
 
 if [ -z "$cleanup_migration" ]
 then
-  echo "Skipped: Cleanup migration (and source) (-x)"
+  echo "Skipped: Cleanup migration  (-y)"
 else
-  nycc_migrate_cleanup_source >> $logfile
   nycc_migrate_cleanup_migration >> $logfile
 fi
 
@@ -457,13 +463,16 @@ then
 else
   echo "Test run."
   
-  # echo "Ccpy events"
+  # echo "Copy events"
   # $fieldcopy event_category event_spots
   
   # drush $targetalias scr $scriptsdir/test.php --test=123 --test=456
-  $fieldcopy --sql --type=profile --addcol="field_city_format,5" city 
-
-
+  # $fieldcopy --type=profile --addcol="field_city_format,5" city 
+  
+  # drush $targetalias scr $scriptsdir/sqlexec.php --sql --targetdb=$targetdb --sourcedb=$sourcedb $scriptsdir/role.sql
+  # drush $targetalias scr $scriptsdir/sqlexec.php --sql --sourcesb=$sourcedb $scriptsdir/role.sql
+  $mysql $scriptsdir/test.sql    #note: no output
+  
 fi
  
 

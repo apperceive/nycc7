@@ -47,25 +47,31 @@ foreach ($args as $ndx => $arg) {
     $targetcol = $targetfield ? $targetfield : $arg;
     $srctable = $srctype . "_" . ($type ? $type : $arg);
     $expr = $sourceexp ? $sourceexp : "content_$srctable.field_{$arg}_$kind";
-
-    $sql =<<<EOS
-REPLACE INTO field_data_field_$arg (entity_type, bundle, deleted, entity_id, revision_id, language, delta, field_{$targetcol}_$targetkind $extracol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extraval FROM $sourcedb.content_$srctable INNER JOIN node ON ($sourcedb.content_$srctable.nid=node.nid AND $sourcedb.content_$srctable.vid=node.vid) $where;
+    
+    $tables = array('data', 'revision');
+    foreach ($tables as $table) {
+    
+      $sql =<<<EOS
+REPLACE INTO field_{$table}_field_$arg (entity_type, bundle, deleted, entity_id, revision_id, language, delta, field_{$targetcol}_$targetkind $extracol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extraval FROM $sourcedb.content_$srctable INNER JOIN node ON ($sourcedb.content_$srctable.nid=node.nid AND $sourcedb.content_$srctable.vid=node.vid) $where;
 EOS;
 
-    drush_print("field_copy: executing $sourcedb $type $kind $arg $expr -> $targetfield $targetkind");
-    if ($debug) drush_print('Debug: defined variables ' . var_export(get_defined_vars(),1));
-    if (!$no) {
-      try {
-        db_query($sql)->execute();
+      drush_print("field_copy: executing $sourcedb $type $kind $arg $expr -> $targetfield $targetkind");
+      if ($debug) drush_print('Debug: defined variables ' . var_export(get_defined_vars(),1));
+      if (!$no) {
+        try {
+          db_query($sql)->execute();
+        }
+        catch (Exception $e) {
+          $error = $e->getMessage();
+          unset($e);
+          drush_print("Error: $error");
+          if ($debug) drush_print("Defined variables: " . var_export(get_defined_vars(),1));
+          else drush_print("SQL: $sql");
+        }
       }
-      catch (Exception $e) {
-        $error = $e->getMessage();
-        unset($e);
-        drush_print("Error: $error");
-        if ($debug) drush_print("Defined variables: " . var_export(get_defined_vars(),1));
-        else drush_print("SQL: $sql");
-      }
+    
     }
+    
   }
 }
 
