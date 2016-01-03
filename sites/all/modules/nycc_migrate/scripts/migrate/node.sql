@@ -27,5 +27,5 @@ SELECT `node`.`nid`,
     `node`.`sticky`,
     `node`.`tnid`,
     `node`.`translate`
-FROM `d6test`.`node`;
+FROM `d6test`.`node` WHERE LENGTH(TRIM(`node`.`type`)) > 0 AND NOT (`node`.`type` IN ('board_members', 'ride', 'product'))
 

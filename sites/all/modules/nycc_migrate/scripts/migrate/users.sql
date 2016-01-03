@@ -38,5 +38,5 @@ SELECT
 `users`.`data`,
 0
 FROM `d6test`.`users`
-WHERE (status > 0) AND (uid > 1) /*AND ((UNIX_TIMESTAMP()-access) > 3*365*24*60*60)*/
+WHERE (status > 0) AND (uid > 1) /*AND ((UNIX_TIMESTAMP()-access) > 5*365*24*60*60)*/
 ;

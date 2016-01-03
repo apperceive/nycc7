@@ -48,13 +48,6 @@ function nycc_migrate_init_migration() {
   echo "NYCC Migration - $timestamp"
   # TODO: display config/options
   echo "$@"
-  
-  
-  # TODO: disable rules
-  # rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
-
-  
-  
 }
 
 # PREPARE: EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
@@ -99,13 +92,26 @@ function nycc_migrate_import_production_to_source() {
   fi
 }
 
-# TODO: also clear target file folders? optional
-function nycc_migrate_clear_target() {
+function nycc_migrate_init_target() {
   echo "Clear target database..."
-  #TODO: TRUNCATE SPECIFIC TABLES (or use standard d7 install db export?)
-  #$mysql -e"DROP DATABASE IF EXISTS $targetdb; CREATE DATABASE $targetdb;"
-  #TODO: delete target files
-}
+
+  $mysql $targetdb < $scriptsdir/target_init.sql
+  
+  # TODO: also clear target file folders? optional
+  echo "Deleting target files..."
+  rm -R $targetdir
+ 
+  # turn off smtp module
+  drush $targetalias dis -y smtp
+  
+  # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
+  drush $targetalias vset nycc_email_trap_exclude_roles notester
+  drush $targetalias vset nycc_email_trap_enabled 0
+  
+  
+  # disable rules
+  drush $targetalias rules-disable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
+ }
 
 # RUN MIGRATION "COPY" SCRIPTS FROM SOURCE TO TARGET
 function nycc_migrate_copy_source_to_target() {
@@ -124,7 +130,7 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --kind=fid image_cache 
 
   # content-type rides single values
-  $fieldcopy --type=rides ride_description ride_type ride_select_level ride_speed ride_distance_in_miles ride_signups ride_spots ride_status ride_signups ride_token ride_timestamp
+  $fieldcopy --type=rides ride_description ride_type ride_select_level ride_speed ride_distance_in_miles ride_signups ride_spots ride_status ride_signups ride_token ride_timestamp ride_dow
   
   # TODO: ride_timestamp - check for invalid dates?
   $fieldcopy --type=rides ride_timestamp --where="not content_type_rides.field_ride_timestamp_value like '0000%'"
@@ -145,12 +151,66 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --kind=uid ride_waitlist
   $fieldcopy --kind=fid ride_attachments 
 
+  # new ride fields not populated at this time
+  # field_data_field_ride_open_signup_days
+  # field_data_field_ride_rwgps_link
+
+  # Events
+  # field_data_field_event_category
+  # field_data_field_event_spots
+  # field_data_field_event_view_signups
   
+  # cue-sheets
+  # field_data_field_cue_sheet_attachments
+  # field_data_field_cue_sheet_author
+  # field_data_field_cue_sheet_difficulty
+  # field_data_field_cue_sheet_rwgps_link
+  # field_data_field_cuesheet_distance
+  # field_data_field_cuesheet_levels
+  # field_data_field_cuesheet_rating
+  # field_data_field_cuesheet_region
+  # field_data_field_cuesheet_signature_route
+  # field_data_field_cuesheet_status2
+  # field_data_field_cuesheet_tags
+  # field_data_field_cuesheet_waypoints
+  # field_data_field_vertical_gain?
   
+  # region
+  # field_data_field_region_location
   
-  # TODO: more content-type copies here: events, regions, cuesheets, mb (forumn topic), obride
+  # profile
+  # field_data_field_address
+  # field_data_field_age_range
+  # field_data_field_city
+  # field_data_field_contact_name
+  # field_data_field_country
+  # field_data_field_email_list_flag
+  # field_data_field_emergency_contact_no
+  # field_data_field_first_name
+  # field_data_field_gender
+  # field_data_field_last_name
+  # field_data_field_phone
+  # field_data_field_profile_extra
+  # field_data_field_profile_last_eny_year
+  # field_data_field_publish_address_flag
+  # field_data_field_publish_email_flag
+  # field_data_field_publish_phone_flag
+  # field_data_field_registration_date_import
+  # field_data_field_review_last_date
+  # field_data_field_state
+  # field_data_field_terms_of_use
+  # field_data_field_waiver_last_date
+  # field_data_field_zip  
+  
+
+  
+  # TODO: more content-type copies here: mb (forumn topic)?, obride?
   # ALSO: comments (forum and ?)
-  # LATER OR NEVER: archives? block pages? blog entry? date? incentive request? story? webform? volunteer? others?
+  
+  
+  # copy files from $source to $target
+  echo "Copying files from source to target..."
+  rsync --recursive --update --quiet --delete $sourcedir $targetdir
 }
 
 # RUN MIGRATION "CLEANUP" SCRIPTS ON TARGET
@@ -176,13 +236,21 @@ function nycc_migrate_cleanup_target() {
   # TODO: Additional processing:
   # check that profile2 pid's work as expected. what is test for this?
   
+  echo "Seting files perms..."
+  sudo chown -R nyccftp:apache $targetdir
+  sudo chmod -R 775 $targetdir
   
-  # TODO: re-enable rules
-  # rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
-
+  echo "Re-enable modules..."
+  drush $targetalias en -y smtp
+  
+  echo "Re-enable email..."
+  # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
+  drush $targetalias vset nycc_email_trap_exclude_roles tester
+  drush $targetalias vset nycc_email_trap_enabled 1
   
   
-  
+  echo "Re-enable rules..."
+  drush $targetalias rules-enable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
   
 }
 
@@ -320,9 +388,9 @@ fi
 
 if [ -z "$clear_target" ]
 then
-  echo "Skipped: Clear target (-c)"
+  echo "Skipped: Init target (-c)"
 else
-  nycc_migrate_clear_target >> $logfile
+  nycc_migrate_init_target >> $logfile
 fi
 
 
@@ -374,8 +442,9 @@ else
   echo "Test run."
   
    echo "Cleaning up ride descriptions"
-   $mysql $targetdb < $scriptsdir/node-rides-formats.sql
-
+  drush $targetalias vset nycc_email_trap_exclude_roles notester
+  drush $targetalias vset nycc_email_trap_enabled 0
+  
 
 
 fi
