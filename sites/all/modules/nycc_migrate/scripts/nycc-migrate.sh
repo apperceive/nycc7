@@ -129,6 +129,7 @@ function nycc_migrate_copy_source_to_target() {
   $mysql $targetdb < $scriptsdir/node.sql
   $mysql $targetdb < $scriptsdir/node_revision.sql
   $mysql $targetdb < $scriptsdir/file_managed.sql
+  $mysql $targetdb < $scriptsdir/comments.sql
 
   # content-type page - multivalued fields
   $fieldcopy carousel_order
@@ -178,20 +179,20 @@ function nycc_migrate_copy_source_to_target() {
   # Profile
   $fieldcopy --type=profile age_range, email_list_flag, gender, publish_address_flag, publish_email_flag, publish_phone_flag, registration_date_import, terms_of_use
   
-  # content-type rides single values with formats
-  $fieldcopy --type=rides --addcol="field_city_format,5" city 
-  $fieldcopy --type=rides --addcol="field_contact_name_format,5" contact_name 
-  $fieldcopy --type=rides --addcol="field_country_format,5" country 
-  $fieldcopy --type=rides --addcol="field_emergency_contact_no_format,5" emergency_contact_no 
-  $fieldcopy --type=rides --addcol="field_first_name_format,5" first_name 
-  $fieldcopy --type=rides --addcol="field_profile_last_eny_year_format,5" profile_last_eny_year 
-  $fieldcopy --type=rides --addcol="field_last_name_format,5" last_name 
-  $fieldcopy --type=rides --addcol="field_phone_format,5" phone 
-  $fieldcopy --type=rides --addcol="field_profile_extra_format,5" profile_extra 
-  $fieldcopy --type=rides --addcol="field_review_last_date_format,5" review_last_date 
-  $fieldcopy --type=rides --addcol="field_state_format,5" state 
-  $fieldcopy --type=rides --addcol="field_waiver_last_date_format,5" waiver_last_date 
-  $fieldcopy --type=rides --addcol="field_zip_format,5" zip
+  # content-type profile single values with formats
+  $fieldcopy --type=profile --addcol="field_city_format,5" city 
+  $fieldcopy --type=profile --addcol="field_contact_name_format,5" contact_name 
+  $fieldcopy --type=profile --addcol="field_country_format,5" country 
+  $fieldcopy --type=profile --addcol="field_emergency_contact_no_format,5" emergency_contact_no 
+  $fieldcopy --type=profile --addcol="field_first_name_format,5" first_name 
+  $fieldcopy --type=profile --addcol="field_profile_last_eny_year_format,5" profile_last_eny_year 
+  $fieldcopy --type=profile --addcol="field_last_name_format,5" last_name 
+  $fieldcopy --type=profile --addcol="field_phone_format,5" phone 
+  $fieldcopy --type=profile --addcol="field_profile_extra_format,5" profile_extra 
+  $fieldcopy --type=profile --addcol="field_review_last_date_format,5" review_last_date 
+  $fieldcopy --type=profile --addcol="field_state_format,5" state 
+  $fieldcopy --type=profile --addcol="field_waiver_last_date_format,5" waiver_last_date 
+  $fieldcopy --type=profile --addcol="field_zip_format,5" zip
 
   # cue-sheets
   # TODO: who has formats?
@@ -210,7 +211,7 @@ function nycc_migrate_copy_source_to_target() {
   # field_data_field_vertical_gain?
   
   
-  # TODO: more content-type copies here: mb (forumn topic)?, obride?
+  # TODO: more content-type copies here: obride, others?
   # ALSO: comments (forum and ?)
   
   
@@ -459,8 +460,9 @@ else
   # echo "Ccpy events"
   # $fieldcopy event_category event_spots
   
-  drush $targetalias scr $scriptsdir/test.php --test=123 --test=456
-  
+  # drush $targetalias scr $scriptsdir/test.php --test=123 --test=456
+  $fieldcopy --sql --type=profile --addcol="field_city_format,5" city 
+
 
 fi
  

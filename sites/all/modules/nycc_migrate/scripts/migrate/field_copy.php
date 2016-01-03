@@ -31,8 +31,8 @@ $extracol = "";
 $extraval = "";
 if ($addcol) {
   list($extracol, $extraval) = explode(",", $addcol);
-  $extracol = ", " . $extacol;
-  $extraval = ", " . $extaval;
+  $extracol = ", " . $extracol;
+  $extraval = ", " . $extraval;
 }
 
 // source column names (note that at least one is required, even for expression)
