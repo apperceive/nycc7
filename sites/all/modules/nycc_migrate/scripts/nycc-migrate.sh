@@ -136,7 +136,13 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --kind=fid image_cache 
 
   # content-type rides single values
-  $fieldcopy --type=rides ride_description ride_type ride_select_level ride_speed ride_distance_in_miles ride_signups ride_spots ride_status ride_signups ride_token ride_timestamp ride_dow
+  $fieldcopy --type=rides ride_type ride_select_level ride_speed  ride_spots ride_status ride_signups ride_token ride_timestamp ride_dow
+  
+  # content-type rides single values with formats
+  $fieldcopy --type=rides --addcol="field_ride_description_format,5" ride_description 
+  $fieldcopy --type=rides --addcol="field_ride_distance_in_miles_format,7" ride_distance_in_miles 
+  $fieldcopy --type=rides --addcol="field_ride_speed_format,7" ride_speed 
+  $fieldcopy --type=rides --addcol="field_ride_token_format,7" ride_token 
   
   # TODO: ride_timestamp - check for invalid dates?
   $fieldcopy --type=rides ride_timestamp --where="not content_type_rides.field_ride_timestamp_value like '0000%'"
@@ -150,13 +156,13 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --kind=nid ride_leaders
   
   # handle field renames and simple conversions
-  $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')" ride_start_location
+  $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')"  --addcol="field_ride_start_location_format,7" ride_start_location
 
   # content-type rides multis
   $fieldcopy --kind=fid ride_image
   $fieldcopy --kind=uid ride_waitlist
   $fieldcopy --kind=fid ride_attachments 
-
+  
   # new ride fields not populated at this time - skipping - do we need to init?
   # field_data_field_ride_open_signup_days
   # field_data_field_ride_rwgps_link
@@ -456,8 +462,11 @@ then
 else
   echo "Test run."
   
-   echo "Ccpy events"
-  $fieldcopy event_category event_spots
+  # echo "Ccpy events"
+  # $fieldcopy event_category event_spots
+  
+  drush $targetalias scr $scriptsdir/test.php --test=123 --test=456
+  
 
 fi
  
