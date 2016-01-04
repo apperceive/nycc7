@@ -36,19 +36,56 @@ function nycc_moneysuite_block_info() {
 
 
 function nycc_moneysuite_block_view($delta = 0) {
-  if ($delta == 0) {
-    global $user;
-    if (!user_is_anonymous() ) {
-      $membership_details = nycc_moneysuite_get_membership_message($user);
-      $fullname = nycc_get_user_full_name($user);
-      $block['subject'] = "Membership Summary for $fullname";
-      $block['content'] = $membership_details['msg'] . "<br/>"  . $membership_details['link'];
-    }
-  } // block[0]
+  switch ($delta ) {
+    case 0:
+      global $user;
+      if (!user_is_anonymous() ) {
+        $membership_details = nycc_moneysuite_get_membership_message($user);
+        $fullname = nycc_get_user_full_name($user);
+        $block['subject'] = "Membership Summary for $fullname";
+        $block['content'] = $membership_details['msg'] . "<br/>"  . $membership_details['link'];
+      }
+      break;
+    
+    case 1:
+      $paid_plans =  nycc_moneysuite_get_paid_plans();
+      $to_print='';
+      $total_members = 0;
+      foreach($paid_plans as $this_plan) {
+        $this_plan_count = nycc_moneysuite_get_member_count($this_plan->sku);
+        $total_members += $this_plan_count;
+        $to_print .= t('<b>@name:</b> @count<br/>', array('@name' => $this_plan->name, '@count' => $this_plan_count ));
+      }
+      $to_print .= t('<b>Total Members:</b> @total', array('@total' => $total_members));
+      $block['subject'] = "Membership Summary";
+      $block['content'] = $to_print;
+  } 
   return $block;
 } // nycc_moneysuite_block_view
 
 
+function nycc_moneysuite_get_member_count($skus = array()) {
+  $return_count = 0;
+  if (!is_array($skus)) {
+    $skus = array($skus);
+  }
+  foreach($skus as $this_sku) {
+    
+    $return_count += ms_products_get_purchases_count($this_sku, $statuses = array('active', 'completed', 'expiring'));
+  }
+  return $return_count;
+}
+
+function nycc_moneysuite_get_paid_plans () {
+  $return_plans = array();
+  $paid_plan_skus =  array_filter(array_values(variable_get('nycc_moneysuite_membership_plans')));
+  if(isset($paid_plan_skus)) {
+    foreach($paid_plan_skus as $this_sku) {
+      $return_plans[$this_sku] = ms_products_plan_load( $this_sku);   
+    }        
+  }
+  return $return_plans;
+}
 
 function nycc_moneysuite_get_memberships($user = null) {
   $user = nycc_get_user_object($user);
