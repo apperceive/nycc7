@@ -26,8 +26,8 @@ readonly productionssh="/home/markus/.ssh/id_rsa"
 readonly sourcealias="@d6Test"
 #readonly sourcedb="d6test"
 readonly sourcedb="migtest"
-#readonly sourcefilesdir="/var/www/html/d6/sites/default/files"
-readonly sourcefilesdir="/home/markus/backups/files"
+#readonly sourcedir="/var/www/html/d6/sites/default/files"
+readonly sourcedir="/home/markus/backups/files"
 #readonly targetalias="@markusTest"
 readonly targetalias="--root=/var/www/html/markus"
 readonly targetdb="markus"
@@ -74,10 +74,7 @@ function nycc_migrate_export_production() {
 
 function nycc_migrate_sync_production_to_source() {
   echo "Rsyncing production files (update)..."
-  sudo rsync -azu -e "ssh -i $productionssh" --exclude="backup_migrate" --exclude="js" --exclude="css" --exclude="imagecache" $productionuser:$productionfilesdir $sourcefilesdir
-
-  sudo chown -R nyccftp:apache $sourcefilesdir
-  sudo chown -R 775 $sourcefilesdir
+  sudo rsync -azu -e "ssh -i $productionssh" --exclude="backup_migrate/backup_migrate" --exclude="js" --exclude="css" --exclude="imagecache" $productionuser:$productionfilesdir $sourcedir
 
   # NOTE: these modules give us errors in drush so turn them off
   # NOTE: some are a problem on the site too, so leave off?
@@ -214,6 +211,9 @@ function nycc_migrate_copy_source_to_target() {
   # copy files from $source to $target
   echo "Copying files from source to target..."
   rsync --recursive --update --quiet --delete $sourcedir $targetdir
+  sudo chown -R nyccftp:apache $targetdir
+  sudo chown -R 775 $targetdir
+
 }
 
 function nycc_migrate_cleanup_source() {
