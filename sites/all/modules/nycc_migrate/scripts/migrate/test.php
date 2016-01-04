@@ -17,5 +17,6 @@ else
 //drush_print("sourcedb: $sourcedb");
 
 $test = drush_get_option(array('test'), FALSE);
+$args = drush_get_arguments();
+drush_print("test :" . var_export(get_defined_vars(),1));
 
-drush_print("test :" . var_export($test,1));

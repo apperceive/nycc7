@@ -1,7 +1,3 @@
-/* delete users with uid > 1 first? */
-DELETE FROM users WHERE uid > 1;
-
-
 REPLACE INTO $targetdb`users` (
 `uid`,
 `name`,

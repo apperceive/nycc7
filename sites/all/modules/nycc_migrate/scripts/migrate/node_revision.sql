@@ -1,4 +1,4 @@
-replace INTO $targetdb`node_revision`
+REPLACE INTO $targetdb`node_revision`
 (`nid`,
 `vid`,
 `uid`,

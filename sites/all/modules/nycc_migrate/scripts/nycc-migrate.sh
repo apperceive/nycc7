@@ -36,9 +36,9 @@ readonly logfile="$tmpdir/migrate.log"
 readonly timestamp="`date +%Y-%m-%d_%H-%M`"
 
 # command aliases
-# readonly mysql='mysql -uroot -pXt2792b8cf'
+readonly mysql='mysql -uroot -pXt2792b8cf'
 readonly mysqldump='mysqldump -uroot -pXt2792b8cf'
-readonly mysql="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
+readonly mysqlexec="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
 readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb"
 
 
@@ -50,7 +50,7 @@ function nycc_migrate_init_migration() {
   mkdir -p $tmpdir
   echo "NYCC Migration - $timestamp"
   # TODO: display config/options
-  echo "$@"
+  # echo "$@"
 }
 
 # EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
@@ -62,7 +62,6 @@ function nycc_migrate_backup_source_and_target() {
   $mysqldump $targetdb > $tmpdir/$targetdb-$timestamp.sql
   
   # TODO: backup sourcedirs and targetdir's
-  
 }
 
 function nycc_migrate_export_production() {
@@ -102,37 +101,37 @@ function nycc_migrate_import_production_to_source() {
 function nycc_migrate_init_target() {
   echo "Clear target database..."
 
-  # $mysql $targetdb < $scriptsdir/target_init.sql
-  # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
-  $mysql $scriptsdir/target_init.sql
-  
-  # TODO: also clear target file folders? optional
-  echo "Deleting target files..."
-  rm -R $targetdir
- 
-  # turn off smtp module
-  drush $targetalias dis -y smtp
+   # turn off smtp module
+  drush $targetalias dis -y smtp backup_migrate 
   
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
   drush $targetalias vset nycc_email_trap_exclude_roles notester
   drush $targetalias vset nycc_email_trap_enabled 0
   
-  
   # disable rules
   drush $targetalias rules-disable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
+  
+  # $mysql $targetdb < $scriptsdir/target_init.sql
+  # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
+  $mysql $targetdb < $scriptsdir/target_init.sql
+  
+  # TODO: also clear target file folders? optional
+  echo "Deleting target files..."
+  rm -R $targetdir
+ 
  }
 
 # RUN MIGRATION sql and drush/php SCRIPTS (using SOURCE TO TARGET)
 function nycc_migrate_copy_source_to_target() {
   echo "Copying source to target..."
   # simple updates of base tables
-  $mysql $scriptsdir/role.sql
-  $mysql $scriptsdir/users.sql
-  $mysql $scriptsdir/users_roles.sql
-  $mysql $scriptsdir/node.sql
-  $mysql $scriptsdir/node_revision.sql
-  $mysql $scriptsdir/file_managed.sql
-  $mysql $scriptsdir/comments.sql
+  $mysqlexec $scriptsdir/role.sql
+  $mysqlexec $scriptsdir/users.sql
+  $mysqlexec $scriptsdir/users_roles.sql
+  $mysqlexec $scriptsdir/node.sql
+  $mysqlexec $scriptsdir/node_revision.sql
+  $mysqlexec $scriptsdir/file_managed.sql
+  $mysqlexec $scriptsdir/comments.sql
 
   # content-type page - multivalued fields
   $fieldcopy carousel_order
@@ -231,7 +230,7 @@ function nycc_migrate_cleanup_target() {
 
   # cleanup rides issues such as description formats
   echo "Cleaning up rides descriptions..."
-  $mysql $scriptsdir/node-rides-formats.sql
+  $mysqlexec $scriptsdir/node-rides-formats.sql
 
   echo "Convert passwords..."
   # convert users passwords for use with d7
@@ -263,6 +262,8 @@ function nycc_migrate_cleanup_target() {
   
   echo "Re-enable rules..."
   drush $targetalias rules-enable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
+  
+  drush $targetalias cc all
   
 }
 
@@ -366,7 +367,6 @@ shift $(($OPTIND - 1));     # take out the option flags
 
 # MAIN
 
-
 if [ -z "$migration_init" ]
 then
   echo "Skipped: Migration init (-m)"
@@ -374,6 +374,7 @@ else
   nycc_migrate_init_migration > $logfile
 fi
 
+echo "Migration steps started at $timestamp : $@"
 
 if [ -z "$backups" ]
 then
@@ -471,8 +472,8 @@ else
   
   # drush $targetalias scr $scriptsdir/sqlexec.php --sql --targetdb=$targetdb --sourcedb=$sourcedb $scriptsdir/role.sql
   # drush $targetalias scr $scriptsdir/sqlexec.php --sql --sourcesb=$sourcedb $scriptsdir/role.sql
-  $mysql $scriptsdir/test.sql    #note: no output
-  
+  echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
+  $mysqlexec $scriptsdir/test.sql    #note: no output
 fi
  
 

@@ -1,5 +1,3 @@
-use $targetdb;
-
 DELETE FROM users WHERE uid > 1;
 TRUNCATE users_roles;
 TRUNCATE role;

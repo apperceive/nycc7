@@ -1,6 +1,6 @@
 <?php
 
-// used for testing drush commands
+// used for executing single sql commands in files
 
 $sourcedb = drush_get_option(array('sourcedb'), '');
 $targetdb = drush_get_option(array('targetdb'), '');
@@ -14,6 +14,7 @@ $args = drush_get_arguments();
 
 foreach ($args as $ndx => $arg) {
   // skip scr and this script as first two args to drush scr scriptname fielda fieldb
+  // drush_print("arg: " . $arg);
   if ($ndx > 1) {
     $text = file_get_contents($arg);
     $sql = str_replace(array('$sourcedb', '$targetdb'), array($sourcedb, $targetdb), $text);
