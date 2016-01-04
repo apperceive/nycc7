@@ -1,4 +1,4 @@
-REPLACE INTO `file_managed`
+REPLACE INTO $targetdb`file_managed`
 (`fid`,
 `uid`,
 `filename`,
@@ -17,4 +17,4 @@ SELECT `files`.`fid`,
     `files`.`status`,
     `files`.`timestamp`,
     UUID()
-FROM `d6test`.`files` WHERE filepath LIKE 'sites/default/files%'
+FROM $sourcedb`files` WHERE filepath LIKE 'sites/default/files%'

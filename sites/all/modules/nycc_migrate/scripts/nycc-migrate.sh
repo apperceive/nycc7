@@ -26,8 +26,8 @@ readonly productionssh="/home/markus/.ssh/id_rsa"
 readonly sourcealias="@d6Test"
 #readonly sourcedb="d6test"
 readonly sourcedb="migtest"
-#readonly sourcefilesdir="/var/www/html/d6/sites/default/files"
-readonly sourcefilesdir="/home/markus/backups/files"
+#readonly sourcedir="/var/www/html/d6/sites/default/files"
+readonly sourcedir="/home/markus/backups/files"
 #readonly targetalias="@markusTest"
 readonly targetalias="--root=/var/www/html/markus"
 readonly targetdb="markus"
@@ -38,32 +38,30 @@ readonly timestamp="`date +%Y-%m-%d_%H-%M`"
 # command aliases
 readonly mysql='mysql -uroot -pXt2792b8cf'
 readonly mysqldump='mysqldump -uroot -pXt2792b8cf'
+readonly mysqlexec="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
 readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb"
 
 
-# TODO: check all folders and settings for validity
+# INITIALIZE MIGRATION
+# TODO: sanity check all folders and settings, issue warnings if need be
+# NOTE: this is only for migration objects, not source or target - assume no backup yet
 function nycc_migrate_init_migration() {
   echo "Migration init..."
   mkdir -p $tmpdir
   echo "NYCC Migration - $timestamp"
   # TODO: display config/options
-  echo "$@"
-  
-  
-  # TODO: disable rules
-  # rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
-
-  
-  
+  # echo "$@"
 }
 
-# PREPARE: EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
-function nycc_migrate_backup() {
+# EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
+function nycc_migrate_backup_source_and_target() {
   echo "Making backup of source database..."
   $mysqldump $sourcedb > $tmpdir/$sourcedb-$timestamp.sql
 
   echo "Making backup of target database..."
   $mysqldump $targetdb > $tmpdir/$targetdb-$timestamp.sql
+  
+  # TODO: backup sourcedirs and targetdir's
 }
 
 function nycc_migrate_export_production() {
@@ -76,12 +74,10 @@ function nycc_migrate_export_production() {
 
 function nycc_migrate_sync_production_to_source() {
   echo "Rsyncing production files (update)..."
-  sudo rsync -azu -e "ssh -i $productionssh" --exclude="backup_migrate" --exclude="js" --exclude="css" --exclude="imagecache" $productionuser:$productionfilesdir $sourcefilesdir
+  sudo rsync -azu -e "ssh -i $productionssh" --exclude="backup_migrate/backup_migrate" --exclude="js" --exclude="css" --exclude="imagecache" $productionuser:$productionfilesdir $sourcedir
 
-  sudo chown -R nyccftp:apache $sourcefilesdir
-  sudo chown -R 775 $sourcefilesdir
-
-  # these modules give us errors in drush
+  # NOTE: these modules give us errors in drush so turn them off
+  # NOTE: some are a problem on the site too, so leave off?
   $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
 }
 
@@ -99,24 +95,40 @@ function nycc_migrate_import_production_to_source() {
   fi
 }
 
-# TODO: also clear target file folders? optional
-function nycc_migrate_clear_target() {
+function nycc_migrate_init_target() {
   echo "Clear target database..."
-  #TODO: TRUNCATE SPECIFIC TABLES (or use standard d7 install db export?)
-  #$mysql -e"DROP DATABASE IF EXISTS $targetdb; CREATE DATABASE $targetdb;"
-  #TODO: delete target files
-}
 
-# RUN MIGRATION "COPY" SCRIPTS FROM SOURCE TO TARGET
+   # turn off smtp module
+  drush $targetalias dis -y smtp backup_migrate 
+  
+  # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
+  drush $targetalias vset nycc_email_trap_exclude_roles notester
+  drush $targetalias vset nycc_email_trap_enabled 0
+  
+  # disable rules
+  drush $targetalias rules-disable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
+  
+  # $mysql $targetdb < $scriptsdir/target_init.sql
+  # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
+  $mysql $targetdb < $scriptsdir/target_init.sql
+  
+  # TODO: also clear target file folders? optional
+  echo "Deleting target files..."
+  rm -R $targetdir
+ 
+ }
+
+# RUN MIGRATION sql and drush/php SCRIPTS (using SOURCE TO TARGET)
 function nycc_migrate_copy_source_to_target() {
   echo "Copying source to target..."
   # simple updates of base tables
-  $mysql $targetdb < $scriptsdir/role.sql
-  $mysql $targetdb < $scriptsdir/users.sql
-  $mysql $targetdb < $scriptsdir/users_roles.sql
-  $mysql $targetdb < $scriptsdir/node.sql
-  $mysql $targetdb < $scriptsdir/node_revision.sql
-  $mysql $targetdb < $scriptsdir/file_managed.sql
+  $mysqlexec $scriptsdir/role.sql
+  $mysqlexec $scriptsdir/users.sql
+  $mysqlexec $scriptsdir/users_roles.sql
+  $mysqlexec $scriptsdir/node.sql
+  $mysqlexec $scriptsdir/node_revision.sql
+  $mysqlexec $scriptsdir/file_managed.sql
+  $mysqlexec $scriptsdir/comments.sql
 
   # content-type page - multivalued fields
   $fieldcopy carousel_order
@@ -124,7 +136,13 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --kind=fid image_cache 
 
   # content-type rides single values
-  $fieldcopy --type=rides ride_description ride_type ride_select_level ride_speed ride_distance_in_miles ride_signups ride_spots ride_status ride_signups ride_token ride_timestamp
+  $fieldcopy --type=rides ride_type ride_select_level ride_speed  ride_spots ride_status ride_signups ride_token ride_timestamp ride_dow
+  
+  # content-type rides single values with formats
+  $fieldcopy --type=rides --addcol="field_ride_description_format,5" ride_description 
+  $fieldcopy --type=rides --addcol="field_ride_distance_in_miles_format,7" ride_distance_in_miles 
+  $fieldcopy --type=rides --addcol="field_ride_speed_format,7" ride_speed 
+  $fieldcopy --type=rides --addcol="field_ride_token_format,7" ride_token 
   
   # TODO: ride_timestamp - check for invalid dates?
   $fieldcopy --type=rides ride_timestamp --where="not content_type_rides.field_ride_timestamp_value like '0000%'"
@@ -138,20 +156,73 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --kind=nid ride_leaders
   
   # handle field renames and simple conversions
-  $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')" ride_start_location
+  $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')"  --addcol="field_ride_start_location_format,7" ride_start_location
 
   # content-type rides multis
   $fieldcopy --kind=fid ride_image
   $fieldcopy --kind=uid ride_waitlist
   $fieldcopy --kind=fid ride_attachments 
+  
+  # TODO: new ride fields not populated at this time - skipping - do we need to init?
+  # field_data_field_ride_open_signup_days
+  # field_data_field_ride_rwgps_link
 
+  # Region
+  $fieldcopy --type=region --kind=lid region_location 
   
+  # Events
+  $fieldcopy event_category event_spots
+  # TODO: skip? looks like this may be different from similarly name souce field? 
+  # field_data_field_event_view_signups
+
+  # Profile
+  $fieldcopy --type=profile age_range, email_list_flag, gender, publish_address_flag, publish_email_flag, publish_phone_flag, registration_date_import, terms_of_use
   
+  $fieldcopy --type=profile --addcol="field_city_format,5" city 
+  $fieldcopy --type=profile --addcol="field_contact_name_format,5" contact_name 
+  $fieldcopy --type=profile --addcol="field_country_format,5" country 
+  $fieldcopy --type=profile --addcol="field_emergency_contact_no_format,5" emergency_contact_no 
+  $fieldcopy --type=profile --addcol="field_first_name_format,5" first_name 
+  $fieldcopy --type=profile --addcol="field_profile_last_eny_year_format,5" profile_last_eny_year 
+  $fieldcopy --type=profile --addcol="field_last_name_format,5" last_name 
+  $fieldcopy --type=profile --addcol="field_phone_format,5" phone 
+  $fieldcopy --type=profile --addcol="field_profile_extra_format,5" profile_extra 
+  $fieldcopy --type=profile --addcol="field_review_last_date_format,5" review_last_date 
+  $fieldcopy --type=profile --addcol="field_state_format,5" state 
+  $fieldcopy --type=profile --addcol="field_waiver_last_date_format,5" waiver_last_date 
+  $fieldcopy --type=profile --addcol="field_zip_format,5" zip
+
+  $fieldcopy --type="cue-sheet" cuesheet_rating cuesheet_distancecuesheet_status2 cuesheet_levels cue_sheet_difficulty
+
+  $fieldcopy --kind=nid cuesheet_region
+  $fieldcopy --kind=tid cuesheet_tags
+  $fieldcopy --type="cue-sheet" --kind=fid cue_sheet_attachments
+
+  $fieldcopy --type="cue-sheet" --addcol="field_data_field_cuesheet_waypoints_format,5" cuesheet_waypoints
+  $fieldcopy --type="cue-sheet" --addcol="field_data_field_cuesheet_sheet_author_format,5" sheet_author
+  $fieldcopy --type="cue-sheet" --addcol="field_data_field_vertical_gain_format,5" vertical_gain
+  $fieldcopy --type="cue-sheet" --addcol="body_format,5" body
+  $fieldcopy --type="cue-sheet" --targetfield=ride_start_location --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
+
+  # field_data_field_cue_sheet_rwgps_link                 ### link
   
-  # TODO: more content-type copies here: events, regions, cuesheets, mb (forumn topic), obride
-  # ALSO: comments (forum and ?)
-  # LATER OR NEVER: archives? block pages? blog entry? date? incentive request? story? webform? volunteer? others?
+  # TODO: more content-type copies here: obride, others?
+  
+  # copy files from $source to $target
+  echo "Copying files from source to target..."
+  rsync --recursive --update --quiet --delete $sourcedir $targetdir
+  sudo chown -R nyccftp:apache $targetdir
+  sudo chown -R 775 $targetdir
+
 }
+
+function nycc_migrate_cleanup_source() {
+  echo "Cleaning up source..."
+  # NOTE: these modules give us errors in drush so we turned them off during migration
+  # NOTE: some are a problem on the site too, so leave off?
+  # $mysql $sourcedb -e"UPDATE system SET status = 1 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');  
+}
+
 
 # RUN MIGRATION "CLEANUP" SCRIPTS ON TARGET
 function nycc_migrate_cleanup_target() {
@@ -159,7 +230,7 @@ function nycc_migrate_cleanup_target() {
 
   # cleanup rides issues such as description formats
   echo "Cleaning up rides descriptions..."
-  $mysql $targetdb < $scriptsdir/node-rides-formats.sql
+  $mysqlexec $scriptsdir/node-rides-formats.sql
 
   echo "Convert passwords..."
   # convert users passwords for use with d7
@@ -176,13 +247,23 @@ function nycc_migrate_cleanup_target() {
   # TODO: Additional processing:
   # check that profile2 pid's work as expected. what is test for this?
   
+  echo "Seting files perms..."
+  sudo chown -R nyccftp:apache $targetdir
+  sudo chmod -R 775 $targetdir
   
-  # TODO: re-enable rules
-  # rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
-
+  echo "Re-enable modules..."
+  drush $targetalias en -y smtp
+  
+  echo "Re-enable email..."
+  # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
+  drush $targetalias vset nycc_email_trap_exclude_roles tester
+  drush $targetalias vset nycc_email_trap_enabled 1
   
   
+  echo "Re-enable rules..."
+  drush $targetalias rules-enable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
   
+  drush $targetalias cc all
   
 }
 
@@ -218,10 +299,11 @@ Usage: $(basename $0) [-options] [site] [user]
     -s              source backup (not implemented yet)
     -t -0           test
     -v              verbose (nothing extra yet)
-    -w -7           cleanup target
-    -x -8           cleanup migration
-    -y              source report
-    -z              target report
+    -w -7           cleanup source
+    -x -8           cleanup target
+    -y -9           cleanup migration (and source)
+    -i              source report
+    -i              target report
     -h              this usage help text
     site            target site
 Migrate NYCC Drupal 6 to 7
@@ -262,10 +344,11 @@ do
         s) source_backup=1 ;;
         t|0) test=1 ;;
         v) is_verbose=1 ;;
-        w|7) cleanup_target=1 ;;
-        x|8) cleanup_migration=1 ;;
-        y) report_source=1 ;;
-        z) report_target=1 ;;
+        w|7) cleanup_source=1 ;;
+        x|8) cleanup_target=1 ;;
+        y|9) cleanup_migration=1 ;;
+        i) report_source=1 ;;
+        j) report_target=1 ;;
         h) nycc_migrate_usage ;;
         \?) nycc_migrate_usage 1 ;;
     esac
@@ -284,7 +367,6 @@ shift $(($OPTIND - 1));     # take out the option flags
 
 # MAIN
 
-
 if [ -z "$migration_init" ]
 then
   echo "Skipped: Migration init (-m)"
@@ -292,12 +374,13 @@ else
   nycc_migrate_init_migration > $logfile
 fi
 
+echo "Migration steps started at $timestamp : $@"
 
 if [ -z "$backups" ]
 then
   echo "Skipped: Backups (-b)"
 else
-  nycc_migrate_backup  >> $logfile
+  nycc_migrate_backup_source_and_target  >> $logfile
 fi
 
 
@@ -320,9 +403,9 @@ fi
 
 if [ -z "$clear_target" ]
 then
-  echo "Skipped: Clear target (-c)"
+  echo "Skipped: Init target (-c)"
 else
-  nycc_migrate_clear_target >> $logfile
+  nycc_migrate_init_target >> $logfile
 fi
 
 
@@ -334,9 +417,17 @@ else
 fi
 
 
+if [ -z "$cleanup_source" ]
+then
+  echo "Skipped: Cleanup source (-w)"
+else
+  nycc_migrate_cleanup_source >> $logfile
+fi
+
+
 if [ -z "$cleanup_target" ]
 then
-  echo "Skipped: Cleanup target (-w)"
+  echo "Skipped: Cleanup target (-x)"
 else
   nycc_migrate_cleanup_target >> $logfile
 fi
@@ -344,7 +435,7 @@ fi
 
 if [ -z "$cleanup_migration" ]
 then
-  echo "Skipped: Cleanup migration (-x)"
+  echo "Skipped: Cleanup migration  (-y)"
 else
   nycc_migrate_cleanup_migration >> $logfile
 fi
@@ -373,11 +464,16 @@ then
 else
   echo "Test run."
   
-   echo "Cleaning up ride descriptions"
-   $mysql $targetdb < $scriptsdir/node-rides-formats.sql
-
-
-
+  # echo "Copy events"
+  # $fieldcopy event_category event_spots
+  
+  # drush $targetalias scr $scriptsdir/test.php --test=123 --test=456
+  # $fieldcopy --type=profile --addcol="field_city_format,5" city 
+  
+  # drush $targetalias scr $scriptsdir/sqlexec.php --sql --targetdb=$targetdb --sourcedb=$sourcedb $scriptsdir/role.sql
+  # drush $targetalias scr $scriptsdir/sqlexec.php --sql --sourcesb=$sourcedb $scriptsdir/role.sql
+  echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
+  $mysqlexec $scriptsdir/test.sql    #note: no output
 fi
  
 
