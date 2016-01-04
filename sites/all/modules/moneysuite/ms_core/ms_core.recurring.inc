@@ -926,6 +926,7 @@ function ms_core_get_last_payment_string($recurring_schedule) {
  *   The recurring schedule, or FALSE if none found.
  */
 function ms_core_get_recurring_schedule($oid, $product_id = NULL, $product_module = NULL) {
+
   if (is_null($product_id)) {
     return ms_core_load_recurring_schedule($oid);
   } else {
