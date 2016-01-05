@@ -19,7 +19,6 @@ SELECT `comments`.`cid`,
     `comments`.`nid`,
     `comments`.`uid`,
     `comments`.`subject`,
-    `comments`.`comment`,
     `comments`.`hostname`,
     `comments`.`timestamp`,
     `comments`.`status`,
@@ -30,4 +29,4 @@ SELECT `comments`.`cid`,
     'und',
     `comments`.`timestamp`,
     UUID()
-FROM $sourcedb.`comments`;
+FROM $sourcedb`comments`;

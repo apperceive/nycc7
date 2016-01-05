@@ -19,7 +19,7 @@ SELECT `node_revisions`.`nid`,
     `node`.`comment`,
     `node`.`promote`,
     `node`.`sticky`
-FROM $sourcedb`node_revisions` INNER JOIN `node` ON node_revisions.nid=node.nid AND node_revisions.vid=node.vid;
+FROM $sourcedb`node_revisions` INNER JOIN $sourcedb`node` ON node_revisions.nid=node.nid AND node_revisions.vid=node.vid;
 
 
 

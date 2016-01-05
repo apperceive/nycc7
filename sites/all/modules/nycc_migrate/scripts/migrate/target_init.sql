@@ -4,6 +4,15 @@ TRUNCATE role;
 TRUNCATE node;
 TRUNCATE file_managed;
 
+DELETE FROM variable WHERE name LIKE 'backup_migrate_%';
+DELETE FROM variable WHERE name LIKE 'nodesquirrel_%';
+
+/* Remove autoloads using targetdir that is wiped */
+/* TODO: pass part of targetdir here? */
+/*DELETE FROM registry WHERE FILENAME like "%backup_migrate%";*/
+DELETE FROM registry WHERE FILENAME LIKE "sites/default/files/%";
+DELETE FROM cache_bootstrap WHERE DATA LIKE "%backup_migrate%";
+
 TRUNCATE field_data_field_ride_attachments;
 TRUNCATE field_data_field_ride_cue_sheet;
 TRUNCATE field_data_field_ride_current_leaders;
