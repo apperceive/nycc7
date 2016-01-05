@@ -33,6 +33,6 @@ SELECT
 `users`.`init`,
 `users`.`data`,
 0
-FROM $sourcedb.`users`
+FROM $sourcedb`users`
 WHERE (status > 0) AND (uid > 1) /*AND ((UNIX_TIMESTAMP()-access) > 5*365*24*60*60)*/
 ;

@@ -26,13 +26,16 @@ $where = $where ? "WHERE $where" : '';
 $debug = drush_get_option(array('sql'), FALSE);
 $no = drush_get_option(array('no'), FALSE);
 $addcol = drush_get_option(array('addcol'), "");   // extra cols for format text fields, etc
+$noprefix = drush_get_option(array('noprefix'), FALSE);
+$nosuffix = drush_get_option(array('nosuffix'), FALSE);
 
-$extracol = "";
-$extraval = "";
+
+$extrasrccol = "";
+$extrasrcval = "";
 if ($addcol) {
-  list($extracol, $extraval) = explode(",", $addcol);
-  $extracol = ", " . $extracol;
-  $extraval = ", " . $extraval;
+  list($extrasrccol, $extrasrcval) = explode(",", $addcol);
+  $extrasrccol = ", " . $extrasrccol;
+  $extrasrcval = ", " . $extrasrcval;
 }
 
 // source column names (note that at least one is required, even for expression)
@@ -45,17 +48,20 @@ foreach ($args as $ndx => $arg) {
   if ($ndx > 1) {
 
     $targetcol = $targetfield ? $targetfield : $arg;
-    $srctable = $srctype . "_" . ($type ? $type : $arg);
+    $srctable = ($noprefix ? "" : ($srctype . "_")) . ($type ? $type : $arg);
     $expr = $sourceexp ? $sourceexp : "content_$srctable.field_{$arg}_$kind";
+    $prefixstr = $noprefix ? "" : "field_";
+    $suffixstr = $nosuffix ? "" : "_$targetkind";
+    $srccol = $prefixstr . $targetcol . $suffixstr;
     
     $tables = array('data', 'revision');
     foreach ($tables as $table) {
     
       $sql =<<<EOS
-REPLACE INTO field_{$table}_field_$arg (entity_type, bundle, deleted, entity_id, revision_id, language, delta, field_{$targetcol}_$targetkind $extracol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extraval FROM $sourcedb.content_$srctable INNER JOIN node ON ($sourcedb.content_$srctable.nid=node.nid AND $sourcedb.content_$srctable.vid=node.vid) $where;
+REPLACE INTO `field_{$table}_{$prefixstr}{$arg}` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $srccol  $extrasrccol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extrasrcval FROM $sourcedb.`content_$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`content_$srctable`.nid=node.nid AND $sourcedb.`content_$srctable`.vid=node.vid) $where;
 EOS;
 
-      drush_print("field_copy: executing $sourcedb $type $kind $arg $expr -> $targetfield $targetkind");
+      drush_print("field_copy ($table): executing $sourcedb $srctable $type $kind $arg $expr -> $targetcol $targetkind");
       if ($debug) drush_print('Debug: defined variables ' . var_export(get_defined_vars(),1));
       if (!$no) {
         try {
