@@ -67,7 +67,28 @@ function nycc_mandrill_get_recipients($msg = NULL) {
   return $recipients;
 }
 
-
+function nycc_mandrill_generate_recipient_list($recipients = array(), $type = 'to') {
+  $to_return = array();
+  if(!is_array($recipients)) {
+    $recipients = array($recipients);
+  }
+  if ($type != 'to' && $type != 'cc' && $type !='bcc') {
+    watchdog ('nycc_mandrill', 'nycc_mandrill_generate_recipient_list: invalid type: @type send. returning empty array', array('@type' => $type));
+    return $to_return;
+  }
+  
+  foreach ($recipients as $email_address) {
+    if(valid_email_address($email_address)) {
+      $to_return[] =   array(
+                          'email' => $email_address,
+                          'name' => $email_address,
+                          'type' => $type
+                          ); 
+      
+    }
+  }
+  return $to_return;  
+}
 
 
 function nycc_mandrill_get_msg_details($event) {
