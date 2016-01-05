@@ -1154,6 +1154,7 @@ function nycc_rides_get_user_ride_counts($timestamp, $acct = NULL) {
   $start_time = $timestamp - 60 * 60 * 4;
   $end_time = $timestamp + 60 * 60 * 4;
 
+  
     $sql =<<<EOS
 SELECT COUNT(*) AS cnt FROM {field_data_field_ride_current_riders} C, {field_data_field_ride_status} S, {field_data_field_ride_timestamp} T
 WHERE
