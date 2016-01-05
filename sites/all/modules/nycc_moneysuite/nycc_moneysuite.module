@@ -70,7 +70,6 @@ function nycc_moneysuite_get_member_count($skus = array()) {
     $skus = array($skus);
   }
   foreach($skus as $this_sku) {
-    
     $return_count += ms_products_get_purchases_count($this_sku, $statuses = array('active', 'completed', 'expiring'));
   }
   return $return_count;
@@ -90,14 +89,14 @@ function nycc_moneysuite_get_paid_plans () {
 function nycc_moneysuite_get_memberships($user = null) {
   $user = nycc_get_user_object($user);
   
-  $paid_plans =  array_filter(array_values(variable_get('nycc_moneysuite_membership_plans')));
+  $paid_plans = nycc_moneysuite_get_paid_plans();
   
   $purchased_plans = ms_products_get_user_purchases($user->uid, 'ms_membership');
   $to_be_returned = array();
   
   if((!empty($purchased_plans)) && (!empty($paid_plans))) {
     foreach($purchased_plans as $membership) {
-      if(in_array($membership->sku, $paid_plans)) {
+      if(array_key_exists($membership->sku, $paid_plans->sku)) {
         $to_be_returned[$membership->id]  = $membership;
       }
     }

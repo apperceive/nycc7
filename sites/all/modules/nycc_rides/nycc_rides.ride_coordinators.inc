@@ -178,11 +178,11 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 
 	$arg1 = arg(1);
 	if (drupal_strlen($arg1) == 0)
-  	$arg1 = "Leaders";
+  	$arg1 = "leaders";
 
 	$arg2 = arg(2);
 	if (drupal_strlen($arg2) == 0)
-  	$arg2 = "All";
+  	$arg2 = "all";
 
 	if (! user_access('emails riders and leaders', $user)){
     	// access denied
@@ -191,9 +191,9 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
   }
 	    	//nycc_turn_off_journal_form('nycc_ride_coordinators_email');
 	$badge_names = array();
-	$q = db_query("select '' as name UNION ALL select name from {user_badges_badges} order by name;");
+	$q = db_query("select 0 as bid, '' as name UNION  select bid, name from {user_badges_badges} order by name;");
   foreach($q as $row) {
-		$badge_names[t($row->name)] = t($row->name);
+		$badge_names[$row->bid] = t($row->name);
   }	
 
 	$form['description'] = array(
@@ -207,7 +207,11 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 		'#required' => true,
 		'#default_value' => $arg1,
 		'#title' => t("Target Group"),
-		'#options' => array("Leaders" => "Leaders", "Riders" => "Riders","By_Badge" => "By Badge"),
+		'#options' => array(
+                        "leaders" => "Leaders",
+                        "riders" => "Riders",
+                        "riders_and_leaders" => "Riders & Leaders",
+                        "by_badge" => "By Badge"),
 		'#description' => "Send e-mail to ride leaders or riders (over the past 12 months) or based on assigned badge.",
 	);
 
@@ -216,7 +220,7 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 		'#required' => true,
 		'#default_value' => $arg2,
 		'#title' => t("Ride Level"),
-		'#options' => array("All" => "All", "A" => "A", "B" => "B", "C" => "C"),
+		'#options' => array("all" => "All", "A" => "A", "B" => "B", "C" => "C"),
 		'#description' => "Choose the riding level of the riders you wish to e-mail.",
 	);
 
@@ -248,11 +252,12 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 	);
 
 	$form['message'] = array(
-		'#type' => 'textarea',
+		'#type' => 'text_format',
 		'#required' => true,
+    '#format' => '1',
 		'#title' => t("Body"),
 		'#rows' => 20,
-		'#description' => "Enter the text of your message here. Required <br/>(Note: You can past html content into this box. Use an editor like <a href='http://www.quackit.com/html/online-html-editor/' target='_blank'>http://www.quackit.com/html/online-html-editor/</a> to generate HTML content.)",
+		'#description' => "Enter the text of your message here. Required",
 	);
 
 	$form['button'] = array(
@@ -263,151 +268,91 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 }
 
 function nycc_rides_ride_coordinators_email_validate($form, &$form_state) {
+  dpm($form_state);
 	if (!valid_email_address($form_state['values']['from']))
 		form_set_error('from', "Please enter a valid e-mail address.");
 		
-	if ($form_state['values']['target'] == 'By Badge' &&  $form_state['values']['badge'] == '')
+	if ($form_state['values']['target'] == 'by_badge' &&  $form_state['values']['badge'] == 0)
 		form_set_error('badge', "you must select a badge if you want to target by badge");
 
 		
-	if ($form_state['values']['target'] != 'By Badge' &&  $form_state['values']['badge'] != '')
+	if ($form_state['values']['target'] != 'by_badge' &&  $form_state['values']['badge'] != 0)
 		form_set_error('target', "you must select 'By Badge' as your target group if you want to target by a badge");
-    	
+  
 }
 
 function nycc_rides_ride_coordinators_email_submit($form, &$form_state) {
+  dpm($form_state);
 
-  	$arg1 = strtolower($form_state['values']['target']);
-  	if (drupal_strlen($arg1) == 0)
-    	$arg1 = "Leaders";
+  $target = strtolower($form_state['values']['target']);
+  if (drupal_strlen($target) == 0)
+    $target = "leaders";
   	
-  	$arg2 = strtolower($form_state['values']['level']);
-  	if (drupal_strlen($arg2) == 0)
-    	$arg2 = "All";
+	$level = strtolower($form_state['values']['level']);
+	if (drupal_strlen($level) == 0)
+  	$level = "all";
   	
-	$arg3 = strtolower($form_state['values']['badge']);
+  $badge_id = strtolower($form_state['values']['badge']);
+  
+  $arg1 =  ($target == 'by_badge' ) ? $badge_id : $target;
 
-  	$subject = $form_state['values']['subject'];
-  	$body = $form_state['values']['message'];
-	//  $from = $form_state['values']['from'];  - 11/25/2015 changing to reduce bounced emails whend sender is aol.com or yahoo.com
-  	$replyTo = $form_state['values']['from'];
-  	$from = "no-reply@nycc.org";
+  $subject = $form_state['values']['subject'];
+  $body = $form_state['values']['message']['value'];
+  $reply_to = $form_state['values']['from'];
+  $from = "no-reply@nycc.org";
 
+  $target_emails  = array_values(nycc_rides_get_members_by_activity($arg1, $level));
 
-  	// todo: remove
-  	//drupal_set_message("No emails sent yet. This feature is still under construction. Coming soon!");
-  	//drupal_set_message("Note that messages will be sent to " . $form_state['values']['level'] . " level $arg1");
-
-
-  	$r2 = time();
-  	$r1 = $r2 - 365 * 24 * 60 * 60;
-
-  	if ($arg1 == 'riders') {
-    	$sql =<<<EOS
-
-			SELECT DISTINCT mail FROM users u, users_roles ur, node p, node r, content_type_rides ctr, content_field_ride_current_riders cfrcr, content_type_profile cp  
-      		WHERE u.uid = cfrcr.field_ride_current_riders_uid AND ur.uid = u.uid AND ur.rid = 3 AND ctr.nid = cfrcr.nid AND ctr.vid = cfrcr.vid 
-      		AND r.type = 'rides' AND cfrcr.nid = r.nid AND cfrcr.vid = r.vid 
-        	AND p.uid=u.uid AND p.type = 'profile'  
-            AND cp.nid=p.nid AND cp.vid=p.vid AND cp.field_email_list_flag_value = 'Receive Club Emails'
-      		AND	UNIX_TIMESTAMP(CONCAT(DATE_FORMAT(ctr.field_date_ride_first_value, "%Y-%m-%%d"), "T",
-        		If(ctr.field_ride_start_time_select_value = "AM", ctr.field_ride_start_time_hour_value, 
-        		IF(ctr.field_ride_start_time_hour_value < 12, ctr.field_ride_start_time_hour_value+12, ctr.field_ride_start_time_hour_value-12)),":",
-        		ctr.field_ride_start_time_min_value,":00"))
-      		BETWEEN $r1 AND $r2
-EOS;
-
-	} 
-	else if ($arg1 == 'leaders'){
-
-    	$sql =<<<EOS2
-
-		SELECT DISTINCT mail FROM users u, node p, node r, content_field_ride_leaders cfrl, content_type_rides ctr, content_type_profile cp 
-		WHERE u.uid = p.uid  AND cfrl.field_ride_leaders_nid = p.nid AND p.type = 'profile' AND r.type = 'rides' AND ctr.nid = r.nid 
-		AND ctr.vid = r.vid AND r.nid = cfrl.nid AND r.vid = cfrl.vid AND  ctr.field_ride_status_value = 'Approved'
-        AND cp.nid=p.nid AND cp.vid=p.vid AND cp.field_email_list_flag_value = 'Receive Club Emails'
-		AND UNIX_TIMESTAMP(CONCAT( DATE_FORMAT(ctr.field_date_ride_first_value, "%Y-%m-%%d"), "T",
-		If(ctr.field_ride_start_time_select_value = "AM", ctr.field_ride_start_time_hour_value, 
-		IF(ctr.field_ride_start_time_hour_value < 12, ctr.field_ride_start_time_hour_value+12, ctr.field_ride_start_time_hour_value-12)),
-			":", ctr.field_ride_start_time_min_value, ":00"))
-		BETWEEN $r1 AND $r2
-EOS2;
-
-	} else {
-  		$sql ="select distinct u.mail as mail 
-  			from users u join user_badges_user ub on u.uid=ub.uid 
-  			join user_badges_badges b on ub.bid = b.bid 
-  			join node n on n.uid=u.uid 
-  			join content_type_profile cp on cp.nid=n.nid AND cp.vid=n.vid	
-  			where cp.field_email_list_flag_value = 'Receive Club Emails' and b.name='" . $arg3  . "';";  	
-	}	
-
-// add filter
-	if ($arg2 != "all" && $arg1 != "by badge")
-    	$sql .= " AND ctr.field_ride_select_level_value = '$arg2' ";
-	else if ($arg1 != "by badge")
-    	$sql .= " AND ctr.field_ride_select_level_value IN ('a', 'b', 'c') ";
-
-//  dpm(array('sql' => $sql));
-  // for testing and logging
-  $emails = array();
-
-  $q = db_query($sql);
-  $cnt = 0;
-  while ($row = db_fetch_object($q)) {
-    $emails[] = t($row->mail);
-    $message = array(
-      'to' => t($row->mail),
-      'subject' => t($subject),
-      'body' => $body,
-      'headers' => array('From' => t($from), 'Reply-To' => t($replyTo)),
-    );
-    //dpm($message);
-    drupal_mail_send($message);
-    $cnt++;
+  $msg = array(
+               'to'=>  nycc_mandrill_generate_recipient_list( $target_emails, 'bcc') ,
+               'subject' => $subject,
+               'html' => $body, 
+               'from_email' => $from,
+               'headers' => array('Reply-To' => $reply_to ),
+      );
+  try {
+    if (nycc_mandrill_send_email($msg) ) {
+      drupal_set_message(t('Your message has been sent to @count recipients', array('@count' => count($target_emails))));
+    }
+  } catch (Exception $e) {
+    drupal_set_message(t('Error sending message: @msg', array('@msg' => $e->getMessage())));
   }
-  drupal_set_message("$cnt emails sent.");
-  watchdog('nycc', "%cnt emails sent with subject '%subject' from '%from' with body '%body' to: %emails", array('%cnt' => $cnt, '%subject' => t($subject), '%from' => t($from), '%body' => t($body), '%emails' => implode(', ', $emails)), WATCHDOG_INFO);
-  //dpm($emails);
-
 }
-//
-//function nycc_rides_output_ride_coordinators_email_block() {
-//	//TODO: add SIG Graduate Links
-//  $output = "";
-//  $output .= "<p>Send an email blast to ride leaders and club members based on riding level.</p>";
-//  $output .= "<ul>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/All' class='nycc-button-wrapper'>A/B/C-Level Leaders</a></li>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/A' class='nycc-button-wrapper'>A-Level Leaders</a></li>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/B' class='nycc-button-wrapper'>B-Level Leaders</a></li>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/C' class='nycc-button-wrapper'>C-Level Leaders</a></li>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/All' class='nycc-button-wrapper'>A/B/C-Level Riders</a></li>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/A' class='nycc-button-wrapper'>A-Level Riders</a></li>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/B' class='nycc-button-wrapper'>B-Level Riders</a></li>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/C' class='nycc-button-wrapper'>C-Level Riders</a></li>";
-//  $output .= "<li><a href='/nycc-ride-coordinators-email/By_Badge' class='nycc-button-wrapper'>By Assigned Badge</a></li>";  
-//  $output .= "</ul>";
-//  return $output;
-//}
-//
-///**
-// * Implementation of hook_block().
-// */
-//function nycc_rides_block($op = 'list', $delta = 0, $edit = array()) {
-//  switch ($op) {
-//    case 'list':
-//       $blocks[0]['info'] = t('Ride Coordinators Email');
-//       $blocks[0]['cache'] = BLOCK_CACHE_PER_PAGE;
-//      return $blocks;
-//    case 'configure':
-//      return $form;
-//    case 'save':
-//      break;
-//    case 'view':
-//       if ($delta == 0) {
-//         $block['subject'] = t('Ride Coordinators Email');
-//         $block['content'] = nycc_rc_output_ride_coordinators_email_block();
-//       }
-//      return $block;
-//  }
-//}
+
+function nycc_rides_output_ride_coordinators_email_block() {
+  $output = "";
+  $output .= "<p>Send an email blast to ride leaders and club members based on riding level.</p>";
+  $output .= "<ul>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/All' class='nycc-button-wrapper'>A/B/C-Level Leaders</a></li>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/A' class='nycc-button-wrapper'>A-Level Leaders</a></li>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/B' class='nycc-button-wrapper'>B-Level Leaders</a></li>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/C' class='nycc-button-wrapper'>C-Level Leaders</a></li>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/All' class='nycc-button-wrapper'>A/B/C-Level Riders</a></li>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/A' class='nycc-button-wrapper'>A-Level Riders</a></li>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/B' class='nycc-button-wrapper'>B-Level Riders</a></li>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/C' class='nycc-button-wrapper'>C-Level Riders</a></li>";
+  $output .= "<li><a href='/nycc-ride-coordinators-email/By_Badge' class='nycc-button-wrapper'>By Assigned Badge</a></li>";  
+  $output .= "</ul>";
+  return $output;
+}
+
+/**
+ * Implementation of hook_block().
+ */
+function nycc_rides_block_info() {
+  //VALIDATED
+  $blocks[0]['info'] = t('Ride Coordinator Email');
+  $blocks[0]['cache'] = DRUPAL_NO_CACHE;
+ 
+  return $blocks;
+} 
+
+
+function nycc_rides_block_view($delta = 0) {
+  if ($delta == 0) {
+    $block['subject'] = t('Ride Coordinators Email');
+    $block['content'] = nycc_rides_output_ride_coordinators_email_block();
+  }
+  return $block;
+}
+
