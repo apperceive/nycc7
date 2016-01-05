@@ -5,6 +5,7 @@ core = 7.x
 files[] = nycc.reports.inc
 files[] = nycc.rules.inc
 files[] = nycc.tokens.inc
-
+files[] = nycc.testing.inc
+configure=admin/config/nycc
 
 

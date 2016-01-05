@@ -171,8 +171,8 @@ function nycc_rides_output_ride_coordinators() {
   return $output;
 }
 
-//RIDE COORDINATOR EMAIL FORM
-function nycc_rides_ride_coordinators_email($form, &$form_state) {
+//EMAIL FORM
+function nycc_rides_email_members($form, &$form_state) {
   global $user;
 	$form = array();
 
@@ -189,7 +189,6 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
     	drupal_set_message("You must be an have the permission to 'email riders and leaders' to view this page.");
 			return $form;
   }
-	    	//nycc_turn_off_journal_form('nycc_ride_coordinators_email');
 	$badge_names = array();
 	$q = db_query("select 0 as bid, '' as name UNION  select bid, name from {user_badges_badges} order by name;");
   foreach($q as $row) {
@@ -220,7 +219,7 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 		'#required' => true,
 		'#default_value' => $arg2,
 		'#title' => t("Ride Level"),
-		'#options' => array("all" => "All", "A" => "A", "B" => "B", "C" => "C"),
+		'#options' => array("all" => "All", "a" => "A", "b" => "B", "c" => "C"),
 		'#description' => "Choose the riding level of the riders you wish to e-mail.",
 	);
 
@@ -260,6 +259,14 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 		'#description' => "Enter the text of your message here. Required",
 	);
 
+	$form['upload_files'] = array(
+		'#type' => 'file',
+    '#name' => 'files[]',
+		'#title' => t("Attachments"),
+    '#attributes' => array('multiple' => 'multiple'),
+		'#description' => "Include any attachments. <br/>Allowed extensions: jpg, jpeg, png, gif, pdf, doc, docx, xls, xlsx, tcx, gpx<br/> Max of 10 files totalling 2 MB",
+	);
+  
 	$form['button'] = array(
 		'#type' => 'submit',
 		'#value' => t('Send'),
@@ -267,8 +274,7 @@ function nycc_rides_ride_coordinators_email($form, &$form_state) {
 	return($form);
 }
 
-function nycc_rides_ride_coordinators_email_validate($form, &$form_state) {
-  dpm($form_state);
+function nycc_rides_email_members_validate($form, &$form_state) {
 	if (!valid_email_address($form_state['values']['from']))
 		form_set_error('from', "Please enter a valid e-mail address.");
 		
@@ -278,12 +284,32 @@ function nycc_rides_ride_coordinators_email_validate($form, &$form_state) {
 		
 	if ($form_state['values']['target'] != 'by_badge' &&  $form_state['values']['badge'] != 0)
 		form_set_error('target', "you must select 'By Badge' as your target group if you want to target by a badge");
-  
+
+  $num_files = count($_FILES['files']['name']);
+  if ($num_files > 10 ) {
+    form_set_error('upload_files', "You uploaded $num_files. The maximum allowed files is 10.");
+  } else {
+    for ($i = 0; $i < $num_files; $i++) {
+    $total_size += $_FILES['files']['size'][$i];
+    }
+    if ($total_size > 2000000 ) {
+      form_set_error('upload_files', "The total size of your files exceed the maximum allowance of 2 MB.");
+    }
+    else {
+      $form_state['files'] = array();
+      for ($i = 0; $i < $num_files; $i++) {
+        $file = file_save_upload($i, array(
+            'file_validate_extensions' => array('png gif jpg jpeg png gif pdf doc docx xls xlsx tcx gpx'),
+        ));
+        if ($file) {
+          $form_state['files'][] = $file;
+        }
+      }
+    }  
+  }
 }
 
-function nycc_rides_ride_coordinators_email_submit($form, &$form_state) {
-  dpm($form_state);
-
+function nycc_rides_email_members_submit($form, &$form_state) {
   $target = strtolower($form_state['values']['target']);
   if (drupal_strlen($target) == 0)
     $target = "leaders";
@@ -300,17 +326,32 @@ function nycc_rides_ride_coordinators_email_submit($form, &$form_state) {
   $body = $form_state['values']['message']['value'];
   $reply_to = $form_state['values']['from'];
   $from = "no-reply@nycc.org";
+  
+  $target_emails  = nycc_rides_get_members_by_activity($arg1, $level);
+  $msg_attachements = array();
+  if(array_key_exists('files', $form_state )) {
+    foreach ($form_state['files'] as $this_file) {
+      $attachment = file_get_contents($this_file->uri);
+      $msg_attachements[] = array(
+            'content' => base64_encode($attachment),
+            'type' => $this_file->filemime,
+            'name' => $this_file->filename,
+        );
+    }
+  }
 
-  $target_emails  = array_values(nycc_rides_get_members_by_activity($arg1, $level));
-
+  //'to'=>  nycc_mandrill_generate_recipient_list( $target_emails, 'bcc') ,
   $msg = array(
-               'to'=>  nycc_mandrill_generate_recipient_list( $target_emails, 'bcc') ,
+               'to'=>  nycc_mandrill_generate_recipient_list( 'israelforst@gmail.com', 'bcc') ,
                'subject' => $subject,
                'html' => $body, 
                'from_email' => $from,
-               'headers' => array('Reply-To' => $reply_to ),
+               'from_name' => $reply_to . ' (via nycc.org)',
+               'headers' => array('Reply-To' => $reply_to),
+               'attachments' => $msg_attachements,
       );
   try {
+    
     if (nycc_mandrill_send_email($msg) ) {
       drupal_set_message(t('Your message has been sent to @count recipients', array('@count' => count($target_emails))));
     }
@@ -319,19 +360,19 @@ function nycc_rides_ride_coordinators_email_submit($form, &$form_state) {
   }
 }
 
-function nycc_rides_output_ride_coordinators_email_block() {
+function nycc_rides_output_email_members_block() {
   $output = "";
   $output .= "<p>Send an email blast to ride leaders and club members based on riding level.</p>";
   $output .= "<ul>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/All' class='nycc-button-wrapper'>A/B/C-Level Leaders</a></li>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/A' class='nycc-button-wrapper'>A-Level Leaders</a></li>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/B' class='nycc-button-wrapper'>B-Level Leaders</a></li>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/Leaders/C' class='nycc-button-wrapper'>C-Level Leaders</a></li>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/All' class='nycc-button-wrapper'>A/B/C-Level Riders</a></li>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/A' class='nycc-button-wrapper'>A-Level Riders</a></li>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/B' class='nycc-button-wrapper'>B-Level Riders</a></li>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/Riders/C' class='nycc-button-wrapper'>C-Level Riders</a></li>";
-  $output .= "<li><a href='/nycc-ride-coordinators-email/By_Badge' class='nycc-button-wrapper'>By Assigned Badge</a></li>";  
+  $output .= "<li><a href='/nycc-ride-email-members/leaders/all' class='nycc-button-wrapper'>A/B/C-Level Leaders</a></li>";
+  $output .= "<li><a href='/nycc-ride-email-members/leaders/a' class='nycc-button-wrapper'>A-Level Leaders</a></li>";
+  $output .= "<li><a href='/nycc-ride-email-members/leaders/b' class='nycc-button-wrapper'>B-Level Leaders</a></li>";
+  $output .= "<li><a href='/nycc-ride-email-members/leaders/c' class='nycc-button-wrapper'>C-Level Leaders</a></li>";
+  $output .= "<li><a href='/nycc-ride-email-members/riders/all' class='nycc-button-wrapper'>A/B/C-Level Riders</a></li>";
+  $output .= "<li><a href='/nycc-ride-email-members/riders/a' class='nycc-button-wrapper'>A-Level Riders</a></li>";
+  $output .= "<li><a href='/nycc-ride-email-members/riders/b' class='nycc-button-wrapper'>B-Level Riders</a></li>";
+  $output .= "<li><a href='/nycc-ride-email-members/riders/c' class='nycc-button-wrapper'>C-Level Riders</a></li>";
+  $output .= "<li><a href='/nycc-ride-email-members/by_badge' class='nycc-button-wrapper'>By Assigned Badge</a></li>";  
   $output .= "</ul>";
   return $output;
 }
@@ -341,17 +382,16 @@ function nycc_rides_output_ride_coordinators_email_block() {
  */
 function nycc_rides_block_info() {
   //VALIDATED
-  $blocks[0]['info'] = t('Ride Coordinator Email');
+  $blocks[0]['info'] = t('Email Members');
   $blocks[0]['cache'] = DRUPAL_NO_CACHE;
- 
   return $blocks;
 } 
 
 
 function nycc_rides_block_view($delta = 0) {
   if ($delta == 0) {
-    $block['subject'] = t('Ride Coordinators Email');
-    $block['content'] = nycc_rides_output_ride_coordinators_email_block();
+    $block['subject'] = t('Email Members');
+    $block['content'] = nycc_rides_output_email_members_block();
   }
   return $block;
 }

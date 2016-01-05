@@ -72,10 +72,10 @@ function nycc_rides_menu() {
     	'access callback' => TRUE,
   );
   
-  $items['nycc-ride-coordinators-email'] = array(
+  $items['nycc-ride-email-members'] = array(
     'page callback' => 'drupal_get_form',
     'file' => 'nycc_rides.ride_coordinators.inc',
-    'page arguments' => array('nycc_rides_ride_coordinators_email'),
+    'page arguments' => array('nycc_rides_email_members'),
     'access callback' => TRUE,
     //'access arguments' => array('email riders and leaders'),    
     'type' => MENU_NORMAL_ITEM,
@@ -1996,9 +1996,6 @@ EOS;
  *$date_from defaults to 1 year prior to NOW
  *$respect privacy indicates = TRUE we should excludes users who've opted out of club emails
  */
-
-
-
 function nycc_rides_get_members_by_activity($activity_type = 'leaders', $level = 'all', $date_from = null, $respect_privacy = TRUE) {
   if (is_null($date_from)) {
     $date_from = date("Y-m-d H:i:s", strtotime('-1 year', REQUEST_TIME));
@@ -2011,65 +2008,14 @@ function nycc_rides_get_members_by_activity($activity_type = 'leaders', $level =
   }
   
 
-  switch($activity_type) {
-    case 'riders':
-      $sql = <<<EOS
-SELECT DISTINCT u.uid as uid, u.mail as mail 
+  $rider_sql = <<<EOS
+SELECT DISTINCT u.uid as uid, u.mail as mail, rn.realname as name 
 FROM node n 
 join field_data_field_ride_timestamp ts ON ts.entity_id = n.nid AND ts.revision_id = n.vid
 join field_data_field_ride_current_riders cr ON cr.entity_id = n.nid and cr.revision_id=n.vid
 join field_data_field_ride_select_level l ON l.entity_id = n.nid and l.revision_id=n.vid
 join users u  on u.uid = cr.field_ride_current_riders_uid
-join users_roles ur on u.uid=ur.uid
-WHERE                                                        
-	n.type = 'rides'
-  AND ur.rid = 3
-	AND n.type = 'rides'
-  AND l.field_ride_select_level_value like '$level'
-  AND ts.field_ride_timestamp_value >= '$date_from'
-EOS;
-      break;
-    
-    case 'leaders':
-      $sql = <<<EOS
-SELECT DISTINCT u.uid as uid, u.mail as mail 
-FROM node n 
-join field_data_field_ride_timestamp ts ON ts.entity_id = n.nid AND ts.revision_id = n.vid
-join field_data_field_ride_current_leaders cl ON cl.entity_id = n.nid and cl.revision_id=n.vid
-join field_data_field_ride_select_level l ON l.entity_id = n.nid and l.revision_id=n.vid
-join users u  on u.uid = cl.field_ride_current_leaders_uid
-join users_roles ur on u.uid=ur.uid
-WHERE                                                        
-	n.type = 'rides'
-  AND ur.rid = 3
-	AND n.type = 'rides'
-  AND l.field_ride_select_level_value like '$level'
-  AND ts.field_ride_timestamp_value >= '$date_from'
-EOS;
-      break;
- 
-      case 'leaders_and_riders':
-      $sql = <<<EOS
-SELECT DISTINCT u.uid as uid, u.mail as mail 
-FROM node n 
-join field_data_field_ride_timestamp ts ON ts.entity_id = n.nid AND ts.revision_id = n.vid
-join field_data_field_ride_current_leaders cl ON cl.entity_id = n.nid and cl.revision_id=n.vid
-join field_data_field_ride_select_level l ON l.entity_id = n.nid and l.revision_id=n.vid
-join users u  on u.uid = cl.field_ride_current_leaders_uid
-join users_roles ur on u.uid=ur.uid
-WHERE                                                        
-	n.type = 'rides'
-  AND ur.rid = 3
-	AND n.type = 'rides'
-  AND l.field_ride_select_level_value like '$level'
-  AND ts.field_ride_timestamp_value >= '$date_from'
-UNION
-SELECT DISTINCT u.uid as uid, u.mail as mail 
-FROM node n 
-join field_data_field_ride_timestamp ts ON ts.entity_id = n.nid AND ts.revision_id = n.vid
-join field_data_field_ride_current_riders cr ON cr.entity_id = n.nid and cr.revision_id=n.vid
-join field_data_field_ride_select_level l ON l.entity_id = n.nid and l.revision_id=n.vid
-join users u  on u.uid = cr.field_ride_current_riders_uid
+join realname rn on rn.uid=u.uid
 join users_roles ur on u.uid=ur.uid
 WHERE                                                        
 	n.type = 'rides'
@@ -2079,22 +2025,56 @@ WHERE
   AND ts.field_ride_timestamp_value >= '$date_from'
 EOS;
 
+$leader_sql = <<<EOS
+SELECT DISTINCT u.uid as uid, u.mail as mail, rn.realname as name 
+FROM node n 
+join field_data_field_ride_timestamp ts ON ts.entity_id = n.nid AND ts.revision_id = n.vid
+join field_data_field_ride_current_leaders cl ON cl.entity_id = n.nid and cl.revision_id=n.vid
+join field_data_field_ride_select_level l ON l.entity_id = n.nid and l.revision_id=n.vid
+join users u  on u.uid = cl.field_ride_current_leaders_uid
+join realname rn on rn.uid=u.uid
+join users_roles ur on u.uid=ur.uid
+WHERE                                                        
+	n.type = 'rides'
+  AND ur.rid = 3
+	AND n.type = 'rides'
+  AND l.field_ride_select_level_value like '$level'
+  AND ts.field_ride_timestamp_value >= '$date_from'
+EOS;
+
+
+$badge_sql = <<<EOS
+SELECT DISTINCT u.uid as uid, u.mail as mail, rn.realname as name 
+from users u
+join user_badges_user ub on u.uid=ub.uid
+join realname rn on rn.uid=u.uid
+WHERE bid=$activity_type
+EOS;
+  
+  
+  
+  switch($activity_type) {
+    case 'riders':
+      $sql = $rider_sql;
+      break;
+    
+    case 'leaders':
+      $sql = $leader_sql;
+      break;
+ 
+      case 'leaders_and_riders':
+      $sql = $rider_sql . ' UNION ' . $leader_sql ;
       break;
      
     default:
-      $sql = <<<EOS
-select distinct u.uid as uid, u.mail as mail 
-from users u
-join user_badges_user ub on u.uid=ub.uid
-WHERE bid=$activity_type
-EOS;
+      $sql = $badge_sql;
       break;      
   }
 
  $members = array();
  $q = db_query($sql); //, $uid, email);
   foreach($q as $r) {
-    $members[$r->uid] = $r->mail;
+    $members[$r->uid] = array('email' => $r->mail, 'name' => $r->name);
   }
   return $members;
 }

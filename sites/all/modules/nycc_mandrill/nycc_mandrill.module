@@ -68,6 +68,11 @@ function nycc_mandrill_get_recipients($msg = NULL) {
 }
 
 function nycc_mandrill_generate_recipient_list($recipients = array(), $type = 'to') {
+  /*$recipients can come in 3 forms
+   *  1) single email address
+   *  2) simple array of email addresses
+   *  3) associative array containing name and email address $addressses[] = array('email' => address, 'name' => name)
+   */
   $to_return = array();
   if(!is_array($recipients)) {
     $recipients = array($recipients);
@@ -78,16 +83,41 @@ function nycc_mandrill_generate_recipient_list($recipients = array(), $type = 't
   }
   
   foreach ($recipients as $email_address) {
-    if(valid_email_address($email_address)) {
+    if(is_array($email_address)) {
+      if (array_key_exists('name', $email_address)  && array_key_exists('email', $email_address)) {
+        $name = $email_address['name'];
+        $email = $email_address['email'];
+      }
+      else {
+        $name = implode($email_address);
+        $email = implode($email_address);
+      }  
+    }
+    else  {
+        $name = $email_address;
+        $email = $email_address;
+    }
+    
+    if(valid_email_address($email)) {
       $to_return[] =   array(
-                          'email' => $email_address,
-                          'name' => $email_address,
+                          'email' => $email,
+                          'name' => $name,
                           'type' => $type
                           ); 
-      
     }
   }
   return $to_return;  
+}
+
+function nycc_mandrill_generate_recipient_list_test() {
+  //valid commands
+  dpm(nycc_mandrill_generate_recipient_list("test@nycc.org"));
+  dpm(nycc_mandrill_generate_recipient_list(array("test@nycc.org")));
+  dpm(nycc_mandrill_generate_recipient_list(array('email'=>"test@nycc.org")));
+  dpm(nycc_mandrill_generate_recipient_list(array(1 => array('email'=>"test@nycc.org", 'name' => 'test user')), 'bcc'));
+  
+  //invalid commands
+  
 }
 
 
