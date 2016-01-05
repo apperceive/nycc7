@@ -1,8 +1,0 @@
-name = NYCC Tokens Module
-description = Custom Tokens for NYCC website
-package = NYCC
-core = 7.x
-dependencies[] = token
-dependencies[] = nycc_rides
-files[]=nycc_tokens.module
-
