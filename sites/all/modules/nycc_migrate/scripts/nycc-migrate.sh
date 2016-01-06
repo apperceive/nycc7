@@ -62,8 +62,9 @@ Usage: $(basename $0) [-options] [site]
     -w -7           cleanup source
     -x -8           cleanup target
     -y -9           cleanup migration (and source)
+    -s              display migration status
     -r              target backup (not implemented yet, use -b)
-    -s              source backup (not implemented yet, use -b)
+    -q              source backup (not implemented yet, use -b)
     -v              verbose (nothing extra yet)
     -i              source report
     -i              target report
@@ -146,7 +147,7 @@ function nycc_migrate_init_target() {
   
   echo "Disabling smpt and other target modules during migration..."
   # turn off smtp module and others 
-  drush $targetalias dis -y -q smtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler
+  drush $targetalias dis -y -q smtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
 
     
   echo "Disabling email traps..."
@@ -322,7 +323,7 @@ function nycc_migrate_cleanup_target() {
   
   # TODO: enable when running for real
   echo "Re-enable modules (NOT!) ..."
-  #drush $targetalias en -y -q smtp rules, nycc_pic_otw, rules_admin, rules_scheduler
+  #drush $targetalias en -y -q smtp rules nycc_pic_otw rules_admin, rules_scheduler nycc_rides
   
   echo "Re-enable email (NOT!)..."
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
@@ -360,6 +361,18 @@ function nycc_migrate_report_source() {
   echo "nycc_migrate_report_source complete."
 }
 
+# Output current migration status
+function nycc_migrate_status() {
+  # check for migrate log
+  # check for tmp and other folders
+  # check for production db
+  # check for sourcedb and target db 
+  # and various tables 
+  # and row counts 
+  # last migration step and message (save somewhere?)
+  # other important sanity checks/info?
+}
+
 ###### END OF MIGRATION FUNCTIONS
 
 ###### MAIN - PARSE ARGS AND OPTIONS
@@ -368,7 +381,7 @@ function nycc_migrate_report_source() {
 [[ ! "$*" ]] && nycc_migrate_usage 1
 
 # Parse command line options
-while getopts abcdmprstvwxyz0123456789h\? option
+while getopts abcdmpqrstvwxyz0123456789h\? option
 do
     case $option in
         t|0) migration_test=1 ;;
@@ -381,8 +394,9 @@ do
         w|7) cleanup_source=1 ;;
         x|8) cleanup_target=1 ;;
         y|9) cleanup_migration=1 ;;
+        s) migration_status=1 ;;
         r) target_backup=1 ;;
-        s) source_backup=1 ;;
+        q) source_backup=1 ;;
         v) is_verbose=1 ;;
         i) report_source=1 ;;
         j) report_target=1 ;;
@@ -484,9 +498,17 @@ fi
 
 if [ -z "$report_target" ]
 then
-  echo "Skipped: Report target (-z)"   >> $logfile
+  echo "Skipped: Report target (-q)"   >> $logfile
 else
   nycc_migrate_report_target >> $logfile
+fi
+
+
+if [ -z "$migration_status" ]
+then
+  #echo "Skipped: Migration status (-s)" 
+else
+  nycc_migrate_status
 fi
 
 
@@ -495,7 +517,7 @@ then
 #  echo "Skipped: test (-t)"
   echo "";
 else
-  echo "Test run..." >> $logfile
+  echo "Test run..." >> tee $logfile
   
   # echo "Copy events"
   # $fieldcopy event_category event_spots
@@ -513,7 +535,7 @@ else
   
   #$fieldcopy --sql --type="node_revisions" --addcol="body_format,5" --targettable="field_data_body" --targetfield="body_value" --nosuffix --noprefix --sourceexp="body" --where="node.type='cue-sheet'" body
  
-  $fieldcopy --notnull --kind=value --targetkind=tid cuesheet_tags
+  #$fieldcopy --notnull --kind=value --targetkind=tid cuesheet_tags
   
   
   echo "Test complete."
@@ -521,4 +543,4 @@ else
 fi
  
 
-echo "Migration tasks completed."  >> $logfile
+echo "Migration tasks completed."  >> tee $logfile
