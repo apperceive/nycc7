@@ -513,7 +513,7 @@ else
   
   #$fieldcopy --sql --type="node_revisions" --addcol="body_format,5" --targettable="field_data_body" --targetfield="body_value" --nosuffix --noprefix --sourceexp="body" --where="node.type='cue-sheet'" body
  
-  #$fieldcopy --sql --notnull --kind=value --targetkind=tid cuesheet_tags
+  $fieldcopy --notnull --kind=value --targetkind=tid cuesheet_tags
   
   
   echo "Test complete."

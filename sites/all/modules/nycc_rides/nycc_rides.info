@@ -4,6 +4,7 @@ core = 7.x
 package = NYCC
 dependencies[] = nycc
 dependencies[] = realname
+dependencies[] = rules
 files[] = nycc_rides.reports.inc
 files[] = nycc_rides.rules.inc
 files[] = nycc_rides.tokens.inc

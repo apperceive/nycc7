@@ -56,16 +56,17 @@ foreach ($args as $ndx => $arg) {
     $srccol = $prefixstr . $targetcol . $suffixstr;    
     $srctable = $noprefix ? $srctable : "content_$srctable" ;
     $where = $notnull ? (($where ? "$where AND " : "WHERE ") . "NOT $expr IS NULL") : $where;
-    $targ = "field_{$table}_{$prefixstr}{$arg}";
     $tables = array('data', 'revision');
     foreach ($tables as $table) {
+      
+      $targ = "field_{$table}_{$prefixstr}{$arg}";
       
       if (!$notruncate) {
         drush_print("field_copy ($table): truncating $arg ($targ)");
         $sqlt = "TRUNCATE `$targ`";
         if (!$no) {
           try {
-            db_query($sql)->execute();
+            db_query($sqlt)->execute();
           }
           catch (Exception $e) {
             $error = $e->getMessage();
