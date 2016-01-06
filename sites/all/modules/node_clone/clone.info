@@ -2,6 +2,9 @@ name = "Node clone"
 description = "Allows users to clone (copy then edit) an existing node."
 core = 7.x
 
+dependencies[]=nycc
+dependencies[]=rules
+
 files[] = views/views_handler_field_node_link_clone.inc
 configure = admin/config/content/clone
 
