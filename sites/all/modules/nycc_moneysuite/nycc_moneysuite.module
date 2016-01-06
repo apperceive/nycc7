@@ -96,7 +96,7 @@ function nycc_moneysuite_get_memberships($user = null) {
   
   if((!empty($purchased_plans)) && (!empty($paid_plans))) {
     foreach($purchased_plans as $membership) {
-      if(array_key_exists($membership->sku, $paid_plans->sku)) {
+      if(array_key_exists($membership->sku, $paid_plans)) {
         $to_be_returned[$membership->id]  = $membership;
       }
     }

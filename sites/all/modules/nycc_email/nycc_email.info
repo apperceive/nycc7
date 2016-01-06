@@ -1,6 +1,0 @@
-name = NYCC Email Module 
-description = Handle inbound emails from Mandrill
-package = NYCC
-core = 6.x
-
-dependencies[] = views

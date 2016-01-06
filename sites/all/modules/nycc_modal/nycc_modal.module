@@ -41,7 +41,7 @@ function nycc_modal_menu() {
   );
   
   $items['admin/config/nycc/nycc_modal'] = array(
-    'title' => 'Administer NYCC Modal',
+    'title' => 'NYCC Modal Administration',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('nycc_modal_settings_form'),
     'access arguments' => array('administer nycc_modal'),
