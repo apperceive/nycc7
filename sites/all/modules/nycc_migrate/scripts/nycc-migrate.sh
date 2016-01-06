@@ -153,7 +153,7 @@ function nycc_migrate_copy_source_to_target() {
   $mysqlexec $scriptsdir/copy_comments_body.sql
 
   echo "Copying field tables..."
-  # content-type page - multivalued fields
+  # content-types page and event fields - multivalued fields
   $fieldcopy carousel_order
   $fieldcopy date
   $fieldcopy --kind=fid image_cache 
@@ -195,6 +195,7 @@ function nycc_migrate_copy_source_to_target() {
   
   # Events
   $fieldcopy event_category event_spots
+  
   # TODO: skip? looks like this may be different from similarly name souce field? 
   # field_data_field_event_view_signups   #boolean
 
@@ -227,16 +228,19 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy cuesheet_status2
   $fieldcopy cuesheet_levels
   $fieldcopy --kind=nid cuesheet_region
-  $fieldcopy --targetkind=tid cuesheet_tags
   $fieldcopy --kind=fid cue_sheet_attachments
+  $fieldcopy --notnull --kind=value --targetkind=tid cuesheet_tags
 
-  # TODO: field_body_summary
-  $fieldcopy --sql --type="node_revision" --addcol="body_format,5" --targettable="field_data_body" --targetfield="body_value" --nosuffix --noprefix --sourceexp="body" --where="node_revision.type='cue-sheet'" body
   $fieldcopy --type="cue_sheet" --addcol="field_cuesheet_waypoints_format,5" cuesheet_waypoints
   $fieldcopy --type="cue_sheet" --addcol="field_cue_sheet_author_format,5" cue_sheet_author
   $fieldcopy --type="cue_sheet" --addcol="field_vertical_gain_format,5" vertical_gain
   $fieldcopy --type="cue_sheet" --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
-
+  
+  # Cue-sheet body =:o
+  # TODO: field_body_summary?
+  $fieldcopy --type="node_revisions" --addcol="body_format,5" --targettable="field_data_body" --targetfield="body_value" --nosuffix --noprefix --sourceexp="body" --where="node.type='cue-sheet'" body
+  
+  
   # TODO: special case: files in d6.content_type_cue_sheet.cue_sheet_map_fid, etc
   # TODO: ? field_data_field_cue_sheet_rwgps_link                 ### link
   # TODO: more content-type copies here: obride, others?
@@ -265,10 +269,6 @@ function nycc_migrate_cleanup_source() {
 function nycc_migrate_cleanup_target() {
   echo "Cleanup target..."
 
-  # OBSOLETE: cleanup rides issues such as description formats
-  #echo "Cleaning up rides descriptions..."
-  #$mysqlexec $scriptsdir/node-rides-formats.sql
-
   echo "Convert passwords..."
   # convert users passwords for use with d7
   drush $targetalias scr $scriptsdir/users-convert-pass.php
@@ -276,7 +276,7 @@ function nycc_migrate_cleanup_target() {
   # TODO: extend to handle all managed files
   echo "Convert files..."
   # convert files for d7 use
-  drush $targetalias scr $scriptsdir/users-convert-pictures.php
+  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir=$targetdir --subdir=pictures
   
   # factor this out into own operation as it is a long one
   echo "Load/save nodes..." >> $logfile
@@ -506,7 +506,7 @@ then
 #  echo "Skipped: test (-t)"
   echo "";
 else
-  echo "Test run." >> $logfile
+  echo "Test run..." >> $logfile
   
   # echo "Copy events"
   # $fieldcopy event_category event_spots
@@ -516,9 +516,18 @@ else
   
   # drush $targetalias scr $scriptsdir/sqlexec.php --sql --targetdb=$targetdb --sourcedb=$sourcedb $scriptsdir/role.sql
   # drush $targetalias scr $scriptsdir/sqlexec.php --sql --sourcesb=$sourcedb $scriptsdir/role.sql
-  #echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
-  #note: no output
-  #$mysqlexec $scriptsdir/test.sql    
+  echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
+  echo "Note: no output from test.sql"
+  $mysqlexec $scriptsdir/test.sql    
+  echo "Test of mysqlexec test.sql complete."
+ 
+  
+  #$fieldcopy --sql --type="node_revisions" --addcol="body_format,5" --targettable="field_data_body" --targetfield="body_value" --nosuffix --noprefix --sourceexp="body" --where="node.type='cue-sheet'" body
+ 
+  $fieldcopy --sql --notnull --kind=value --targetkind=tid cuesheet_tags
+  
+  
+  echo "Test complete."
 
 fi
  

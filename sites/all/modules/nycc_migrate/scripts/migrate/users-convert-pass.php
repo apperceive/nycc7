@@ -31,6 +31,9 @@
         ->condition('uid', $account->uid)
         ->execute();
     }
+    else {
+      drush_print("Error: unable to hash new password for user: " . $account->uid); 
+    }
   }
   
   

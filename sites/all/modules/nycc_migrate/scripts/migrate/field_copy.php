@@ -28,7 +28,7 @@ $no = drush_get_option(array('no'), FALSE);
 $addcol = drush_get_option(array('addcol'), "");   // extra cols for format text fields, etc
 $noprefix = drush_get_option(array('noprefix'), FALSE);
 $nosuffix = drush_get_option(array('nosuffix'), FALSE);
-
+$notnull = drush_get_option(array('notnull'), FALSE);
 
 $extrasrccol = "";
 $extrasrcval = "";
@@ -52,13 +52,15 @@ foreach ($args as $ndx => $arg) {
     $expr = $sourceexp ? $sourceexp : "content_$srctable.field_{$arg}_$kind";
     $prefixstr = $noprefix ? "" : "field_";
     $suffixstr = $nosuffix ? "" : "_$targetkind";
-    $srccol = $prefixstr . $targetcol . $suffixstr;
-    
+    $srccol = $prefixstr . $targetcol . $suffixstr;    
+    $srctable = $noprefix ? $srctable : "content_$srctable" ;
+    $where = $notnull ? (($where ? "$where AND " : "WHERE ") . "NOT $expr IS NULL") : $where;
+
     $tables = array('data', 'revision');
     foreach ($tables as $table) {
     
       $sql =<<<EOS
-REPLACE INTO `field_{$table}_{$prefixstr}{$arg}` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $srccol  $extrasrccol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extrasrcval FROM $sourcedb.`content_$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`content_$srctable`.nid=node.nid AND $sourcedb.`content_$srctable`.vid=node.vid) $where;
+REPLACE INTO `field_{$table}_{$prefixstr}{$arg}` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $srccol  $extrasrccol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extrasrcval FROM $sourcedb.`$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$srctable`.nid=node.nid AND $sourcedb.`$srctable`.vid=node.vid) $where;
 EOS;
 
       drush_print("field_copy ($table): executing $sourcedb $srctable $type $kind $arg $expr -> $targetcol $targetkind");
