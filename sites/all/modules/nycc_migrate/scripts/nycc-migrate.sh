@@ -371,6 +371,11 @@ function nycc_migrate_status() {
   # and row counts 
   # last migration step and message (save somewhere?)
   # other important sanity checks/info?
+  # report on target and source rules, modules and variables of interest to migration
+  # report on smtp status
+  
+  echo "logfile: `ls -la $logfile`"
+  
 }
 
 ###### END OF MIGRATION FUNCTIONS
@@ -416,6 +421,7 @@ if [ -z "$migration_init" ]
 then
   echo "Skipped: Migration init (-m)"  >> $logfile
 else
+  # init migration log
   nycc_migrate_init_migration > $logfile
 fi
 
@@ -506,7 +512,8 @@ fi
 
 if [ -z "$migration_status" ]
 then
-  #echo "Skipped: Migration status (-s)" 
+  # echo "Skipped: Migration status (-s)"
+  echo ""
 else
   nycc_migrate_status
 fi
@@ -515,7 +522,7 @@ fi
 if [ -z "$migration_test" ]
 then
 #  echo "Skipped: test (-t)"
-  echo "";
+  echo ""
 else
   echo "Test run..." >> tee $logfile
   
