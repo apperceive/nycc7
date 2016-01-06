@@ -47,6 +47,35 @@ readonly mysqldump='mysqldump -uroot -pXt2792b8cf'
 readonly mysqlexec="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
 readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb"
 
+# USAGE - HELP
+
+function nycc_migrate_usage () {
+    echo "
+Usage: $(basename $0) [-options] [site]
+    -t -0           run test script
+    -m -1           migration init
+    -b -2           backups (source and target)
+    -p -3           production export and sync
+    -d -4           import production to source
+    -c -5           clear out target database and files before migration
+    -a -6           copy source to target
+    -w -7           cleanup source
+    -x -8           cleanup target
+    -y -9           cleanup migration (and source)
+    -r              target backup (not implemented yet, use -b)
+    -s              source backup (not implemented yet, use -b)
+    -v              verbose (nothing extra yet)
+    -i              source report
+    -i              target report
+    -h              this usage help text
+    site            target site
+Migrate NYCC Drupal 6 to 7
+Example:
+    $(basename $0) -p d7test"
+    exit ${1:-0}
+}
+
+# MIGRATION FUNCTIONS
 
 # INITIALIZE MIGRATION
 # TODO: sanity check all folders and settings, issue warnings if need be
@@ -117,16 +146,17 @@ function nycc_migrate_init_target() {
   
   echo "Disabling smpt and other target modules during migration..."
   # turn off smtp module and others 
-  drush $targetalias dis -y smtp backup_migrate module_filter fpa
+  drush $targetalias dis -y -q smtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler
+
     
   echo "Disabling email traps..."
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
-  drush $targetalias vset nycc_email_trap_exclude_roles notester
-  drush $targetalias vset nycc_email_trap_enabled 0
+  drush $targetalias -q vset nycc_email_trap_exclude_roles notester
+  drush $targetalias -q vset nycc_email_trap_enabled 0
   
   # disable rules
-  echo "Disabling rules..."
-  drush $targetalias rules-disable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
+  #echo "Disabling rules..."
+  #drush $targetalias -q rules-disable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
   
   # Clear out target files directory
   echo "Deleting target files..."
@@ -276,12 +306,12 @@ function nycc_migrate_cleanup_target() {
   # TODO: extend to handle all managed files
   echo "Convert files..."
   # convert files for d7 use
-  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir=$targetdir --subdir=pictures
+  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
   
   # factor this out into own operation as it is a long one
   echo "Load/save nodes..." >> $logfile
   # load/save all nodes and users to trigger other modules hooks?
-  drush $targetalias scr $scriptsdir/node-convert-load-save.php
+  ####################drush $targetalias scr $scriptsdir/node-convert-load-save.php
 
   # TODO: Additional processing:
   # check that profile2 pid's work as expected. what is test for this?
@@ -292,18 +322,18 @@ function nycc_migrate_cleanup_target() {
   
   # TODO: enable when running for real
   echo "Re-enable modules (NOT!) ..."
-  #drush $targetalias en -y smtp
+  #drush $targetalias en -y -q smtp rules, nycc_pic_otw, rules_admin, rules_scheduler
   
   echo "Re-enable email (NOT!)..."
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
-  #drush $targetalias vset nycc_email_trap_exclude_roles tester
-  #drush $targetalias vset nycc_email_trap_enabled 1
+  #drush $targetalias -q vset nycc_email_trap_exclude_roles tester
+  #drush $targetalias -q vset nycc_email_trap_enabled 1
   
   
   echo "Re-enable rules (NOT!) ..."
-  #drush $targetalias rules-enable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
+  #drush $targetalias -q rules-enable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
   
-  drush $targetalias cc all
+  drush -q $targetalias cc all
   
   echo "nycc_migrate_cleanup_target complete."
 }
@@ -330,67 +360,30 @@ function nycc_migrate_report_source() {
   echo "nycc_migrate_report_source complete."
 }
 
-function nycc_migrate_usage () {
-    echo "
-Usage: $(basename $0) [-options] [site] [user]
-    -a -6           copy source to target
-    -b -2           backups (source and target)
-    -c -5           clear out target database and files before migration
-    -d -4           import production to source
-    -m -1           migration init
-    -p -3           production export and sync
-    -r              target backup (not implemented yet)
-    -s              source backup (not implemented yet)
-    -t -0           test
-    -v              verbose (nothing extra yet)
-    -w -7           cleanup source
-    -x -8           cleanup target
-    -y -9           cleanup migration (and source)
-    -i              source report
-    -i              target report
-    -h              this usage help text
-    site            target site
-Migrate NYCC Drupal 6 to 7
-Example:
-    $(basename $0) -p d7test"
-    exit ${1:-0}
-}
+###### END OF MIGRATION FUNCTIONS
 
-function ask_if_empty () {
-    local value="$1"
-    local default="$2"
-    local message="$3"
-    local options="$4"  # pass "-s" for passwords
-    if [[ -z "$value" ]]; then
-        read $options -p "$message [$default] " value
-    fi
-    value=$(echo ${value:-$default})
-    echo "$value"
-}
+###### MAIN - PARSE ARGS AND OPTIONS
 
 # Exit and show help if the command line is empty
 [[ ! "$*" ]] && nycc_migrate_usage 1
-
-# Initialise options
-#n_value="value if option is missing"
 
 # Parse command line options
 while getopts abcdmprstvwxyz0123456789h\? option
 do
     case $option in
-        a|6) copy_source_to_target=1 ;;
-        b|2) backups=1 ;;
-        c|5) clear_target=1 ;;
-        d|4) import_production_to_source=1 ;;
+        t|0) migration_test=1 ;;
         m|1) migration_init=1 ;;
+        b|2) backups=1 ;;
         p|3) production_sync=1 ;;
-        r) target_backup=1 ;;
-        s) source_backup=1 ;;
-        t|0) test=1 ;;
-        v) is_verbose=1 ;;
+        d|4) import_production_to_source=1 ;;
+        c|5) clear_target=1 ;;
+        a|6) copy_source_to_target=1 ;;
         w|7) cleanup_source=1 ;;
         x|8) cleanup_target=1 ;;
         y|9) cleanup_migration=1 ;;
+        r) target_backup=1 ;;
+        s) source_backup=1 ;;
+        v) is_verbose=1 ;;
         i) report_source=1 ;;
         j) report_target=1 ;;
         h) nycc_migrate_usage ;;
@@ -399,17 +392,11 @@ do
 done
 shift $(($OPTIND - 1));     # take out the option flags
 
-# Validate input parameters
-#parameter=$(ask_if_empty "$1" "d7" "Enter the target:")
-#echo Target is $parameter
-
 # TODO: output summary of operations with final y/n are you sure
 #read -p "Press any key to continue..." -n1 -s
 #echo ""
 
-
-
-# MAIN
+###### MAIN - ORCHESTRATE MIGRATION
 
 if [ -z "$migration_init" ]
 then
@@ -418,6 +405,8 @@ else
   nycc_migrate_init_migration > $logfile
 fi
 
+
+echo "Logging to $logfile"
 echo "Migration steps started at $timestamp" >> $logfile
 
 if [ -z "$backups" ]
@@ -501,7 +490,7 @@ else
 fi
 
 
-if [ -z "$test" ]
+if [ -z "$migration_test" ]
 then
 #  echo "Skipped: test (-t)"
   echo "";
@@ -524,7 +513,7 @@ else
   
   #$fieldcopy --sql --type="node_revisions" --addcol="body_format,5" --targettable="field_data_body" --targetfield="body_value" --nosuffix --noprefix --sourceexp="body" --where="node.type='cue-sheet'" body
  
-  $fieldcopy --sql --notnull --kind=value --targetkind=tid cuesheet_tags
+  #$fieldcopy --sql --notnull --kind=value --targetkind=tid cuesheet_tags
   
   
   echo "Test complete."

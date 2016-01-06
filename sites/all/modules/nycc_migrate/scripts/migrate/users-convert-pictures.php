@@ -1,5 +1,6 @@
 <?php
   
+  $debug = drush_get_option(array('sql'), FALSE);
   /*
   // don't do this, check for valid data instead - it appears that none of the 
   // clear out all user pictures values (fids)
@@ -135,4 +136,5 @@
   drush_print("STATS: Processed $filesprocessed out of $filesfound, rejected: $rejected, blocked: $blocked, orphans: $orphans.");
   drush_print("STATS: file_managed inserts: $fminserted, file_managed updates: $fmupdated, file_managed existing: $fmexisting.");
   drush_print("STATS: Users with correct picture fids: $userspicok, users updated: $usersupdated.");
+  if ($debug) drush_print(var_export(get_defined_vars(),1));
 ?>

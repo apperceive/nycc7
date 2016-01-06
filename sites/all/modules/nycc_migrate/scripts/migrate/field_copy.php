@@ -29,6 +29,7 @@ $addcol = drush_get_option(array('addcol'), "");   // extra cols for format text
 $noprefix = drush_get_option(array('noprefix'), FALSE);
 $nosuffix = drush_get_option(array('nosuffix'), FALSE);
 $notnull = drush_get_option(array('notnull'), FALSE);
+$truncate = drush_get_option(array('notruncate'), FALSE);
 
 $extrasrccol = "";
 $extrasrcval = "";
@@ -55,12 +56,29 @@ foreach ($args as $ndx => $arg) {
     $srccol = $prefixstr . $targetcol . $suffixstr;    
     $srctable = $noprefix ? $srctable : "content_$srctable" ;
     $where = $notnull ? (($where ? "$where AND " : "WHERE ") . "NOT $expr IS NULL") : $where;
-
+    $targ = "field_{$table}_{$prefixstr}{$arg}";
     $tables = array('data', 'revision');
     foreach ($tables as $table) {
+      
+      if (!$notruncate) {
+        drush_print("field_copy ($table): truncating $arg ($targ)");
+        $sqlt = "TRUNCATE `$targ`";
+        if (!$no) {
+          try {
+            db_query($sql)->execute();
+          }
+          catch (Exception $e) {
+            $error = $e->getMessage();
+            unset($e);
+            drush_print("Error: $error");
+            if ($debug) drush_print("Defined variables: " . var_export(get_defined_vars(),1));
+            else drush_print("SQL: $sqlt");
+          }
+        }
+      }
     
       $sql =<<<EOS
-REPLACE INTO `field_{$table}_{$prefixstr}{$arg}` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $srccol  $extrasrccol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extrasrcval FROM $sourcedb.`$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$srctable`.nid=node.nid AND $sourcedb.`$srctable`.vid=node.vid) $where;
+REPLACE INTO `$targ` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $srccol  $extrasrccol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extrasrcval FROM $sourcedb.`$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$srctable`.nid=node.nid AND $sourcedb.`$srctable`.vid=node.vid) $where;
 EOS;
 
       drush_print("field_copy ($table): executing $sourcedb $srctable $type $kind $arg $expr -> $targetcol $targetkind");
