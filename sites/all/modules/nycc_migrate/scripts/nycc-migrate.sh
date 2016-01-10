@@ -207,7 +207,7 @@ function nycc_migrate_copy_source_to_target() {
   
   # omit type for simple ref copies
   $fieldcopy --kind=uid ride_current_riders   
-  $fieldcopy --kind=nid ride_leaders
+  $fieldcopy --kind=nid --targettype=ride_current_leaders ride_leaders
   
   # handle field renames and simple conversions
   $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')"  --addcol="field_ride_start_location_format,7" ride_start_location
@@ -317,13 +317,16 @@ function nycc_migrate_cleanup_target() {
   # TODO: Additional processing:
   # check that profile2 pid's work as expected. what is test for this?
   
+  sudo mkdir -p sites/default/files/backup_migrate
+  
   echo "Seting files perms..."
   sudo chown -R nyccftp:apache $targetdir/files
   sudo chmod -R 775 $targetdir/files
   
   # TODO: enable when running for real
   echo "Re-enable modules (NOT!) ..."
-  #drush $targetalias en -y -q smtp rules nycc_pic_otw rules_admin, rules_scheduler nycc_rides
+  #drush $targetalias en -y -q smtp 
+  drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
   
   echo "Re-enable email (NOT!)..."
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
@@ -333,6 +336,8 @@ function nycc_migrate_cleanup_target() {
   
   echo "Re-enable rules (NOT!) ..."
   #drush $targetalias -q rules-enable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
+  
+  $mysql $targetdb < $scriptsdir/target_cleanup.sql
   
   drush -q $targetalias cc all
   
@@ -544,7 +549,8 @@ else
  
   #$fieldcopy --notnull --kind=value --targetkind=tid cuesheet_tags
   
-  
+  $fieldcopy --sql --kind=nid --targettype=ride_current_leaders ride_leaders
+ 
   echo "Test complete."
 
 fi

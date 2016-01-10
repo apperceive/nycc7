@@ -1,6 +1,6 @@
-DELETE FROM users WHERE uid > 1;
 TRUNCATE users_roles;
 TRUNCATE role;
+DELETE FROM users WHERE uid > 1;
 TRUNCATE node;
 TRUNCATE node_revision;
 TRUNCATE file_managed;

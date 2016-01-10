@@ -5,6 +5,11 @@ Clean up obsolete tables from initial migration/upgrate
 select distinct concat("DROP TABLE IF EXISTS ", table_name, ";") from information_schema.COLUMNS where (table_name like "field_deleted_%" OR table_name like "content_field_%" OR table_name like "content_type_%" OR table_name like "uc_%" OR table_name like "d6_og_%")  and TABLE_SCHEMA = "d7test" order by 1
 
 */
+
+DROP TABLE IF EXISTS field_data_field_ride_leaders;
+DROP TABLE IF EXISTS field_revision_field_ride_leaders;
+
+
 DROP TABLE IF EXISTS files;
 
 DROP TABLE IF EXISTS contemplate;
