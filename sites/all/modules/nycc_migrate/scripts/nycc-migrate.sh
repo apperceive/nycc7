@@ -145,9 +145,11 @@ function nycc_migrate_init_target() {
   # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
   $mysql $targetdb < $scriptsdir/target_init.sql
   
+  drush -y -q $targetalias watchdog-delete
+  
   echo "Disabling smpt and other target modules during migration..."
   # turn off smtp module and others 
-  drush $targetalias dis -y -q smtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
+  drush $targetalias -y -q  dissmtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
 
     
   echo "Disabling email traps..."
@@ -549,7 +551,8 @@ else
  
   #$fieldcopy --notnull --kind=value --targetkind=tid cuesheet_tags
   
-  $fieldcopy --sql --kind=nid --targettype=ride_current_leaders ride_leaders
+  # TODO: convert nid to corresponding uid
+  $fieldcopy --sql --kind=nid --targetkind=uid --targettype=ride_current_leaders  --targetfield=ride_current_leaders ride_leaders
  
   echo "Test complete."
 

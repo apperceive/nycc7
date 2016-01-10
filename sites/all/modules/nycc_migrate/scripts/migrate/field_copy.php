@@ -59,7 +59,7 @@ foreach ($args as $ndx => $arg) {
     $tables = array('data', 'revision');
     foreach ($tables as $table) {
       
-      $targ = "field_{$table}_{$prefixstr}{$arg}";
+      $targ = "field_{$table}_{$prefixstr}{$targetcol}";
       
       if (!$notruncate) {
         drush_print("field_copy ($table): truncating $arg ($targ)");

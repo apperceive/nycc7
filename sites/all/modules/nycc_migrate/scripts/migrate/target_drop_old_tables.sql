@@ -6,6 +6,9 @@ select distinct concat("DROP TABLE IF EXISTS ", table_name, ";") from informatio
 
 */
 
+DELETE FROM field_config WHERE deleted <> 0;
+DELETE FROM field_config_instance WHERE deleted <> 0;
+
 DROP TABLE IF EXISTS field_data_field_ride_leaders;
 DROP TABLE IF EXISTS field_revision_field_ride_leaders;
 
