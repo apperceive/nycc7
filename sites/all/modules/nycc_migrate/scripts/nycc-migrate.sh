@@ -152,10 +152,11 @@ function nycc_migrate_init_target() {
   drush $targetalias -y -q  dissmtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
 
     
-  echo "Disabling email traps..."
+  echo "Disabling email traps and membership review..."
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
   drush $targetalias -q vset nycc_email_trap_exclude_roles notester
   drush $targetalias -q vset nycc_email_trap_enabled 0
+  drush $targetalias -q vset nycc_profile_should_redirect_to_membership_review 0
   
   # disable rules
   #echo "Disabling rules..."
@@ -326,14 +327,15 @@ function nycc_migrate_cleanup_target() {
   sudo chmod -R 775 $targetdir/files
   
   # TODO: enable when running for real
-  echo "Re-enable modules (NOT!) ..."
+  echo "Re-enable modules (NOT smtp!) ..."
   #drush $targetalias en -y -q smtp 
   drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
   
-  echo "Re-enable email (NOT!)..."
+  echo "Re-enable email and membership review ..."
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
-  #drush $targetalias -q vset nycc_email_trap_exclude_roles tester
-  #drush $targetalias -q vset nycc_email_trap_enabled 1
+  drush $targetalias -q vset nycc_email_trap_exclude_roles tester
+  drush $targetalias -q vset nycc_email_trap_enabled 1
+  drush $targetalias -q vset nycc_profile_should_redirect_to_membership_review 1
   
   
   echo "Re-enable rules (NOT!) ..."
