@@ -55,6 +55,11 @@ function nycc_profile_has_valid_review_date($account = null) {
 }
 
 function nycc_profile_should_redirect_to_membership_review($account=null) {
+  // TODO: add settings form for review related vars: 
+  // review on/off state, message text, review redirect page node, waiver node
+  // also, TOS too? review frequency? (1 year)
+  $review = variable_get('nycc_profile_should_redirect_to_membership_review', TRUE);
+  if (!$review) return false;
   if(!$account) {
     global $user;
   } else if(is_object($account)) {
