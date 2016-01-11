@@ -163,6 +163,159 @@ function nycc_og_get_buttons($nid = null, $user_id = null) {
 //END DISPLAY FUNCTIONS
 
 
+function nycc_og_add_role_to_user($nid, $user_id, $target_role_name) {
+  if (variable_get('nycc_og_debug_to_log', '1') == 1) {
+    $debug = TRUE;
+  }
+  else {
+    $debug = FALSE;
+  }
+
+  $grp_node = nycc_og_get_group_object($nid);
+  if (!isset($grp_node)) {
+    watchdog("nycc_og", "nycc_og_add_role_to_user - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    if (!isset($user_id)){  
+      drupal_set_message(check_plain("nycc_og_add_role_to_user: This operation could not be completed. No Group ID was passed."),"error");   
+    }
+    return;
+  }
+  
+  //check if caller has permission
+  global $user;
+  if( ! nycc_og_is_captain_or_admin($grp_node->nid, $user->uid)) {
+    drupal_set_message(check_plain("nycc_og_add_role_to_user: This operation could not be completed. You are not a captain of this group."),"error");     
+  }
+  
+  $target_user = nycc_get_user_object($user_id);  
+  if(!isset($target_user)) {
+    watchdog("nycc_og", "nycc_og_add_role_to_user - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    drupal_set_message(check_plain("nycc_og_add_role_to_user: This operation could not be completed. Unable to load user $user_id."),"error");
+    
+    return;
+  }
+  
+  /* 1) Check if is valid role, if not error
+   * 2) check if target_user is a member, if not add them.
+   * 3) check if target user is a captain, if so, exit
+   * 4) add role
+   * 5) if role added was leader or captain then remove from waiter and rider list
+   */
+  $target_rid = nycc_og_get_role_id_from_name( $grp_node->nid, $target_role_name);
+  if( ! isset($target_rid)) {
+    watchdog("nycc_og", "nycc_og_add_role_to_user - Unable to load group @gname. Cancelling function.", array('@gname' => $target_role_name), WATCHDOG_WARNING);
+    
+    drupal_set_message(t("nycc_og_add_role_to_user: This operation could not be completed. Unable to find role $target_role_name."),"error");
+
+    return;
+  }
+
+  try {
+    if(! og_is_member('node', $grp_node->nid,'user', $target_user) ) {
+      if ($debug ) watchdog('nycc_og',  'Adding @uname to group: @gname before adding role: @role_name',
+                            array('@uid' => $target_user->name,
+                                  '@gmail' =>$grp_node->title,
+                                  '@role_name' =>$target_role_name ), WATCHDOG_NOTICE) ;
+
+      $membership = og_group('node', $grp_node->nid,
+           array(
+            "entity type" => "user",
+            "entity" => $target_user,
+            "membership type" => OG_MEMBERSHIP_TYPE_DEFAULT,
+          )
+        );
+    }
+    og_role_grant('node', $grp_node->nid, $target_user->uid, $target_rid); 
+    drupal_set_message(t('Sucessfully added role @role_name to @username ',
+                                       array('role_name' => $target_role_name,
+                                             'username' => $target_user->name)));
+    if( in_array($target_rid, array (variable_get('nycc_og_admin_role_id', '3'),
+                                     variable_get('nycc_og_leader_role_id', '4'),
+                                     variable_get('nycc_og_captain_role_id', '6'))
+                )
+      ) {    
+      if( nycc_og_is_confirmed($grp_node->nid, $target_user->uid)) {
+        og_role_revoke('node', $grp_node->nid, $target_user->uid, variable_get('nycc_og_rider_role_id', '5'));
+        drupal_set_message(t('Removing @username from Rider List',
+                                         array('@username' => $target_user->name)));      
+      }
+      elseif ( nycc_og_is_waiter($grp_node->nid, $target_user->uid)) {
+        og_role_revoke('node', $grp_node->nid, $target_user->uid, variable_get('nycc_og_waiter_role_id', '7'));
+        drupal_set_message(t('Removing @username from Waitlist',
+                                         array('@username' => $target_user->name)));
+      }
+    }
+    return;
+  }
+  catch (Exception $e) {
+    dpm($e->getTrace());
+  }
+}
+
+function nycc_og_remove_role_from_user($nid, $user_id, $target_role_name) {
+  if (variable_get('nycc_og_debug_to_log', '1') == 1) {
+    $debug = TRUE;
+  }
+  else {
+    $debug = FALSE;
+  }
+
+  $grp_node = nycc_og_get_group_object($nid);
+  if (!isset($grp_node)) {
+    watchdog("nycc_og", "nycc_og_remove_role_from_user - no NID was passed. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    drupal_set_message(check_plain("nycc_og_remove_role_from_user: This operation could not be completed. No Group ID was passed."),"error");   
+    return;
+  }
+  
+  //check if caller has permission
+  global $user;
+  if( ! nycc_og_is_captain_or_admin($grp_node->nid, $user->uid)) {
+    drupal_set_message(check_plain("nycc_og_remove_role_from_user: This operation could not be completed. You are not a captain of this group."),"error");     
+  }
+  
+  
+  $target_user = nycc_get_user_object($user_id);  
+  if(!isset($target_user)) {
+    watchdog("nycc_og", "nycc_og_remove_role_from_user - Unable to load user. Cancelling function.", array(), WATCHDOG_WARNING);
+    
+    drupal_set_message(check_plain("nycc_og_remove_role_from_user: This operation could not be completed. Unable to load user $user_id."),"error");
+    
+    return;
+  }
+  
+  $target_rid = nycc_og_get_role_id_from_name( $grp_node->nid, $target_role_name);
+  if( ! isset($target_rid)) {
+    watchdog("nycc_og", "nycc_og_remove_role_from_user - Unable to load group @gname. Cancelling function.", array('@gname' => $target_role_name), WATCHDOG_WARNING);
+    
+    drupal_set_message(t("nycc_og_remove_role_from_user: This operation could not be completed. Unable to find role $target_role_name."),"error");
+
+    return;
+  }
+  
+  $current_roles = og_get_user_roles('node', $grp_node->nid, $target_user->uid);
+  if(! isset($current_roles)) {
+    drupal_set_message(t('This operation could not be completed. User @user_name does not have role: @role_name', array('user_name' => $target_user->name, '@role_name' => $target_role_name), "error"));    
+  }
+  else {
+    $was_removed = false;
+    foreach ($current_roles as $rid => $this_role) {
+      if ($rid == $target_rid) {
+        og_role_revoke('node', $grp_node->nid, $target_user->uid, $target_rid);
+        drupal_set_message(t('Removing role @role_name from @username',
+                                         array('@username' => $target_user->name,
+                                               '@role_name' => $target_role_name)));
+        $was_removed = true;
+      }
+    }
+    if (!$was_removed) {
+        drupal_set_message(t('Error! No roles removes from@username',
+                                         array('@username' => $target_user->name)), 'error');      
+    }
+  }
+}
+
 
 /* function used to add a member to the group as either a rider or a waitlister.
  * function can be called from url (in which case $user_id will be null) or directly from code (in which case a $user_id is required)
@@ -636,9 +789,26 @@ function nycc_og_is_captain($gid, $uid) {
    if(is_object($uid))
       $uid = $uid->uid;
   
-  $rider_rid = variable_get('nycc_og_captain_role_id', '6');
-  foreach (nycc_og_get_users_by_roles($gid, $rider_rid) as $rider) {
-    if($rider->uid == $uid)
+  $captain_rid = variable_get('nycc_og_captain_role_id', '6');
+  foreach (nycc_og_get_users_by_roles($gid, $captain_rid) as $captain) {
+    if($captain->uid == $uid)
+      return true;
+  }
+  return false;  
+}
+
+
+function nycc_og_is_captain_or_admin($gid, $uid) {
+  if(is_object($gid))
+    $gid = $gid->nid;
+    
+   if(is_object($uid))
+      $uid = $uid->uid;
+  
+  $captain_rid = variable_get('nycc_og_captain_role_id', '6');
+  $admin_rid = variable_get('nycc_og_admin_role_id', '3');
+  foreach (nycc_og_get_users_by_roles($gid, array($captain_rid, $admin_rid)) as $captain) {
+    if($captain->uid == $uid)
       return true;
   }
   return false;  

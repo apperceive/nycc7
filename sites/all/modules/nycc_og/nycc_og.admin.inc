@@ -4,11 +4,20 @@ function nycc_og_admin() {
   $form = array();
 	$role_names = og_roles('node', 'Group');
 
-  $form['nycc_og_caotain_role_id'] = array(
+	  $form['nycc_og_admin_role_id'] = array(
+       '#type' => 'select',
+       '#title' => t('Admin Role Name'),
+       '#options' => $role_names,
+       '#default_value' => variable_get('nycc_og_admin_role_id', '3'),
+       '#description' => t('Name of the role assigned to Admins'),
+			 '#required' => TRUE
+  );
+	
+  $form['nycc_og_captain_role_id'] = array(
        '#type' => 'select',
        '#title' => t('Captain Role Name'),
        '#options' => $role_names,
-       '#default_value' => variable_get('nycc_og_caotain_role_id', '6'),
+       '#default_value' => variable_get('nycc_og_captain_role_id', '6'),
        '#description' => t('Name of the role assigned to Captains'),
 			 '#required' => TRUE
   );
