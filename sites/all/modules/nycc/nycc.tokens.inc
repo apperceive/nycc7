@@ -2,11 +2,15 @@
 
 function nycc_token_info() { 
 
-  //  $info['tokens']['node']['nycc_rides_ride_coordinator_email'] = array(
-  //    'name' => t('nycc_rides_ride_coordinator_email'),
-  //    'description' => t('Returns the email address of Ride Coordinator based on the ride level'),
-  //  );  
-  //return $info;
+    $info['tokens']['user']['nycc_user_full_name'] = array(
+      'name' => t('nycc_user_full_name'),
+      'description' => t('Returns the full name of a user'),
+    );
+    $info['tokens']['user']['nycc_user_expire_date'] = array(
+      'name' => t('nycc_user_expire_date'),
+      'description' => t('Returns the expiration date of a member'),
+    );  
+  return $info;
 }
 
 
