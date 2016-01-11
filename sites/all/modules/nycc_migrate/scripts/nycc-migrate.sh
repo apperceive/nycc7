@@ -45,7 +45,7 @@ readonly timestamp="`date +%Y-%m-%d_%H-%M`"
 readonly mysql='mysql -uroot -pXt2792b8cf'
 readonly mysqldump='mysqldump -uroot -pXt2792b8cf'
 readonly mysqlexec="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
-readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb"
+readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb --trace"
 
 # USAGE - HELP
 
@@ -145,22 +145,22 @@ function nycc_migrate_init_target() {
   # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
   $mysql $targetdb < $scriptsdir/target_init.sql
   
-  drush -y -q $targetalias watchdog-delete
+  drush $targetalias watchdog-delete -y -q 
+  
+  # disable rules
+  # echo "Disabling rules..."
+  drush $targetalias rules-disable -q rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
   
   echo "Disabling smpt and other target modules during migration..."
   # turn off smtp module and others 
-  drush $targetalias -y -q  dissmtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
+  drush $targetalias dis -y -q  smtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
 
     
   echo "Disabling email traps and membership review..."
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
-  drush $targetalias -q vset nycc_email_trap_exclude_roles notester
-  drush $targetalias -q vset nycc_email_trap_enabled 0
-  drush $targetalias -q vset nycc_profile_should_redirect_to_membership_review 0
-  
-  # disable rules
-  #echo "Disabling rules..."
-  #drush $targetalias -q rules-disable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
+  drush $targetalias vset -q nycc_email_trap_exclude_roles notester
+  drush $targetalias vset -q nycc_email_trap_enabled 0
+  drush $targetalias vset -q nycc_profile_should_redirect_to_membership_review 0
   
   # Clear out target files directory
   echo "Deleting target files..."
@@ -204,14 +204,10 @@ function nycc_migrate_copy_source_to_target() {
   # TODO: ride_timestamp - check for invalid dates?
   $fieldcopy --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
   
-  
-  # non value fields in rides content table
   $fieldcopy --type=rides --kind=nid ride_cue_sheet 
-  
-  # omit type for simple ref copies
-  $fieldcopy --kind=uid ride_current_riders   
-  $fieldcopy --kind=nid --targettype=ride_current_leaders ride_leaders
-  
+  $fieldcopy --kind=uid ride_current_riders
+  # copy profile nids to uids for now, convert in target cleanup
+  $fieldcopy --kind=nid --targetkind=uid --targettype=ride_current_leaders  --targetfield=ride_current_leaders ride_leaders
   # handle field renames and simple conversions
   $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')"  --addcol="field_ride_start_location_format,7" ride_start_location
 
@@ -270,11 +266,8 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type="cue_sheet" --addcol="field_vertical_gain_format,5" vertical_gain
   $fieldcopy --type="cue_sheet" --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
   
-  # Cue-sheet body =:o
-  # TODO: field_body_summary?
-  $fieldcopy --type="node_revisions" --addcol="body_format,5" --targettable="field_data_body" --targetfield="body_value" --nosuffix --noprefix --sourceexp="body" --where="node.type='cue-sheet'" body
-  
-  
+  $mysqlexec $scriptsdir/cue-sheet_field_body.sql
+    
   # TODO: special case: files in d6.content_type_cue_sheet.cue_sheet_map_fid, etc
   # TODO: ? field_data_field_cue_sheet_rwgps_link                 ### link
   # TODO: more content-type copies here: obride, others?
@@ -285,7 +278,8 @@ function nycc_migrate_copy_source_to_target() {
 
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
-  sudo chown -R 1775 $targetdir/files
+  sudo chmod 1775 $targetdir/files
+  sudo chmod -R 775 $targetdir/files
 
   echo "nycc_migrate_copy_source_to_target complete."
 }
@@ -328,22 +322,22 @@ function nycc_migrate_cleanup_target() {
   
   # TODO: enable when running for real
   echo "Re-enable modules (NOT smtp!) ..."
-  #drush $targetalias en -y -q smtp 
+  # drush $targetalias en -y -q smtp 
   drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
   
   echo "Re-enable email and membership review ..."
   # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
-  drush $targetalias -q vset nycc_email_trap_exclude_roles tester
-  drush $targetalias -q vset nycc_email_trap_enabled 1
-  drush $targetalias -q vset nycc_profile_should_redirect_to_membership_review 1
+  drush $targetalias vset -q nycc_email_trap_exclude_roles tester
+  drush $targetalias vset -q nycc_email_trap_enabled 1
+  drush $targetalias vset -q nycc_profile_should_redirect_to_membership_review 1
   
   
   echo "Re-enable rules (NOT!) ..."
-  #drush $targetalias -q rules-enable rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
+  #drush $targetalias rules-enable -q rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
   
   $mysql $targetdb < $scriptsdir/target_cleanup.sql
   
-  drush -q $targetalias cc all
+  drush $targetalias cc all -q 
   
   echo "nycc_migrate_cleanup_target complete."
 }
@@ -543,19 +537,20 @@ else
   
   # drush $targetalias scr $scriptsdir/sqlexec.php --sql --targetdb=$targetdb --sourcedb=$sourcedb $scriptsdir/role.sql
   # drush $targetalias scr $scriptsdir/sqlexec.php --sql --sourcesb=$sourcedb $scriptsdir/role.sql
+  
   echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
   echo "Note: no output from test.sql"
   $mysqlexec $scriptsdir/test.sql    
   echo "Test of mysqlexec test.sql complete."
+  echo ""
  
   
-  #$fieldcopy --sql --type="node_revisions" --addcol="body_format,5" --targettable="field_data_body" --targetfield="body_value" --nosuffix --noprefix --sourceexp="body" --where="node.type='cue-sheet'" body
- 
-  #$fieldcopy --notnull --kind=value --targetkind=tid cuesheet_tags
+  # Cue-sheet body =:o
+  # TODO: field_body_summary?
+  # $fieldcopy --type=node_revisions --addcol="body_format,5" --targetkind=value --targetfield=body_value --targettable=body --nosuffix --noprefix --sourceexp=body --where="node.type='cue-sheet'" body
+  # TODO: execute custom sql for this, include summary
+  #$mysqlexec $scriptsdir/cue-sheet_field_body.sql    
   
-  # TODO: convert nid to corresponding uid
-  $fieldcopy --sql --kind=nid --targetkind=uid --targettype=ride_current_leaders  --targetfield=ride_current_leaders ride_leaders
- 
   echo "Test complete."
 
 fi
