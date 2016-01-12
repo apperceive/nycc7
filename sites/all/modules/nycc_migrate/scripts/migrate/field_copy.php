@@ -95,7 +95,8 @@ foreach ($args as $ndx => $arg) {
       $dtable = "{$prefixstr}{$table}_{$prefixstr}{$targetcol}";
       $dcol = "{$prefixstr}{$targetcol}{$suffixstr}";
       
-      $where = $notnull ? (($where ? "WHERE $where AND " : "WHERE ") . "NOT $sexpr IS NULL") : $where;
+      $where = $where ? "WHERE $where" : "";
+      $where = $notnull ? (($where ? "$where AND " : "WHERE ") . "NOT $sexpr IS NULL") : $where;
       
       //if ($table == 'data') drush_print("$sexpr -> $dtable.$dcol");
 

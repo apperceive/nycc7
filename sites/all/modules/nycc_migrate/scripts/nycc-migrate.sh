@@ -34,8 +34,10 @@ readonly sourcedir="/home/markus/backups"
 
 #readonly targetalias="@markusTest"
 readonly targetalias="--root=/var/www/html/markus"
+# TODO: get db from drush to ensure it is the same as that used by alias
 readonly targetdb="markus"
 # note: all commands must append /files to $targetdir for safety
+# TODO: get files dir from drush to ensure accuracy
 readonly targetdir="/var/www/html/markus/sites/default"
 
 readonly logfile="$tmpdir/migrate.log"
@@ -338,6 +340,21 @@ function nycc_migrate_cleanup_target() {
   $mysql $targetdb < $scriptsdir/target_cleanup.sql
   
   drush $targetalias cc all -q 
+  
+  
+  
+  # ADDITIONAL CLEANUP NOTES/CONSIDERATIONS:
+  #
+  # 1. remove blocked users? consider any nodes owned by them. other records?
+  # 2. remove field records associated with blank (spaces or null or empty string) values in certain cases?
+  # 3. remove nodes with no type? (already done in migration copy. seems better suited to remove those early)
+  # 4.
+  # 5. drush remove obsolete fields and content types?
+  # 6. consider leader conversion from nid to uid that has no join (eg, invaid uid?). this is probably not considered in current migration query and left in place
+  #
+  
+  
+  
   
   echo "nycc_migrate_cleanup_target complete."
 }
