@@ -149,7 +149,7 @@ function nycc_migrate_init_target() {
   
   echo "Disabling smpt and other target modules during migration..."
   # turn off smtp module and others 
-  drush $targetalias dis -y -q  smtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
+  drush $targetalias dis -y -q  smtp backup_migrate module_filter fpa rules nycc_pic_otw rules_admin rules_scheduler nycc_rides print_pdf
 
     
   echo "Disabling email traps and membership review..."
@@ -158,13 +158,18 @@ function nycc_migrate_init_target() {
   drush $targetalias vset -q nycc_email_trap_enabled 0
   drush $targetalias vset -q nycc_profile_should_redirect_to_membership_review 0
   
+  sudo chown -R nyccftp:apache $targetdir/files
+  sudo chown -R 775 $targetdir/files
+
   # Clear out target files directory
   echo "Deleting target files..."
-  sudo rm -R $targetdir/files/
-  sudo mkdir $targetdir/files
-  sudo chown -R nyccftp:apache $targetdir/files
-  sudo chown -R 1775 $targetdir/files
-
+  #sudo rm -R $targetdir/files/
+  #sudo mkdir $targetdir/files
+  # NOTE: can't use rm -R *
+  # NOTE: so not delete .htaccess
+  find $targetdir -type f -name "*" -exec rm {} \;
+  find $targetdir -type d -name "*" -exec rm -R {} \;
+  
   echo "nycc_migrate_init_target complete."
 }
 
@@ -275,7 +280,7 @@ function nycc_migrate_copy_source_to_target() {
 
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
-  sudo chmod 1775 $targetdir/files
+  sudo chmod 775 $targetdir/files
   sudo chmod -R 775 $targetdir/files
 
   echo "nycc_migrate_copy_source_to_target complete."
@@ -320,7 +325,7 @@ function nycc_migrate_cleanup_target() {
   # TODO: enable when running for real
   echo "Re-enable modules (NOT smtp!) ..."
   # drush $targetalias en -y -q smtp 
-  drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
+  drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides print_pdf
   
   echo "Re-enable email and membership review ..."
   # /admin/config/nycc/nycc_email_trap
@@ -545,7 +550,7 @@ else
   echo "Test of mysqlexec test.sql complete."
   echo ""
  
- 
+  # $mysqlexec $scriptsdir/url_alias.sql
   # $fieldcopy --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
 
 
