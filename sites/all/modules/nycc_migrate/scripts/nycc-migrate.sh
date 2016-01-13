@@ -12,29 +12,30 @@ shdir="$(dirname "$0")"
 "$shdir/nycc_migrate.conf"
 
 readonly productiondb="nycc"
-readonly productionssh="/home/$produser/.ssh/id_rsa"
-readonly productionuser="$produser@nycc.org"
-readonly productionuser="$produser@nycc.org"
 readonly productionfilesdir="/var/www/html/nycc/sites/default"
-readonly productiontmpdir="/tmp"
-readonly productionssh="/home/$produser/.ssh/id_rsa"
+productionssh="/home/$produser/.ssh/id_rsa"
+productionuser="$produser@nycc.org"
+productionuser="$produser@nycc.org"
+productiontmpdir="/tmp"
+productionssh="/home/$produser/.ssh/id_rsa"
 
-readonly sourcedb=`drush $sourcealias status | grep "Database user" | awk -F: '{ print $2 }'`
-readonly sourcerootdir=`drush $sourcealias status | grep "Drupal root" | awk -F: '{ print $2 }'`
-readonly sourcesite=`drush $sourcealias status | grep "Site path" | awk -F: '{ print $2 }'`
+# NOTE: assumes no spaces in any of these
+readonly sourcedb=`drush $sourcealias status | grep "Database user" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+readonly sourcerootdir=`drush $sourcealias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+readonly sourcesite=`drush $sourcealias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
 # note: all commands must append /files to $sourcedir for safety
 readonly sourcedir="$sourcerootdir/$sourcesite"
 
-readonly targetdb=`drush $targetalias status | grep "Database user" | awk -F: '{ print $2 }'`
-readonly targetrootdir=`drush $targetalias status | grep "Drupal root" | awk -F: '{ print $2 }'`
-readonly targetsite=`drush $targetalias status | grep "Site path" | awk -F: '{ print $2 }'`
-readonly targetprivatedir=`drush $targetalias status | grep "Private file directory path " | awk -F: '{ print $2 }'`
+readonly targetdb=`drush $targetalias status | grep "Database user" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+readonly targetrootdir=`drush $targetalias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+readonly targetsite=`drush $targetalias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+readonly targetprivatedir=`drush $targetalias status | grep "Private file directory path " | awk -F: '{ print $2 }' | sed -e 's/ //g'`
 readonly targetpublicdir=`drush $targetalias status | grep "File directory path" | awk -F: '{ print $2 }'`
 # note: all commands must append /files to $targetdir for safety
 readonly targetdir="$targetrootdir/$targetsite"
 
-readonly tmpdir=`drush $targetalias status | grep "Temporary file directory path" | awk -F: '{ print $2 }'`
-readonly scriptsdir="$targetroot/sites/all/modules/nycc_migrate/scripts/migrate"
+readonly tmpdir=`drush $targetalias status | grep "Temporary file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+readonly scriptsdir="$targetrootdir/sites/all/modules/nycc_migrate/scripts/migrate"
 
 readonly logfile="$tmpdir/migrate.log"
 readonly timestamp="`date +%Y-%m-%d_%H-%M`"
@@ -536,16 +537,7 @@ then
 #  echo "Skipped: test (-t)"
   echo ""
 else
-  echo "Test run..." >> tee $logfile
-  
-  # echo "Copy events"
-  # $fieldcopy event_category event_spots
-  
-  # drush $targetalias scr $scriptsdir/test.php --test=123 --test=456
-  # $fieldcopy --type=profile --addcol="field_city_format,5" city 
-  
-  # drush $targetalias scr $scriptsdir/sqlexec.php --sql --targetdb=$targetdb --sourcedb=$sourcedb $scriptsdir/role.sql
-  # drush $targetalias scr $scriptsdir/sqlexec.php --sql --sourcesb=$sourcedb $scriptsdir/role.sql
+  echo "Test run..." | tee --append $logfile
   
   echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
   echo "Note: no output from test.sql"
@@ -553,13 +545,10 @@ else
   echo "Test of mysqlexec test.sql complete."
   echo ""
  
-  
-  # Cue-sheet body =:o
-  # TODO: field_body_summary?
-  # $fieldcopy --type=node_revisions --addcol="body_format,5" --targetkind=value --targetfield=body_value --targettable=body --nosuffix --noprefix --sourceexp=body --where="node.type='cue-sheet'" body
-  # TODO: execute custom sql for this, include summary
-  #$mysqlexec $scriptsdir/cue-sheet_field_body.sql    
-  
+ 
+  # $fieldcopy --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
+
+
   echo "Test complete."
 
 fi
