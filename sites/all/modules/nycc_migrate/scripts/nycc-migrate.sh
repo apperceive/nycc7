@@ -8,37 +8,33 @@
 # perform migration from source to target
 ####################################################
 
-
-readonly BASEDIR=$(cd "$(dirname "$0")" && pwd) # where the script is located
-readonly CALLDIR=$(pwd)                         # where it was called from
-#readonly STATUS_SUCCESS=0                       # exit status for commands
-
-# GLOBALS - edit as needed for user and folders
-# TODO: factor out $user and $subdomain (both markus here)
-# NOTES: tmpdir will be created if need be
-readonly scriptsdir="/var/www/html/markus/sites/all/modules/nycc_migrate/scripts/migrate"
-readonly tmpdir="/home/markus/backups"
+shdir="$(dirname "$0")"
+"$shdir/nycc_migrate.conf"
 
 readonly productiondb="nycc"
-readonly productionuser="markus@nycc.org"
+readonly productionssh="/home/$produser/.ssh/id_rsa"
+readonly productionuser="$produser@nycc.org"
+readonly productionuser="$produser@nycc.org"
 readonly productionfilesdir="/var/www/html/nycc/sites/default"
 readonly productiontmpdir="/tmp"
-readonly productionssh="/home/markus/.ssh/id_rsa"
+readonly productionssh="/home/$produser/.ssh/id_rsa"
 
-readonly sourcealias="@d6Test"
-#readonly sourcedb="d6test"
-readonly sourcedb="migtest"
+readonly sourcedb=`drush $sourcealias status | grep "Database user" | awk -F: '{ print $2 }'`
+readonly sourcerootdir=`drush $sourcealias status | grep "Drupal root" | awk -F: '{ print $2 }'`
+readonly sourcesite=`drush $sourcealias status | grep "Site path" | awk -F: '{ print $2 }'`
 # note: all commands must append /files to $sourcedir for safety
-#readonly sourcedir="/var/www/html/d6/sites/default"
-readonly sourcedir="/home/markus/backups"
+readonly sourcedir="$sourcerootdir/$sourcesite"
 
-#readonly targetalias="@markusTest"
-readonly targetalias="--root=/var/www/html/markus"
-# TODO: get db from drush to ensure it is the same as that used by alias
-readonly targetdb="markus"
+readonly targetdb=`drush $targetalias status | grep "Database user" | awk -F: '{ print $2 }'`
+readonly targetrootdir=`drush $targetalias status | grep "Drupal root" | awk -F: '{ print $2 }'`
+readonly targetsite=`drush $targetalias status | grep "Site path" | awk -F: '{ print $2 }'`
+readonly targetprivatedir=`drush $targetalias status | grep "Private file directory path " | awk -F: '{ print $2 }'`
+readonly targetpublicdir=`drush $targetalias status | grep "File directory path" | awk -F: '{ print $2 }'`
 # note: all commands must append /files to $targetdir for safety
-# TODO: get files dir from drush to ensure accuracy
-readonly targetdir="/var/www/html/markus/sites/default"
+readonly targetdir="$targetrootdir/$targetsite"
+
+readonly tmpdir=`drush $targetalias status | grep "Temporary file directory path" | awk -F: '{ print $2 }'`
+readonly scriptsdir="$targetroot/sites/all/modules/nycc_migrate/scripts/migrate"
 
 readonly logfile="$tmpdir/migrate.log"
 readonly timestamp="`date +%Y-%m-%d_%H-%M`"
@@ -156,7 +152,7 @@ function nycc_migrate_init_target() {
 
     
   echo "Disabling email traps and membership review..."
-  # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
+  # /admin/config/nycc/nycc_email_trap
   drush $targetalias vset -q nycc_email_trap_exclude_roles notester
   drush $targetalias vset -q nycc_email_trap_enabled 0
   drush $targetalias vset -q nycc_profile_should_redirect_to_membership_review 0
@@ -326,7 +322,7 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides
   
   echo "Re-enable email and membership review ..."
-  # http://markus.test.nycc.org/admin/config/nycc/nycc_email_trap
+  # /admin/config/nycc/nycc_email_trap
   drush $targetalias vset -q nycc_email_trap_exclude_roles tester
   drush $targetalias vset -q nycc_email_trap_enabled 1
   drush $targetalias vset -q nycc_profile_should_redirect_to_membership_review 1
