@@ -552,12 +552,12 @@ else
   echo "Test of mysqlexec test.sql complete."
   echo ""
  
-  #$mysqlexec $scriptsdir/url_alias.sql  --sql --no 
-  #$fieldcopy --sql --no --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
+  # $mysqlexec $scriptsdir/url_alias.sql  --sql --no 
+  $fieldcopy --sql --no --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
 
   
   #view declared vars:
-  declare -p
+  # declare -p
   # declare -p targetprivatedir
 
   echo "Test complete."

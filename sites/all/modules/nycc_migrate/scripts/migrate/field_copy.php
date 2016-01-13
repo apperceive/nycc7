@@ -44,7 +44,7 @@ $targetfield = drush_get_option(array('targetfield'), '');
 $noprefix = drush_get_option(array('noprefix'), FALSE);
 $nosuffix = drush_get_option(array('nosuffix'), FALSE);
 
-// additional conditions
+// additional conditions as expressions after "WHERE "
 $where = drush_get_option(array('where'), '');
 
 // development options
@@ -74,33 +74,26 @@ foreach ($args as $ndx => $arg) {
 
     $prefixstr = $noprefix ? "" : "field_";
     $suffixstr = $nosuffix ? "" : "_$targetkind";
-    
     $srctable = ($noprefix ? "" : "content_{$srctype}_") . ($type ? $type : $arg);
-    
     $targetcol = $targetfield ? $targetfield : $arg;
-    
-    //$expr = $sourceexp ? $sourceexp : "content_$srctable.field_{$arg}_$kind";
-    $expr = $sourceexp ? $sourceexp : "{$srctable}.{$prefixstr}{$arg}_{$kind}";
-    
-    // TODO: these are the same!
-    //$srccol = $prefixstr . $targetcol . $suffixstr;
-    //$destcol = "{$prefixstr}{$targetcol}{$suffixstr}";
+    $sourceexp = $sourceexp ? $sourceexp : "{$srctable}.{$prefixstr}{$arg}_{$kind}";
 
+    /*
+    $where = $where ? "WHERE $where " : "";
+    if ($notnull) {
+      $where .= ($where ? "WHERE" : "AND");
+      $where .= " NOT $sourceexp IS NULL";
+    }
+    */
+    $where = $notnull ? (($where ? "$where AND " : "WHERE ") . "NOT $sourceexp IS NULL") : $where;
+    
+    $dcol = "{$prefixstr}{$targetcol}{$suffixstr}";
+    
     $tables = array('data', 'revision');
     foreach ($tables as $table) {
    
-      
-      $stable = "{$srctable}";
-      $sexpr = "{$expr}";
       $dtable = "{$prefixstr}{$table}_{$prefixstr}{$targetcol}";
-      $dcol = "{$prefixstr}{$targetcol}{$suffixstr}";
-      
-      $where = $where ? "WHERE $where" : "";
-      $where = $notnull ? (($where ? "$where AND " : "WHERE ") . "NOT $sexpr IS NULL") : $where;
-      
-      //if ($table == 'data') drush_print("$sexpr -> $dtable.$dcol");
-
-      
+            
       if (!$notruncate) {
         if ($trace) drush_print("field_copy ($table): truncating $arg ($dtable)");
         $sqlt = "TRUNCATE `$dtable`";
@@ -119,11 +112,11 @@ foreach ($args as $ndx => $arg) {
       }
 
       $sql =<<<EOS
-REPLACE INTO `$dtable` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $dcol  $extracol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extraval FROM $sourcedb.`$stable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$stable`.nid=node.nid AND $sourcedb.`$stable`.vid=node.vid) $where;
+REPLACE INTO `$dtable` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $dcol  $extracol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extraval FROM $sourcedb.`$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$srctable`.nid=node.nid AND $sourcedb.`$srctable`.vid=node.vid) $where;
 EOS;
 
       //if ($trace) drush_print("field_copy ($table): executing $sourcedb $srctable $type $kind $arg $expr -> $targetcol $targetkind");
-      if ($trace) drush_print("field_copy ($table): executing $sourcedb $type $kind $stable $sexpr -> $dtable $tcol $targetkind");
+      if ($trace) drush_print("field_copy ($table): executing $sourcedb $type $kind $srctable $sourceexp -> $dtable $tcol $targetkind");
       if ($debug) drush_print('Debug: defined variables ' . var_export(get_defined_vars(),1));
       if (!$no) {
         try {
