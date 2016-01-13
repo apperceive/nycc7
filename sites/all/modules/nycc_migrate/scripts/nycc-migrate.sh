@@ -9,42 +9,43 @@
 ####################################################
 
 shdir="$(dirname "$0")"
-"$shdir/nycc_migrate.conf"
+source "$shdir/nycc_migrate.conf"
 
-readonly productiondb="nycc"
-readonly productionfilesdir="/var/www/html/nycc/sites/default"
+productiondb="nycc"
+productionfilesdir="/var/www/html/nycc/sites/default"
 productionssh="/home/$produser/.ssh/id_rsa"
 productionuser="$produser@nycc.org"
 productionuser="$produser@nycc.org"
 productiontmpdir="/tmp"
 productionssh="/home/$produser/.ssh/id_rsa"
 
-# NOTE: assumes no spaces in any of these
-readonly sourcedb=`drush $sourcealias status | grep "Database user" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-readonly sourcerootdir=`drush $sourcealias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-readonly sourcesite=`drush $sourcealias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+# NOTE: assumes no spaces in any of these values or they are removed
+sourcedb=`drush $sourcealias status | grep "Database name" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+sourcerootdir=`drush $sourcealias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+sourcesite=`drush $sourcealias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
 # note: all commands must append /files to $sourcedir for safety
-readonly sourcedir="$sourcerootdir/$sourcesite"
+sourcedir="$sourcerootdir/$sourcesite"
 
-readonly targetdb=`drush $targetalias status | grep "Database user" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-readonly targetrootdir=`drush $targetalias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-readonly targetsite=`drush $targetalias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-readonly targetprivatedir=`drush $targetalias status | grep "Private file directory path " | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-readonly targetpublicdir=`drush $targetalias status | grep "File directory path" | awk -F: '{ print $2 }'`
+targetdb=`drush $targetalias status | grep "Database name" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+targetrootdir=`drush $targetalias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+targetsite=`drush $targetalias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+# not currently used, but also seems to be loaded with multi-lined string?!?!
+# targetprivatedir=`drush $targetalias status | grep "Private file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+# targetpublicdir=`drush $targetalias status | grep "File directory path" | awk -F: '{ print $2 }'`
 # note: all commands must append /files to $targetdir for safety
-readonly targetdir="$targetrootdir/$targetsite"
+targetdir="$targetrootdir/$targetsite"
 
-readonly tmpdir=`drush $targetalias status | grep "Temporary file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-readonly scriptsdir="$targetrootdir/sites/all/modules/nycc_migrate/scripts/migrate"
+tmpdir=`drush $targetalias status | grep "Temporary file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+scriptsdir="$targetrootdir/sites/all/modules/nycc_migrate/scripts/migrate"
 
-readonly logfile="$tmpdir/migrate.log"
-readonly timestamp="`date +%Y-%m-%d_%H-%M`"
+logfile="$tmpdir/migrate.log"
+timestamp="`date +%Y-%m-%d_%H-%M`"
 
 # command aliases
-readonly mysql='mysql -uroot -pXt2792b8cf'
-readonly mysqldump='mysqldump -uroot -pXt2792b8cf'
-readonly mysqlexec="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
-readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb --trace"
+mysql='mysql -uroot -pXt2792b8cf'
+mysqldump='mysqldump -uroot -pXt2792b8cf'
+mysqlexec="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
+fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb --trace"
 
 # USAGE - HELP
 
@@ -544,19 +545,24 @@ then
 else
   echo "Test run..." | tee --append $logfile
   
-  echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
+  # echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
+  echo "$mysqlexec $scriptsdir/test.sql --sql"
   echo "Note: no output from test.sql"
-  $mysqlexec $scriptsdir/test.sql    
+  # $mysqlexec $scriptsdir/test.sql --sql
   echo "Test of mysqlexec test.sql complete."
   echo ""
  
-  # $mysqlexec $scriptsdir/url_alias.sql
-  # $fieldcopy --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
+  #$mysqlexec $scriptsdir/url_alias.sql  --sql --no 
+  #$fieldcopy --sql --no --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
 
+  
+  #view declared vars:
+  declare -p
+  # declare -p targetprivatedir
 
   echo "Test complete."
 
 fi
  
 
-echo "Migration tasks completed."  >> tee $logfile
+echo "Migration tasks completed."  | tee --append $logfile
