@@ -9,7 +9,30 @@
 ####################################################
 
 shdir="$(dirname "$0")"
-source "$shdir/nycc_migrate.conf"
+
+migconf=$shdir/`echo $(basename $0)| sed -e 's/\.sh$//'`.conf 
+
+if [ -n "$1" ] ; then
+  if ! [[ "$1" == -* ]] ; then 
+    migconf="$1"
+  fi
+fi
+
+if [ -n "$2" ] ; then
+  if ! [[ "$2" == -* ]] ; then 
+    migconf="$2"
+  fi
+fi
+
+if [ -e $migconf ] 
+then
+  echo "Using config: $migconf"
+else
+  # TODO: if no folder specified, try looking for conf in users home or in #shdir
+  echo "Unable to locate config file: $migconf"
+fi
+
+source "$migconf"
 
 productiondb="nycc"
 productionfilesdir="/var/www/html/nycc/sites/default"
@@ -51,7 +74,7 @@ fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourced
 
 function nycc_migrate_usage () {
     echo "
-Usage: $(basename $0) [-options]
+Usage: $(basename $0) [-options] [conf]
     -m -1           migration init
     -b -2           backups (source and target)
     -p -3           production export and sync
@@ -67,9 +90,10 @@ Usage: $(basename $0) [-options]
     -i              source report (trivial)
     -j              target report (trivial)
     -h              this usage help text
+    conf            alternate configuration file (default is nycc_migrate.conf)
 Migrate NYCC Drupal 6 to 7
-Example:
-    $(basename $0) -123456789"
+Examples:
+    $(basename $0) [conf] -123456789"
     exit ${1:-0}
 }
 
