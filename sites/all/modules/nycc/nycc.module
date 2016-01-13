@@ -23,6 +23,13 @@ function nycc_init() {
 function nycc_menu() {
   $items = array();
 
+  $items['nycc'] = array(
+    'title' => 'NYCC Home Page',
+    'description' => 'NYCC Home Page',
+    'page callback' => '_nycc_home',
+    'type' => MENU_CALLBACK,
+    'access callback' => TRUE,
+  );
   $items['admin/config/nycc'] = array(
       'title' => 'NYCC  module settings',
       'description' => 'Settings for NYCC  Module',
@@ -47,6 +54,10 @@ function nycc_menu() {
   return $items;
 }
 
+// simple home page callback
+function _nycc_home() {
+  return "";
+}
 
 //HOOK Functions
 //function nycc_cron() {
