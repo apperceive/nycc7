@@ -1,0 +1,1 @@
+REPLACE INTO $targetdb`url_alias` (`pid`,`src`,`dst`,`language`) SELECT (pid, src, dst, language FROM $sourcedb`url_alias`;

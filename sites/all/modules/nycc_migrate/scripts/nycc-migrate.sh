@@ -53,8 +53,7 @@ readonly fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb
 
 function nycc_migrate_usage () {
     echo "
-Usage: $(basename $0) [-options] [site]
-    -t -0           run test script
+Usage: $(basename $0) [-options]
     -m -1           migration init
     -b -2           backups (source and target)
     -p -3           production export and sync
@@ -65,16 +64,14 @@ Usage: $(basename $0) [-options] [site]
     -x -8           cleanup target
     -y -9           cleanup migration (and source)
     -s              display migration status
-    -r              target backup (not implemented yet, use -b)
-    -q              source backup (not implemented yet, use -b)
+    -t -0           run test script
     -v              verbose (nothing extra yet)
-    -i              source report
-    -i              target report
+    -i              source report (trivial)
+    -j              target report (trivial)
     -h              this usage help text
-    site            target site
 Migrate NYCC Drupal 6 to 7
 Example:
-    $(basename $0) -p d7test"
+    $(basename $0) -123456789"
     exit ${1:-0}
 }
 
@@ -187,6 +184,7 @@ function nycc_migrate_copy_source_to_target() {
   $mysqlexec $scriptsdir/file_managed.sql
   $mysqlexec $scriptsdir/comments.sql
   $mysqlexec $scriptsdir/copy_comments_body.sql
+  $mysqlexec $scriptsdir/url_alias.sql
 
   echo "Copying field tables..."
   # content-types page and event fields - multivalued fields
@@ -406,10 +404,9 @@ function nycc_migrate_status() {
 [[ ! "$*" ]] && nycc_migrate_usage 1
 
 # Parse command line options
-while getopts abcdmpqrstvwxyz0123456789h\? option
+while getopts abcdmpstvwxyz0123456789h\? option
 do
     case $option in
-        t|0) migration_test=1 ;;
         m|1) migration_init=1 ;;
         b|2) backups=1 ;;
         p|3) production_sync=1 ;;
@@ -420,8 +417,7 @@ do
         x|8) cleanup_target=1 ;;
         y|9) cleanup_migration=1 ;;
         s) migration_status=1 ;;
-        r) target_backup=1 ;;
-        q) source_backup=1 ;;
+        t|0) migration_test=1 ;;
         v) is_verbose=1 ;;
         i) report_source=1 ;;
         j) report_target=1 ;;
@@ -439,7 +435,7 @@ shift $(($OPTIND - 1));     # take out the option flags
 
 if [ -z "$migration_init" ]
 then
-  echo "Skipped: Migration init (-m)"  >> $logfile
+  echo "Skipped: Migration init (-m or -1)"  >> $logfile
 else
   # init migration log
   nycc_migrate_init_migration > $logfile
@@ -451,7 +447,7 @@ echo "Migration steps started at $timestamp" >> $logfile
 
 if [ -z "$backups" ]
 then
-  echo "Skipped: Backups (-b)"  >> $logfile
+  echo "Skipped: Backups (-b or -2)"  >> $logfile
 else
   nycc_migrate_backup_source_and_target  >> $logfile
 fi
@@ -459,7 +455,7 @@ fi
 
 if [ -z "$production_sync" ]
 then
-  echo "Skipped: Production sync (-p)"  >> $logfile
+  echo "Skipped: Production sync (-p or -3)"  >> $logfile
 else
   nycc_migrate_export_production >> $logfile
   nycc_migrate_sync_production_to_source >> $logfile
@@ -468,7 +464,7 @@ fi
 
 if [ -z "$import_production_to_source" ]
 then
-  echo "Skipped: Import production to source (-d)"  >> $logfile
+  echo "Skipped: Import production to source (-d or -4)"  >> $logfile
 else
   nycc_migrate_import_production_to_source >> $logfile
 fi
@@ -476,7 +472,7 @@ fi
 
 if [ -z "$clear_target" ]
 then
-  echo "Skipped: Init target (-c)"  >> $logfile
+  echo "Skipped: Init target (-c or -5)"  >> $logfile
 else
   nycc_migrate_init_target >> $logfile
 fi
@@ -484,7 +480,7 @@ fi
 
 if [ -z "$copy_source_to_target" ]
 then
-  echo "Skipped: Copy source to target (-a)"  >> $logfile
+  echo "Skipped: Copy source to target (-a or -6)"  >> $logfile
 else
   nycc_migrate_copy_source_to_target >> $logfile
 fi
@@ -492,7 +488,7 @@ fi
 
 if [ -z "$cleanup_source" ]
 then
-  echo "Skipped: Cleanup source (-w)"  >> $logfile
+  echo "Skipped: Cleanup source (-w or -7)"  >> $logfile
 else
   nycc_migrate_cleanup_source >> $logfile
 fi
@@ -500,7 +496,7 @@ fi
 
 if [ -z "$cleanup_target" ]
 then
-  echo "Skipped: Cleanup target (-x)"  >> $logfile
+  echo "Skipped: Cleanup target (-x or -8)"  >> $logfile
 else
   nycc_migrate_cleanup_target >> $logfile
 fi
@@ -508,7 +504,7 @@ fi
 
 if [ -z "$cleanup_migration" ]
 then
-  echo "Skipped: Cleanup migration  (-y)"  >> $logfile
+  echo "Skipped: Cleanup migration  (-y or -9)"  >> $logfile
 else
   nycc_migrate_cleanup_migration >> $logfile
 fi
@@ -516,7 +512,7 @@ fi
 
 if [ -z "$report_source" ]
 then
-  echo "Skipped: Report source (-y)"   >> $logfile
+  echo "Skipped: Report source (-i)"   >> $logfile
 else
   nycc_migrate_report_source >> $logfile
 fi
@@ -524,7 +520,7 @@ fi
 
 if [ -z "$report_target" ]
 then
-  echo "Skipped: Report target (-q)"   >> $logfile
+  echo "Skipped: Report target (-j)"   >> $logfile
 else
   nycc_migrate_report_target >> $logfile
 fi
