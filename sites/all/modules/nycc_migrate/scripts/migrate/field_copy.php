@@ -91,7 +91,7 @@ foreach ($args as $ndx => $arg) {
     
     $tables = array('data', 'revision');
     foreach ($tables as $table) {
-   
+      /* NOTE: only assign, never concatenate, strings in this loop, e.g. WHERE clause */
       $dtable = "{$prefixstr}{$table}_{$prefixstr}{$targetcol}";
             
       if (!$notruncate) {
