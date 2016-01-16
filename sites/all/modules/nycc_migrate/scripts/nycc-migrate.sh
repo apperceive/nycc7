@@ -135,7 +135,7 @@ function nycc_migrate_export_production() {
 
 function nycc_migrate_sync_production_to_source() {
   echo "Rsyncing production files to source (update)..."
-  sudo rsync -azu -e "ssh -i $productionssh" --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="imagefield_thumbs" $productionuser:$productionfilesdir/files/ $sourcedir/files
+  sudo rsync -azu -e "ssh -i $productionssh" --exclude="backup_migrate/scheduled"  --exclude="backup_migrate/manual" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files"  --exclude="print_pdf" --exclude="imagefield_thumbs" $productionuser:$productionfilesdir/files/ $sourcedir/files
 
   # NOTE: these modules give us errors in drush so turn them off
   # NOTE: some are a problem on the site too, so leave off?
@@ -302,7 +302,7 @@ function nycc_migrate_copy_source_to_target() {
   
   # copy files from $source to $target
   echo "Copying files from source to target..."
-  sudo rsync --recursive --update --quiet --delete $sourcedir/files/ $targetdir/files
+  sudo rsync --recursive --update --quiet --delete --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files"  --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files/ $targetdir/files
 
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
@@ -317,6 +317,12 @@ function nycc_migrate_cleanup_source() {
   # NOTE: these modules give us errors in drush so we turned them off during migration
   # NOTE: some are a problem on the site too, so leave off?
   # $mysql $sourcedb -e"UPDATE system SET status = 1 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');  
+  
+  # clean up source files folder before rsync
+  # clear out ctools?, css? js? print_pdf?
+  # delete files/files?
+  
+  
   echo "nycc_migrate_cleanup_source complete."
 }
 
@@ -367,7 +373,10 @@ function nycc_migrate_cleanup_target() {
   
   drush $targetalias cc all -q 
   
-  
+  # clean up target files folder 
+  # clear out ctools?, css? js? print_pdf?
+  # delete files/files?
+    
   
   # ADDITIONAL CLEANUP NOTES/CONSIDERATIONS:
   #
