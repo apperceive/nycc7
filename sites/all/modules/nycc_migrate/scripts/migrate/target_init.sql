@@ -6,6 +6,7 @@ TRUNCATE node_revision;
 TRUNCATE file_managed;
 TRUNCATE comment;
 TRUNCATE field_data_comment_body;
+TRUNCATE profile;
 
 DELETE FROM variable WHERE name LIKE 'backup_migrate_%';
 DELETE FROM variable WHERE name LIKE 'nodesquirrel_%';
