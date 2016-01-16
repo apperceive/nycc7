@@ -113,11 +113,15 @@ function nycc_migrate_init_migration() {
 
 # EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
 function nycc_migrate_backup_source_and_target() {
-  echo "Making backup of source database..."
-  $mysqldump $sourcedb > $tmpdir/$sourcedb-$timestamp.sql
 
-  echo "Making backup of target database..."
-  $mysqldump $targetdb > $tmpdir/$targetdb-$timestamp.sql
+  echo "Removing old temporary backups ($tmpdir/*.sql.bz2)..."
+  rm $tmpdir/*.sql.bz2
+
+  echo "Making (bzip2) backup of source database..."
+  $mysqldump $sourcedb | bzip2 - c > $tmpdir/$sourcedb-$timestamp.sql.bz2
+
+  echo "Making (bzip2) backup of target database..."
+  $mysqldump $targetdb | bzip2 -c > $tmpdir/$targetdb-$timestamp.sql.bz2
   
   # TODO: backup sourcedirs and targetdir's
   echo "nycc_migrate_backup_source_and_target complete."
@@ -139,6 +143,7 @@ function nycc_migrate_sync_production_to_source() {
 
   # NOTE: these modules give us errors in drush so turn them off
   # NOTE: some are a problem on the site too, so leave off?
+  # TODO: move this to a source_init function
   $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
 
   echo "nycc_migrate_sync_production_to_source complete."
@@ -166,7 +171,7 @@ function nycc_migrate_init_target() {
   # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
   $mysql $targetdb < $scriptsdir/target_init.sql
   
-  drush $targetalias watchdog-delete -y -q 
+  drush $targetalias watchdog-delete all -y -q 
   
   # disable rules
   # echo "Disabling rules..."
@@ -186,14 +191,16 @@ function nycc_migrate_init_target() {
   sudo chown -R nyccftp:apache $targetdir/files
   sudo chown -R 775 $targetdir/files
 
+  # TODO: set the acl to keep files and folders owned by apache  
+  
   # Clear out target files directory
   echo "Deleting target files..."
   #sudo rm -R $targetdir/files/
   #sudo mkdir $targetdir/files
   # NOTE: can't use rm -R *
   # NOTE: so not delete .htaccess
-  find $targetdir -type f -name "*" -exec rm {} \;
-  find $targetdir -type d -name "*" -exec rm -R {} \;
+  find $targetdir/files -type f -name "*" -exec sudo rm -f {} \;
+  find $targetdir/files -type d -name "*" -exec sudo rm -R -f {} \;
   
   echo "nycc_migrate_init_target complete."
 }
@@ -213,6 +220,7 @@ function nycc_migrate_copy_source_to_target() {
   $mysqlexec $scriptsdir/comments.sql
   $mysqlexec $scriptsdir/copy_comments_body.sql
   $mysqlexec $scriptsdir/url_alias.sql
+  $mysqlexec $scriptsdir/history.sql
 
   echo "Copying field tables..."
   # content-types page and event fields - multivalued fields
@@ -399,6 +407,8 @@ function nycc_migrate_cleanup_migration() {
   echo "nycc_migrate_cleanup_migration - no-op..."
   # TODO: delete $tmpdir/production.sql after successful import
   # TODO: delete $productiontmpdir/production.sql after successful rsync
+  # TODO: delete backups from previous migration tests (.sql)
+  
   echo "nycc_migrate_cleanup_migration complete."
 }
 
@@ -430,7 +440,20 @@ function nycc_migrate_status() {
   # report on smtp status
   
   echo "logfile: `ls -la $logfile`"
-  
+}
+
+function show_script_vars() { 
+  echo ""
+  echo "Script variables:"
+  declare -p | grep "\-\- production" | sed -e "s/declare \-\- //"
+  echo ""
+  declare -p | grep "\-\- source" | sed -e "s/declare \-\- //"
+  echo ""
+  declare -p | grep "\-\- target" | sed -e "s/declare \-\- //"
+  echo ""
+  declare -p | grep "\-\- tmpdir" | sed -e "s/declare \-\- //"
+  declare -p | grep "\-\- logfile" | sed -e "s/declare \-\- //"
+  declare -p | grep "\-\- scriptsdir" | sed -e "s/declare \-\- //"
 }
 
 ###### END OF MIGRATION FUNCTIONS
@@ -577,26 +600,31 @@ then
 #  echo "Skipped: test (-t)"
   echo ""
 else
-  echo "Test run..." | tee --append $logfile
+  echo "Starting test run..." | tee --append $logfile
   
   # echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
-  echo "$mysqlexec $scriptsdir/test.sql --sql"
-  echo "Note: no output from test.sql"
+  # echo "$mysqlexec $scriptsdir/test.sql --sql"
+  # echo "Note: no output from test.sql"
   # $mysqlexec $scriptsdir/test.sql --sql
-  echo "Test of mysqlexec test.sql complete."
+  # echo "Test of mysqlexec test.sql complete."
   echo ""
  
   # $mysqlexec $scriptsdir/url_alias.sql  --sql --no 
-  $fieldcopy --sql --no --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
+  #$fieldcopy --sql --no --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
 
   
   #view declared vars:
   # declare -p
   # declare -p targetprivatedir
 
-  echo "Test complete."
+  show_script_vars | tee --append $logfile
+  
+   # $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');" 
+  
+  echo ""
+  echo "Test run complete." | tee --append $logfile
 
 fi
  
 
-echo "Migration tasks completed."  | tee --append $logfile
+echo "All migration tasks completed." | tee --append $logfile
