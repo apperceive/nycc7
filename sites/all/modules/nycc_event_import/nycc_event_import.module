@@ -1,0 +1,309 @@
+<?php
+
+function nycc_event_import_menu() {
+  $items = array();
+
+  $items['nycc-import-user-events'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nycc_event_import_import_user_events'),
+    'type' => MENU_NORMAL_ITEM,
+    'access callback' => TRUE,
+    'title' => 'Import User Events'
+  );
+  return $items;
+}
+function nycc_event_import_perm() {
+  return array('import user events');
+}
+
+function nycc_event_import_form_alter(&$form, &$form_state, $form_id) {
+  global $user;
+  if (($form_id == 'views_exposed_form') && ($form['#id'] == 'views-exposed-form-badge-awards-page-1')){
+    $options = array('' => ' - Any - ');
+    $sql = "SELECT name FROM {user_badges_badges} ORDER BY name";
+    $q = db_query($sql);
+    while ($r = db_fetch_object($q)) {
+      $options[$r->name] = $r->name;
+    }
+    $form['nycc_badge_name_1']['#type'] = 'select';
+    $form['nycc_badge_name_1']['#options'] = $options;
+    $form['nycc_badge_name_1']['#default_value'] = '';
+    //$form['nycc_badge_name_1']['#title'] = 'Badge';
+    unset($form['nycc_badge_name_1']['#size']);
+    //dpm(get_defined_vars());
+  } // views_exposed_form
+}
+
+
+
+function nycc_event_import_record_badge_award($uid, $bid) {
+  $sql = "REPLACE INTO {nycc_user_badge_award} (uid, bid, awarded) VALUES (%d, %d, %d)";
+  $q = db_query($sql, $uid, $bid, time());
+}
+
+// why is this function called twice after submitting?
+// once with post data, once without
+function nycc_event_import_import_user_events(&$form_state) {
+  global $user;
+  $form = array();
+
+  //dsm($form_state);
+
+  if ($user->uid && (in_array("administer", $user->roles) || user_access('administer users') || user_access('import user events'))) {
+    nycc_turn_off_journal_form('nycc_import_user_events');
+
+    //$cp = content_profile_load('profile', $user->uid);
+
+    $form['description'] = array(
+      '#prefix' => '<div>',
+      '#value' => t("Use this form to import data used to award badges to members and to record event graduations."),
+      '#suffix' => '</div>',
+    );
+    $form['nycc_event_import_debug_to_log'] = array(
+      '#type' =>'checkbox', 
+      '#title' => t('Write debug messages to Database Log'),
+      '#default_value' => variable_get('nycc_event_import_debug_to_log', '')
+    );
+    // select for event to use
+    $events = array(0 => " -- please select an event -- ");
+    $sql = "SELECT nid, title FROM {node} WHERE type = \"event\" AND status <> 0 ORDER BY title";
+    $q = db_query($sql);
+    while($row = db_fetch_array($q)) {
+      $events[$row['nid']] = $row['title'];
+    }
+    $form['eventid'] = array(
+      '#type' => 'select',
+      '#title' => t("Event"),
+      '#options' => $events,
+      '#description' => "Choose the published event to associate with the imported rows. Create an event <a href='/node/add/event' target='_blank'>here</a>.",
+    );
+
+    // select for the badge?
+    $badges[0] = " -- please select a badge -- ";
+    $badges += user_badges_get_badges("select");    // all badges as (bid => name)
+    // todo: sort array
+    $form['badgeid'] = array(
+      '#type' => 'select',
+      '#title' => t("Badge"),
+      '#options' => $badges,
+      '#description' => "Choose the badge associated with graduates.  If no badge is selected, none will be assigned. Create a badge <a href='/admin/user/user_badges/add' target='_blank'>here</a>.",
+    );
+
+    $form['mailcol'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("E-mail Column"),
+      '#size' => 10,
+      '#default_value' => 3,
+      '#description' => "Column number for e-mail address. Required.",
+    );
+
+    $form['namecol'] = array(
+      '#type' => 'textfield',
+      '#title' => t("Username Column"),
+      '#size' => 5,
+      '#default_value' => 7,
+      '#description' => "Column number for user name (may be blank if valid e-mail). Leave blank or zero if not present in data.",
+    );
+
+    $form['gradcol'] = array(
+      '#type' => 'textfield',
+      '#title' => t("Graduation Column"),
+      '#size' => 5,
+      '#default_value' => 4,
+      '#description' => "Column number for graduation status (yes/no, blank is no). Note that badges will only be assigned to graduates if this column is present in data. Leave blank or zero if not present in data.",
+    );
+
+    $form['reasoncol'] = array(
+      '#type' => 'textfield',
+      '#title' => t("Reason Column"),
+      '#size' => 5,
+      '#default_value' => 0,
+      '#description' => "Column number for 'reason' text. Leave blank or zero if not present in data.",
+    );
+
+    $form['csv'] = array(
+      '#type' => 'textarea',
+      '#required' => true,
+      '#title' => t("CSV"),
+      '#rows' => 5,
+      '#default_value' => $form_state['post']['csv'],
+      '#description' => "Paste comma separated values, one row per event and user. Required.",
+    );
+
+    $form['button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Import'),
+    );
+
+  }  else {
+    // access denied
+    drupal_set_message("You must be an administrator to access this page.");
+  }
+
+  return $form;
+}
+
+function nycc_event_import_import_user_events_validate($form, $form_state) {
+
+  //dsm($form_state);
+
+  /*
+  if (!($form_state['values']['eventid']) > 0)
+    form_set_error('eventid', "Please select an event.");
+
+  if (!($form_state['values']['badgeid']) > 0)
+    form_set_error('badgeid', "Please select a badge.");
+
+  if (!($form_state['values']['namecol']) > 0)
+    form_set_error('namecol', "Please set the name column.");
+
+  if (!($form_state['values']['gradcol']) > 0)
+    form_set_error('gradcol', "Please set the graduation column.");
+  */
+
+  if (!($form_state['values']['mailcol']) > 0)
+    form_set_error('mailcol', "Please set the e-mail column.");
+
+  $csvrows = preg_split("/\n/", $form_state['values']['csv'] . "\n");
+  if (!(is_array($csvrows) && count($csvrows)))
+    form_set_error('csv', "Please enter valid csv data.");
+
+}
+
+function nycc_event_import_import_user_events_submit($form, $form_state) {
+  $event_import_debug = variable_get('nycc_event_import_debug_to_log', true);
+  global $user;
+
+  $csv = $form_state['values']['csv'] . "\n";
+  $mailcol = $form_state['values']['mailcol'];
+  $namecol = $form_state['values']['namecol'];
+  $gradcol = $form_state['values']['gradcol'];
+  $reasoncol = $form_state['values']['reasoncol'];
+  $eventid = trim($form_state['values']['eventid']);
+  $badgeid = trim($form_state['values']['badgeid']);
+  $csvrows = preg_split("/\n/", $csv);
+
+  foreach ($csvrows as $ndx => &$row) {
+    $row = str_getcsv(trim($row));
+  }
+
+  $numrows = 0;
+  $numerrors = 0;
+  $numbadges = 0;
+  $numskipped = 0;
+
+  $badges = user_badges_get_badges("all");    // all badges
+
+  foreach ($csvrows as $ndx => $row) {
+    if ($row) {  // ignore blank lines
+      if ($event_import_debug)
+        watchdog("nycc_event_import", "Processing CSV: %csv", array( '%csv' => $row), WATCHDOG_INFO);
+      
+      set_time_limit(30);
+
+      // todo: make sure column indexs are valid and in bounds
+      $mail = trim($row[$mailcol-1]);
+      $name = "";
+      if ($namecol > 0)
+        $name = trim($row[$namecol-1]);
+      $grad = "";
+      if ($gradcol > 0)
+        $grad = strtolower(trim($row[$gradcol-1]));
+      $reason = "";
+      if ($reasoncol > 0)
+        $reason = strtolower(trim($row[$reasoncol-1]));
+
+
+
+      $numrows++;
+      // check for user based on email or username fields, indicate error and $ndx row number
+      // user name may be blank
+      if(drupal_strlen($mail))
+        $acct = user_load(array('mail' => $mail));
+        
+      if (!$acct ) {
+        $acct = user_load(array('name' => $name));
+        if (!$acct) {
+          // skip first row if no @ in it's email field
+          if (($ndx == 0) && (strpos($mail,'@') === FALSE)) {
+            drupal_set_message("Note: first line of csv data headers skipped.");
+            continue;
+          } else {          
+            $numerrors++;
+            drupal_set_message("$ndx: Unable to load user with email $mail or username $name");
+            continue ;
+          }
+        } else {
+          if ($event_import_debug)
+            watchdog("nycc_event_import", "loaded user %uid: (%uname) from username",
+                     array( '%uid' => $acct->uid, '%uname' => $acct->name ), WATCHDOG_INFO);
+        }
+      } else {
+        if ($event_import_debug)
+          watchdog("nycc_event_import", "loaded user %uid: (%uname) from email address",
+                   array( '%uid' => $acct->uid, '%uname' => $acct->name ), WATCHDOG_INFO);
+      }
+
+      // record event graduation data
+      $sql = "REPLACE INTO {nycc_user_events} (uid, nid, graduated, reason) VALUES (%d, %d, '%s', '%s')";
+      $q = db_query($sql, $acct->uid, $eventid, $grad, $reason);
+
+      // check for graduation, record data but do not award badge
+      if (($gradcol > 0) && ($grad != "yes")) {
+        if ($event_import_debug)
+          watchdog("nycc_event_import", "Skipping badge for user: %uname as they were marked as Not Graduated",
+                   array( '%uname' => $acct->name ), WATCHDOG_INFO);        
+        continue;
+      }
+
+
+      if ($badgeid > 0) {
+        // note: user_badges_user_save removes any badges not included in array
+        // get all badges awarded acct so can see if already awarded
+        
+        $ubadges = user_badges_get_badges($acct->uid);
+
+        if(! isset( $ubadges[$badgeid])){
+          $ubadges[$badgeid] = user_badges_get_badge($badgeid);
+          user_badges_user_save($ubadges, $acct->uid);
+          if ($event_import_debug)
+            watchdog("nycc_event_import", "Badge: %badgeid granted to  user: %uname",
+                     array( '%badgeid' => $badgeid, '%uname' => $acct->name ), WATCHDOG_INFO);
+          
+          $numbadges++;
+        }else {
+          $numskipped++;
+          drupal_set_message("Skipping badge for user " . $acct->name . ". Badge already assigned");
+
+          if ($event_import_debug)
+            watchdog("nycc_event_import", "Skipping Badge: %badgeid for user: %uname. User already has badge.",
+                     array( '%badgeid' => $badgeid, '%uname' => $acct->name ), WATCHDOG_INFO);        
+        }
+      }  // if valid badgeid
+    } // if $row
+  }  // for
+
+  // output errors via drupal_set_message
+  // output row count, successes and errors
+  $ne = $numerrors == 1 ? "error" : "errors"; 
+  $nr = $numrows == 1 ? "row" : "rows";
+  $nb = $numbadges == 1 ? "badge" : "badges";
+  drupal_set_message("$numrows $nr processed, $numerrors $ne, $numskipped skipped, $numbadges $nb awarded.");
+}
+
+// Note: str_getcsv requies php 5.3 or the function below
+if (!function_exists('str_getcsv')) {
+  function str_getcsv($input, $delimiter = ",", $enclosure = '"', $escape = "\\") {
+    $fiveMBs = 5 * 1024 * 1024;
+    $fp = fopen("php://temp/maxmemory:$fiveMBs", 'r+');
+    fputs($fp, $input);
+    rewind($fp);
+    $data = fgetcsv($fp, 1000, $delimiter, $enclosure); //  $escape only got added in 5.3.0
+    fclose($fp);
+    return $data;
+  }
+}
+
+
+?>

@@ -1,0 +1,20 @@
+table.jqBubble {
+  background: none;
+  border: 0px;
+  border-style: hidden;
+  padding: 0;
+  margin: 0;
+  width: auto;
+}
+table.jqBubble td {
+  border: 0px;
+  border-style: hidden;
+  padding: 0;
+  margin: 0;
+}
+table.jqBubble tr {
+  border: 0;
+  border-style: hidden;
+  padding: 0;
+  margin: 0;
+}

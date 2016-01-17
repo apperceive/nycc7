@@ -1,0 +1,14 @@
+; $Id: aef_jcarousel_views.info,v 1.1 2009/11/16 11:06:33 ndeschildre Exp $
+name = JCarousel for Views
+description = A JCarousel plugin for Views, which loads *instantly* when possible.
+package = AEF
+core = 6.x
+dependencies[] = aef_jcarousel
+dependencies[] = aef_utilities
+
+; Information added by drupal.org packaging script on 2009-11-16
+version = "6.x-1.0"
+core = "6.x"
+project = "aef_jcarousel_views"
+datestamp = "1258370405"
+

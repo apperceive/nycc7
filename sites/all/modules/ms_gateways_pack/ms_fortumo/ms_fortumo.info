@@ -1,0 +1,6 @@
+;$Id$
+name = Fortumo Mobile Payments
+description = Gateway to use Fortumo Mobile Payments like SMS
+version = "6.x-1.4"
+core = 6.x
+package = MoneyScripts - Gateways

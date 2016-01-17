@@ -1,0 +1,453 @@
+<?php
+
+define('SHADOW_VAR_CRON_INDEX_LIMIT', 'shadow_cron_index_limit');
+define('SHADOW_VAR_CRON_INDEX_LIMIT_DEFAULT', 50);
+
+/**
+ * Implements hook_menu().
+ */
+function shadow_menu() {
+  $items = array();
+  
+  $items['admin/build/shadow'] = array(
+    'title' => 'Shadow settings',
+    'page callback' => 'shadow_tables_page',
+    'access arguments' => array('administer site configuration'),
+    'description' => 'Optimize SQL queries.',
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'shadow.admin.inc',
+  );
+
+  $items['admin/build/shadow/tables'] = array(
+    'title' => 'Tables',
+    'page callback' => 'shadow_tables_page',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'file' => 'shadow.admin.inc',
+    'weight' => 1,
+  );
+
+  $items['admin/build/shadow/tables/%'] = array(
+    'title' => 'Table',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_table_actions_form', 4),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'file' => 'shadow.admin.inc',
+  );
+
+  $items['admin/build/shadow/tables/%/rebuild'] = array(
+    'title' => 'Rebuild table',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_table_rebuild_form', 4),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'file' => 'shadow.admin.inc',
+  );
+
+  $items['admin/build/shadow/tables/%/indexes'] = array(
+    'title' => 'Edit indexes',
+    'page callback' => 'shadow_indexes_page',
+    'page arguments' => array(4),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'file' => 'shadow.admin.inc',
+  );
+
+  // Strange path because we hit the maximum number of elements.
+  $items['admin/build/shadow/tables/%/edit-index/%'] = array(
+    'title' => 'Edit index',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_index_form', 4, 6),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'file' => 'shadow.admin.inc',
+  );
+
+  // Strange path because we hit the maximum number of elements.
+  $items['admin/build/shadow/tables/%/delete-index/%'] = array(
+    'title' => 'Delete index',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_delete_index_form', 4, 6),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'file' => 'shadow.admin.inc',
+  );
+
+  $items['admin/build/shadow/tables/%/delete'] = array(
+    'title' => 'Delete table',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_table_delete_form', 4),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'file' => 'shadow.admin.inc',
+  );
+
+  $items['admin/build/shadow/queries'] = array(
+    'title' => 'Queries',
+    'page callback' => 'shadow_queries_page',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'shadow.admin.inc',
+    'weight' => 2,
+  );
+
+  $items['admin/build/shadow/queries/list'] = array(
+    'title' => 'List',
+    'page callback' => 'shadow_queries_page',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'file' => 'shadow.admin.inc',
+    'weight' => 1,
+  );
+
+  $items['admin/build/shadow/queries/list/%'] = array(
+    'title' => 'Query',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_choose_table_form', 5),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'file' => 'shadow.admin.inc',
+  );
+
+  $items['admin/build/shadow/queries/list/%/new'] = array(
+    'title' => 'Create a new table',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_create_table_form', 5),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+    'file' => 'shadow.admin.inc',
+  );
+
+  $items['admin/build/shadow/queries/add'] = array(
+    'title' => 'Add query',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_add_query_form'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'shadow.admin.inc',
+    'weight' => 2,
+  );
+
+  $items['admin/build/shadow/test'] = array(
+    'title' => 'Test query',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('shadow_queries_test_form'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'shadow.admin.inc',
+    'weight' => 3,
+  );
+
+  return $items;
+}
+
+/**
+ * Speed up SQL query.
+ * 
+ * Example:
+ * 
+ * $sql = 'SELECT n.nid, n.title FROM {node} n WHERE n.nid = %d';
+ * $args = array(123);
+ * shadow($sql, $args, 'query1', 'Example query #1');
+ * $results = db_query($sql, $args);
+ * 
+ * Always pass the arguments array to db_query, even if you do not use arguments
+ * yourself. Shadow may add arguments.
+ * 
+ * @param string $sql
+ * @param string $guid
+ * @param string $description
+ */
+function shadow(&$sql, &$args, $guid, $description) {
+  $res = db_query('SELECT * FROM {shadow_query} WHERE guid = \'%s\'', $guid);
+  
+  if ($query = db_fetch_object($res)) {
+    $query->last_use = time();
+    if ($sql != $query->query) {
+      $query->query_changed = time();
+      $query->query = $sql;
+      drupal_write_record('shadow_query', $query, 'qid');
+    }
+    if ($query->tid) {
+      _shadow_rewrite($sql, $args, $query->tid);
+    }
+  }
+  else {
+    $query = new stdClass();
+    $query->guid = $guid;
+    $query->description = $description;
+    $query->query = $sql;
+    $query->query_changed = time();
+    $query->last_use = time();
+    drupal_write_record('shadow_query', $query);
+  }
+}
+
+function _shadow_rewrite(&$sql, &$args, $tid) {
+  _shadow_load_classes();
+  
+  // Reset the argument numbering.
+  _shadow_argument_name(TRUE);
+  
+  // Convert arguments to D7 style, as the parser is not compatible with D6 style arguments.
+  _shadow_convert_arguments($sql, $args);
+
+  $filter_fields = array();
+  $sort_fields = array();
+  
+  $table_sql = 'SELECT tid, db_name, base_table FROM {shadow_table} WHERE tid = %d';
+  $res = db_query($table_sql, $tid);
+  if (!$table = db_fetch_object($res)) {
+    return FALSE;
+  }
+  
+  // Parse the query.
+  $query = new ShadowQuery($sql);
+  
+  $pkey = _shadow_get_primary_key($table->base_table);
+  $pkey_relations = array();
+  
+  $columns_sql = 'SELECT db_name, definition, invert_base
+  FROM {shadow_column}
+  WHERE tid = %d';
+  $res = db_query($columns_sql, $tid);
+  while ($column = db_fetch_object($res)) {
+    $definition = $column->definition . ($column->invert_base ? '*' : '');
+    $fields[$definition] = $column->db_name;
+    
+    foreach ($pkey as $field) {
+      if ($column->definition == $field) {
+        $pkey_relations[$column->db_name] = str_replace($table->base_table . '.', '', $field);
+      }
+    }
+  }
+
+  if (count($pkey) != count($pkey_relations)) {
+    return FALSE;
+  }
+  
+  // Rewrite the query.
+  $query->shadow($table->db_name, $pkey_relations, $fields);
+  
+  // Update the query.
+  $sql = (string) $query;
+  
+  // Convert the arguments from D7 to D6 style.
+  _shadow_convert_arguments($sql, $args, TRUE);
+}
+
+/**
+ * Convert query arguments between D6 and D7 style.
+ * 
+ * When $revert is FALSE (default), arguments are converted from D6 style (%d,
+ * %s etc) to D7 style (:named). The $args array is converted to be compatible
+ * with D7 too. When reverting the query, the $args array may get reordered.
+ *  
+ * @param string $sql Query string
+ * @param array $args Arguments array
+ * @param bool $revert Revert from D7 to D6
+ */
+function _shadow_convert_arguments(&$sql, &$args, $revert = FALSE) {
+  _shadow_convert_arguments_callback(FALSE, $args);
+  $sql = preg_replace_callback($revert ? '/\\:[a-zA-Z0-9]+/' : DB_QUERY_REGEXP, '_shadow_convert_arguments_callback', $sql);
+  $args = _shadow_convert_arguments_callback(NULL, TRUE);
+}
+
+/**
+ * Helper function for _shadow_convert_arguments().
+ */
+function _shadow_convert_arguments_callback($match, $a2 = NULL) {
+  static $old_args;
+  static $new_args;
+  if (is_array($match)) {
+    if ($match[0]{0} == '%') {
+      // Converting arguments from D6 to D7 style.
+      $name = _shadow_argument_name() . $match[0]{1};
+      $new_args[$name] = array_shift($old_args);
+    }
+    else {
+      // Converting arguments from D7 to D6 style.
+      if (!isset($old_args[$match[0]])) {
+        // Unknown argument, ignore.
+        return $match[0];
+      }
+      if (preg_match('/^.shadow[0-9]([dsfbn]){1}/', $match[0], $name_match)) {
+        $name = '%' . $name_match[1];
+      }
+      elseif (is_int($new_args[$match[0]])) {
+        $name = '%d';
+      }
+      elseif (is_numeric($new_args[$match[0]])) {
+        $name = '%n';
+      }
+      else {
+        $name = '%s';
+      }
+      $new_args[] = $old_args[$match[0]];
+    }
+    return $name;
+  }
+  elseif ($a2 === TRUE) {
+    return $new_args;
+  }
+  elseif (is_array($a2)) {
+    $old_args = $a2;
+    $new_args = array();
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function shadow_theme($existing, $type, $theme, $path) {
+  return array(
+    'shadow_fields' => array(
+      'render element' => 'element',
+      'file' => 'shadow.admin.inc',
+    ),
+  );
+}
+
+/**
+ * Implements hook_nodeapi().
+ */
+function shadow_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  switch ($op) {
+    case 'insert':
+    case 'update':
+    case 'delete':
+      module_load_include('inc', 'shadow', 'shadow.index');
+      shadow_index($op, 'node', array('nid' => $node->nid));
+      break;
+  }
+}
+
+/**
+ * Implements hook_comment().
+ */
+function shadow_comment(&$a1, $op) {
+  static $processed = array();
+  
+  switch ($op) {
+    case 'insert':
+    case 'update':
+    case 'delete':
+    case 'publish':
+    case 'unpublish':
+      if ($op == 'publish' || $op == 'unpublish') {
+        $op = 'update';
+      }
+      $comment_array = (array) $a1;
+
+      /**
+       * This function is called twice when new comments are added (with op
+       * 'insert' and 'publish'). We keep a list of processed comments to
+       * prevent overhead.
+       */
+      if (in_array($comment_array['cid'], $processed)) {
+        return;
+      }
+      $processed[] = $comment_array['cid'];
+
+      module_load_include('inc', 'shadow', 'shadow.index');
+      shadow_index($op, 'comments', array('cid' => $comment_array['cid']), TRUE);
+  }
+}
+
+/**
+ * Implements hook_exit().
+ *
+ * Process the index queue.
+ *
+ * @see shadow_index()
+ */
+function shadow_exit() {
+  global $_shadow_index_queue;
+
+  if (empty($_shadow_index_queue)) {
+    return;
+  }
+
+  module_load_include('inc', 'shadow', 'shadow.index');
+  foreach ($_shadow_index_queue as $item) {
+    extract($item);
+    shadow_index($op, $base_table, $pkey, 2);
+  }
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * Process the index queue.
+ *
+ * @see shadow_index()
+ */
+function shadow_cron() {
+  module_load_include('inc', 'shadow', 'shadow.index');
+  $processed = array();
+  $sql = 'SELECT iqid, op, base_table, pkey
+  FROM {shadow_index_queue}
+  ORDER BY iqid ASC
+  LIMIT %d';
+  $limit = variable_get(SHADOW_VAR_CRON_INDEX_LIMIT, SHADOW_VAR_CRON_INDEX_LIMIT_DEFAULT);
+  $res = db_query($sql, $limit);
+  while ($rec = db_fetch_array($res)) {
+    shadow_index($rec['op'], $rec['base_table'], unserialize($rec['pkey']), 3);
+    $processed[] = $rec['iqid'];
+  }
+  if ($processed) {
+    $sql = 'DELETE FROM {shadow_index_queue} WHERE iqid IN (' . db_placeholders($processed) . ')';
+    db_query($sql, $processed);
+  }
+}
+
+/**
+ * Private function to get the primary key of a table.
+ * 
+ * @param string $table
+ * @param bool $include_table
+ */
+function _shadow_get_primary_key($table, $include_table = TRUE) {
+  if (!$schema = drupal_get_schema($table)) {
+    return FALSE;
+  }
+  if (empty($schema['primary key'])) {
+    return array();
+  }
+  $fields = array();
+  foreach ($schema['primary key'] as $field) {
+    $fields[] = $include_table ? "$table.$field" : $field;
+  }
+  return $fields;
+}
+
+/**
+ * Private function to number new arguments.
+ * 
+ * @param bool $reset
+ */
+function _shadow_argument_name($reset = FALSE) {
+  static $i = 0;
+  if ($reset) {
+    $i = 0;
+  }
+  else {
+    ++$i;
+    return ":shadow$i";
+  }
+}
+
+/**
+ * Private function to load all classes.
+ */
+function _shadow_load_classes() {
+  module_load_include('inc', 'shadow', 'classes/state_machine');
+  module_load_include('inc', 'shadow', 'classes/state_holder');
+  module_load_include('inc', 'shadow', 'classes/filter');
+  module_load_include('inc', 'shadow', 'classes/column');
+  module_load_include('inc', 'shadow', 'classes/query');
+  module_load_include('inc', 'shadow', 'classes/index');
+  module_load_include('inc', 'shadow', 'classes/select');
+  module_load_include('inc', 'shadow', 'classes/join');
+}

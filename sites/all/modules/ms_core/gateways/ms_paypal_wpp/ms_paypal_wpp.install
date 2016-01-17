@@ -1,0 +1,47 @@
+<?php
+// $Id: $
+
+/**
+ * @file
+ * Installation file for PayPal Website Payments Pro
+
+/**
+ * Implementation of hook_requirements().
+ */
+function ms_paypal_wpp_requirements($phase) {
+  $t = get_t();
+
+  $has_curl = function_exists('curl_init');
+
+  // PayPal WPP requires cURL.
+  $requirements['ms_paypal_wpp_curl'] = array(
+    'title' => $t('cURL'),
+    'value' => $has_curl ? $t('Enabled') : $t('Not found'),
+  );
+  if (!$has_curl) {
+    $requirements['ms_paypal_wpp_curl']['severity'] = REQUIREMENT_ERROR;
+    $requirements['ms_paypal_wpp_curl']['description'] = $t("PayPal WPP requires the PHP <a href='!curl_url'>cURL</a> library.", array('!curl_url' => 'http://php.net/manual/en/curl.setup.php'));
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function ms_paypal_wpp_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_paypal_wpp_%%'");
+}
+
+/**
+ * Remind users to update their settings in PayPal
+ */
+function ms_paypal_wpp_update_6100() {
+  drupal_set_message(t('IMPORTANT. You need to set the IPN Notification URL in your PayPal account
+  in order to receive Recurring Payment IPNs.
+  Without this, you will not be able to receive Payment and Cancellation notifications.
+  See !link to get information on what you need to do.',
+    array('!link' => l(t('PayPal WPP Gateway Settings'), 'admin/moneyscripts/gateways/ms_paypal_wpp'))));
+  $ret = array();
+  return $ret;
+}

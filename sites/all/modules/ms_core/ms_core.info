@@ -1,0 +1,10 @@
+;$Id$
+name = MS Core
+description = Core Module with Functions and Hooks needed by other modules
+version = "6.x-1.50"
+core = 6.x
+package = MoneyScripts
+dependencies[] = token
+project = "ms_core"
+l10n server = moneyscripts.net
+l10n url = https://www.moneyscripts.net/sites/default/filesnew/l10n_packager/l10n_server.xml

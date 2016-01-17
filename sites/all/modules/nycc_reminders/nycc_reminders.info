@@ -1,0 +1,5 @@
+name = NYCC Ride Reminders Module 
+description = Sends Ride Reminders and Ride Rosters
+package = NYCC
+core = 6.x
+dependencies[] = nycc

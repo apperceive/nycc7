@@ -1,0 +1,7 @@
+; $Id: $
+name = MS Products API
+description = Helper API for creating products modules
+package = MoneyScripts
+dependencies[] = ms_core
+version = "6.x-1.50"
+core = "6.x"

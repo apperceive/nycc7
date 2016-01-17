@@ -1,0 +1,387 @@
+<?php
+
+/**
+ * @file
+ *  Integrates a User's Profile (via profile.module) with Ubercart
+ */
+
+/**
+ * Implementation of hook_theme().
+ */
+function uc_profile_theme() {
+  return array(
+    'uc_profile_order_pane' => array(
+      'arguments' => array('order' => NULL),
+    ),
+    'uc_profile_order_pane_tokens' => array(
+      'arguments' => array('order' => NULL),
+    ),
+    'uc_profile_checkout_pane_review_data' => array(
+    'arguments' => array('profile_data' => NULL),
+  ),
+  );
+}
+
+/**
+ * Implementation of hook_checkout_pane().
+ */
+function uc_profile_checkout_pane() {
+  $panes[] = array(
+    'id' => 'uc_profile',
+    'callback' => 'uc_checkout_pane_profile',
+    'title' => t('Profile Details'),
+    'desc' => t("Display the fields from the profile module."),
+    'weight' => 3,
+    'process' => TRUE,
+    'collapsible' => TRUE,
+    // TODO: determine why this variable has no effect - caching?
+    //'collapsed' => variable_get('uc_profile_expanded', TRUE) ? 0 : 1,
+    'enabled' => FALSE,
+  );
+  return $panes;
+}
+
+/**
+ * Callback for checkout pane
+ * $arg1 is the order
+ * $arg2 is the uc_profile data
+ */
+function uc_checkout_pane_profile($op, &$arg1, $arg2) {
+  global $user;
+
+  switch ($op) {
+    case 'view':
+      $contents = array();
+      //get the profile
+
+      $profile_categories = profile_categories();
+
+      profile_load_profile($user);
+      $edit = get_object_vars($user);
+
+      $master_form = array();
+
+      $selected_profile_categories = variable_get('uc_profile_categories', array());
+
+      $num_categories = 0;
+      foreach ($profile_categories as $pc) {
+        // Adds this profile category if the admin has enabled it
+        // for use on the checkout pane and if the user can access it,
+        // or always, in the case of anonymous checkout.
+         if (!empty($selected_profile_categories[$pc['name']]) && (variable_get('uc_checkout_anonymous', FALSE) || profile_category_access($user, $pc['name']))) {
+          $profile_form = profile_form_profile($edit, $user, $pc['name']);
+          $master_form[$pc['name']] = $profile_form[$pc['name']];
+          $num_categories += 1;
+        }
+      }
+
+      if (!empty($master_form)) {
+        // Map existing order values on profile form, e.g. for back link on checkout page.
+        _uc_profile_profile_form_value_map($master_form, $arg1);
+      }
+
+      $master_form['#title'] = t(variable_get('uc_profile_title', 'Profile'));
+      $master_form['#collapsed'] = variable_get('uc_profile_expanded', TRUE) ? 0 : 1;
+
+      return array('contents' => $master_form);
+
+    case 'process':
+      $arg1->data['uc_profile'] = $arg2;
+      return TRUE;
+
+    case 'settings':
+      // Sets the title for the UC profile pane.
+      $form['uc_profile_title'] = array(
+        '#title' => t('Profile Pane Title'),
+        '#type' => 'textfield',
+        '#required' => TRUE,
+        '#description' => t('This will display as the title of the pane on the checkout page'),
+        '#default_value' => variable_get('uc_profile_title', t('Profile')),
+      );
+
+      // Sets whether the UC profile pane is expanded by default.
+      // TODO: Determine why this setting is not having an effect.
+      $form['uc_profile_expanded'] = array(
+        '#title' => t('Profile expanded by default'),
+        '#type' => 'checkbox',
+        '#required' => TRUE,
+        '#default_value' => variable_get('uc_profile_expanded', TRUE),
+      );
+
+      // Allows the admin to choose the profile categories which will show
+      // on the profile checkout pane.
+      $profile_category_values = variable_get('uc_profile_categories', array());
+
+      $profile_categories = profile_categories();
+      foreach($profile_categories as $pc) {
+          $profile_category_options[$pc['name']] = $pc['name'];
+      }
+      $form['uc_profile_categories'] = array(
+        '#type' => 'checkboxes',
+        '#title' => t('Enabled Profiles'),
+        '#description' => t('Check the profiles you want enabled in the checkout pane. New profiles are disabled by default.'),
+        '#default_value' => $profile_category_values,
+        '#options' => $profile_category_options,
+      );
+
+      return $form;
+
+    case 'review':
+      $output = '';
+
+      if(empty($arg1->data['uc_profile'])) {
+        return $output;
+      }
+      
+      // Creates a data array for theming the Profile Details pane, by category.
+      foreach ($arg1->data['uc_profile'] as $category => $values) {
+        $values = (object)$values;
+        $fields = _profile_get_fields($category);
+        while ($field = db_fetch_object($fields)) {
+          $field->page = TRUE;
+          $value = strip_tags(profile_view_field($values, $field));
+          // Only adds to the data array if the field has a submitted value.
+          if (!empty($value)) {
+            $profile_data[$category][$field->name] = array(
+              'title' => $field->title,
+              'data' => $value,
+            );
+          }
+        }
+      }
+      // Gets the themed output for the Profile Details pane of the checkout review page.
+      $output = theme('uc_profile_checkout_pane_review_data', $profile_data);
+
+      return $output;
+  }
+}
+
+/**
+ * Implementation of hook_uc_checkout_complete().
+ *  Updates the user profile.
+ */
+function uc_profile_uc_checkout_complete($order, $account) {
+  if(empty($order->data['uc_profile'])) {
+    return;
+  }
+
+  $profile_categories = $order->data['uc_profile'];
+  foreach($profile_categories as $category => $values) {
+    profile_save_profile($values, $account, $category);
+  }
+}
+
+/**
+  * Implementation of hook_form_alter().
+  *  Makes the profile fields translatable by i18nprofile.
+ */
+function uc_profile_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'uc_cart_checkout_form' && module_exists('i18nprofile')) {
+    $profile_categories = element_children($form['panes']['uc_profile']);
+    foreach ($profile_categories as $pc) {
+      foreach (element_children($form['panes']['uc_profile'][$pc]) as $field) {
+        i18nprofile_form_translate_field($form['panes']['uc_profile'], $field);
+      }
+    }
+  }
+}
+
+/**
+ * Helper function to populate default values of profile form with current
+ * (temporary) order values.
+ *
+ * @param $master_form
+ *  Form API array retrieved from profile_form_profile(), passed by reference.
+ * @param $order
+ *  Order object as it is provided in hook_order('view',...);
+ * @return
+ *  no return value: $master_form is passed by reference, and so will be
+ *  altered during function call.
+ */
+function _uc_profile_profile_form_value_map(&$master_form, $order) {
+  // Values have to be present in order data;
+  // otherwise, use profile's default values.
+  if (isset($order->data['uc_profile']) && !empty($order->data['uc_profile'])) {
+    foreach ($order->data['uc_profile'] as $pc => $fields) {
+      foreach($fields as $fieldname => $value) {
+        $master_form[$pc][$fieldname]['#default_value'] = $value;
+      }
+    }
+  }
+}
+
+/******************************************************************************
+ * Order Panes                                                                *
+ ******************************************************************************/
+ 
+/**
+ * Implementation of hook_order_pane().
+ */
+function uc_profile_order_pane() {
+  $panes[] = array(
+    'id' => 'uc_profile',
+    'callback' => 'uc_profile_order_pane_categories',
+    'title' => t('Profile Details'),
+    'desc' => t('Display profile details submitted with order.'),
+    'class' => 'order-pane-table',
+    'weight' => 7,
+    'show' => array('view', 'invoice', 'customer'),
+  );
+
+  return $panes;
+}
+
+/**
+ * Shipping order pane callback.
+ *
+ * @see uc_shipping_order_pane()
+ */
+function uc_profile_order_pane_categories($op, $arg1) {
+  switch ($op) {
+    case 'view':
+    case 'customer':
+
+      if (!empty($arg1->data['uc_profile'])) {
+        return theme('uc_profile_order_pane', $arg1);
+      }
+
+      break;
+  }
+}
+
+// Renders the profile data for display on the order pane.
+// $order->data['uc_profile'] contains the information from the user profile.
+function theme_uc_profile_order_pane($order) {
+  $headers = array();
+  $row = array();
+  $output = '';
+
+  if (empty($order->data['uc_profile'])) {
+    return $output;
+  }
+
+  foreach ($order->data['uc_profile'] as $category => $values) {
+    $values = (object)$values;
+    $fields = _profile_get_fields($category);
+
+    $header = array();
+    $row = array();
+
+    while ($field = db_fetch_object($fields)) {
+      $field->page = TRUE;
+      $value = strip_tags(profile_view_field($values, $field));
+
+      $header[] = $field->title;
+      $row[] = $value;
+    }
+
+    $output .= theme('table', $header, array($row), $attr = array(), t($category));
+  }
+  return $output;
+}
+
+// Renders the profile data submitted in checkout, for display on the review page.
+function theme_uc_profile_checkout_pane_review_data($profile_data) {
+  $output = '';
+  if (is_array($profile_data)) {
+    foreach ($profile_data as $category => $fields) {
+      $output .= '<h3 class="uc_profile-category-title uc_profile-category-title-' . uc_profile_id_safe($category) . '">' . $category . ':</h3>';
+      $output .= '<table class="uc_profile-category uc_profile-category-' . uc_profile_id_safe($category) . '">';
+      foreach ($fields as $fieldname => $data) {
+        // Only show the rows where information was actually submitted.
+        if (isset($data['data']) && !empty($data['data'])) {
+          $output .= '<tr valign="top"><td class="title-col" nowrap>'
+                  . $data['title'] . ':</td><td class="data-col">'
+                  . $data['data'] . '</td></tr>';
+        }
+      }
+      $output .= '</table>';
+    }
+  }
+  else {
+    $output .= '<tr valign="top"><td colspan="2">No profile data submitted.</td></tr>';
+  }
+  return $output;
+}
+
+
+/******************************************************************************
+ * Tokens for Invoice                                                         *
+ ******************************************************************************/
+
+// Renders the profile data in a table for use in customer invoices.
+function theme_uc_profile_order_pane_tokens($order) {
+  $headers = array();
+  $rows = array();
+  $output = '';
+
+  if (empty($order->data['uc_profile'])) {
+    return $output;
+  }
+
+  foreach ($order->data['uc_profile'] as $category => $values) {
+    $values = (object)$values;
+    $fields = _profile_get_fields($category);
+
+    $header = array();
+    $row = array();
+
+    while ($field = db_fetch_object($fields)) {
+      $field->page = TRUE;
+      $value = strip_tags(profile_view_field($values, $field));
+
+      $header[] = '<b>' . $field->title . '</b>';
+      $row[] = $value;
+    }
+    $rows = array($header, $row);
+
+    $output .= '<b>' . $category . '</b><br />';
+    $output .= theme('table', array(), $rows, $attr = array('width' => '100%'));
+    $output .= '<br />';
+  }
+  return $output;
+}
+
+/**
+ * Implementation of hook_token_list(), from token.module
+ */
+function uc_profile_token_list($type = 'all') {
+  $tokens = array();
+  if ($type == 'order') {
+    $tokens['Ubercart Profile']['uc-profile'] = t('All profile categories associated with order.');
+
+    // TODO: Add code to provide tokens for each category.
+    // Decide whether this is too more of a performance hit.
+    /*
+    $profile_categories = profile_categories();
+    foreach($profile_categories as $pc) {
+      $name = uc_profile_id_safe($pc['name']);
+      $tokens['Ubercart Profile']['uc-profile-' . $name] = t('@category profile associated with order.', array('@category' => $pc['name']));
+    }
+    */
+  }
+
+  return $tokens;
+}
+
+/**
+ * Implementation of hook_token_values(), from token.module
+ */
+function uc_profile_token_values($type, $object = NULL) {
+  $values = array();
+  switch ($type) {
+    case 'order':
+      //$order = $object;
+      $values['uc-profile'] = theme('uc_profile_order_pane_tokens', $object, array('width' => '100%'));
+      break;
+  }
+
+  return $values;
+}
+
+// TODO: Is there an equivalent Drupal core function for this?
+// Copy of zen_id_safe function from Zen theme. 
+// Used for rendering individual category names.
+function uc_profile_id_safe($string) {
+  return strtolower(preg_replace('/[^a-zA-Z0-9-]+/', '-', $string));
+}

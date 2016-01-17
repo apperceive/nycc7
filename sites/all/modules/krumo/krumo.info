@@ -1,0 +1,11 @@
+name = Krumo
+description = Krumo block for debugging
+package = Development
+dependencies[] = devel
+core = 6.x
+; Information added by drupal.org packaging script on 2013-09-30
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "krumo"
+datestamp = "1380584455"
+

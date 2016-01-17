@@ -1,0 +1,12 @@
+name = Shadow Views
+description = Views integration for shadow
+core = 6.x
+package = Performance
+dependencies[] = shadow
+dependencies[] = views
+; Information added by drupal.org packaging script on 2013-10-01
+version = "6.x-1.0-beta2+1-dev"
+core = "6.x"
+project = "shadow"
+datestamp = "1380627471"
+

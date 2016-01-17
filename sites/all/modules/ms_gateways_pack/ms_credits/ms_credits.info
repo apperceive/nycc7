@@ -1,0 +1,6 @@
+name = MS Credits
+description = Support for selling credits in 'packages' and letting users use the credits to make purchases
+package = MoneyScripts - Bonus Pack
+dependencies[] = ms_core
+version = "6.x-1.4"
+core = 6.x

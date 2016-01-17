@@ -1,0 +1,235 @@
+<?php
+
+/**
+ * @file
+ * Allows the user to create generic products
+ *
+ * NOTES:
+ * ------
+ *
+ */
+
+// ======================================
+// MS Products API Hooks
+// ======================================
+
+/**
+ * Implements hook_ms_products_api_info()
+ */
+function ms_product_kit_ms_products_api_info() {
+  return array(
+    'ms_product_kit' => array(
+      'plan_name' => t('MS Product'),
+      'plan_name_plural' => t('MS Products'),
+      'purchase_name' => t('Purchase'),
+      'purchase_name_plural' => t('Purchases'),
+    ),
+  );
+}
+
+// ======================================
+// Fields:
+// ======================================
+
+/**
+ * Implementation of hook_field_info().
+ */
+function ms_product_kit_field_info() {
+  return array(
+    'ms_product_kit' => array(
+      'label' => t('MS Product'),
+      'description' => t('Associate an MS Product with this Node'),
+      'content_icon' => 'icon_content_text.png',
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_settings().
+ */
+function ms_product_kit_field_settings($op, $field) {
+  switch ($op) {
+    case 'database columns':
+      $columns['value'] = array(
+        'type' => 'int',
+        'sortable' => TRUE,
+        'views' => TRUE,
+      );
+      return $columns;
+  }
+}
+
+/**
+ * Implementation of hook_field().
+ */
+function ms_product_kit_field($op, &$node, $field, &$items, $teaser, $page) {
+  switch ($op) {
+    case 'validate':
+      if (is_array($items)) {
+        foreach ($items as $delta => $item) {
+          $error_element = isset($item['_error_element']) ? $item['_error_element'] : '';
+          if (is_array($item) && isset($item['_error_element'])) unset($item['_error_element']);
+        }
+      }
+      return $items;
+
+    case 'sanitize':
+      foreach ($items as $delta => $item) {
+        $ms_product_kit = check_plain($item['value']);
+        $items[$delta]['safe'] = $ms_product_kit;
+      }
+  }
+}
+
+/**
+ * Implementation of hook_content_is_empty().
+ */
+function ms_product_kit_content_is_empty($item, $field) {
+  if (empty($item['value'])) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Implementation of hook content_generate().
+ * Provide dummy value for nodes created by the Devel Generate module.
+ */
+function ms_product_kit_content_generate($node, $field) {
+  $node_field = array();
+  $node_field['value'] = 1;
+  return $node_field;
+}
+
+/**
+ * Implementation of hook_token_list()
+ * and hook_token_values().
+ *
+ * Optional, provide token values for this field.
+ */
+function ms_product_kit_token_list($type = 'all') {
+  if ($type == 'field' || $type == 'all') {
+    $tokens = array();
+
+    $tokens['ms_product_kit']['raw']       = t('Raw, unfiltered text');
+    $tokens['ms_product_kit']['formatted'] = t('Formatted and filtered text');
+
+    return $tokens;
+  }
+}
+
+function ms_product_kit_token_values($type, $object = NULL) {
+  if ($type == 'field') {
+    $item = $object[0];
+
+    $tokens['raw']  = $item['value'];
+    $tokens['formatted'] = isset($item['view']) ? $item['view'] : '';
+    return $tokens;
+  }
+}
+
+// ======================================
+// Formatters:
+// ======================================
+
+/**
+ * Implementation of hook_theme().
+ */
+function ms_product_kit_theme() {
+  return array(
+    // Themes for the formatters.
+    'ms_product_kit_formatter_default' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function ms_product_kit_field_formatter_info() {
+  return array(
+    'default' => array(
+      'label' => t('Buy Now Link'),
+      'field types' => array('ms_product_kit'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+    ),
+  );
+}
+
+/**
+ * Theme function for 'default' ms_product_kit field formatter.
+ *
+ * $element['#item']: the sanitized $delta value for the item,
+ * $element['#field_name']: the field name,
+ * $element['#type_name']: the $node->type,
+ * $element['#formatter']: the $formatter_name,
+ * $element'#node']: the $node,
+ * $element['#delta']: the delta of this item, like '0',
+ *
+ */
+function theme_ms_product_kit_formatter_default($element) {
+  $output = "";
+  if ($plan = ms_products_load_product_plan($element['#item']['value'])) {
+    $output .= "<div class='ms_product_kit-plan-link'>";
+    $output .= "<div class='ms_product_kit-plan-link-title'><span class='label'>". t('Title') .":</span> " . $plan->name . "</div>";
+    $output .= l(t('Add to cart'), 'ms_product/purchase/' . $plan->pid);
+    $output .= "</div>";
+  }
+
+  return $output;
+}
+
+// ======================================
+// Widgets:
+// ======================================
+
+/**
+ * Implementation of hook_widget_info().
+ */
+function ms_product_kit_widget_info() {
+  return array(
+    'ms_product_kit_widget' => array(
+      'label' => t('MS Product'),
+      'field types' => array('ms_product_kit'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+      'callbacks' => array(
+        'default value' => CONTENT_CALLBACK_DEFAULT,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_widget().
+ */
+function ms_product_kit_widget(&$form, &$form_state, $field, $items, $delta = 0) {
+  $products = ms_products_get_plans();
+  $list = array();
+  if (!$field['required']) {
+    $list[0] = 'None';
+  }
+
+  foreach ($products as $key => $value) {
+    $list[$key] = $value;
+  }
+  $element['value'] = array(
+    '#type' => 'select',
+    '#title' => t('MS Product'),
+    '#options' => $list,
+    '#attributes' => array('class' => 'ms_product_kit'),
+    '#required' => $field['required'],
+    '#default_value' => $items[$delta],
+  );
+
+  // Used so that hook_field('validate') knows where to flag an error in deeply nested forms.
+  if (empty($form['#parents'])) {
+    $form['#parents'] = array();
+  }
+  $element['_error_element'] = array(
+    '#type' => 'value',
+    '#value' => implode('][', array_merge($form['#parents'], array('value'))),
+  );
+
+  return $element;
+}

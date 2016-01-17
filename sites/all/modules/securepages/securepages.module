@@ -1,0 +1,331 @@
+<?php
+/**
+ * @file
+ * Provide method of creating allowing certain pages to only viewable from
+ * https pages
+ */
+
+/**
+ * Defines defaults for SECUREPAGES_PAGES.
+ */
+define('SECUREPAGES_PAGES',
+'node/add*
+node/*/edit
+node/*/delete
+user
+user/*
+admin
+admin/*'
+);
+
+/**
+ * Defines defaults for SECUREPAGES_IGNORE.
+ */
+define('SECUREPAGES_IGNORE', '');
+
+/**
+ * Implements hook_init().
+ */
+function securepages_init() {
+  $is_https = securepages_is_secure();
+
+  // Special path for verifying SSL status.
+  if ($_GET['q'] == 'admin/build/securepages/test') {
+    if ($is_https) {
+      header('HTTP/1.1 200 OK');
+    }
+    else {
+      header('HTTP/1.1 404 Not Found');
+    }
+    exit();
+  }
+
+  if (variable_get('securepages_enable', 0) && basename($_SERVER['PHP_SELF']) == 'index.php' && php_sapi_name() != 'cli') {
+    securepages_redirect();
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function securepages_menu() {
+  $items = array();
+
+  $items['admin/build/securepages'] = array(
+    'title' => 'Secure Pages',
+    'description' => 'Configure which pages are and are not to be viewed in SSL',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('securepages_settings'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_NORMAL_ITEM,
+    'secure' => 1,
+    'file' => 'securepages.admin.inc'
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function securepages_form_alter(&$form, &$form_state, $form_id) {
+  $is_https = securepages_is_secure();
+  global $user;
+
+  if (!variable_get('securepages_enable', 0)) {
+    return;
+  }
+
+  if (isset($form['#action']) && securepages_can_alter_url($form['#action'])) {
+    // Remove the base_path, and extract the path component.
+    $url = substr($form['#action'], strlen(base_path()));
+    $url = @parse_url($url);
+    $path = drupal_get_normal_path($url['path']);
+
+    $page_match = securepages_match($path);
+    $role_match = securepages_roles($user);
+    if ($role_match) {
+      if (!$is_https) {
+        $form['#action'] = url($path, array('absolute' => TRUE, 'base_url' => securepages_baseurl(TRUE)));
+      }
+      return;
+    }
+
+    if ($page_match && !$is_https) {
+      $form['#action'] = url($path, array('absolute' => TRUE, 'base_url' => securepages_baseurl(TRUE)));
+    }
+    elseif ($page_match === 0 && $is_https && variable_get('securepages_switch', FALSE)) {
+      $form['#action'] = url($path, array('absolute' => TRUE, 'base_url' => securepages_baseurl(FALSE)));
+    }
+  }
+
+  // If the user/login path matches, also secure the login block.
+  if (securepages_match('user/login') && $form_id == 'user_login_block' && !$is_https) {
+    $form['#action'] = url($path, array('absolute' => TRUE, 'base_url' => securepages_baseurl(TRUE)));
+  }
+}
+
+/**
+ * Checks the current page and see if we need to redirect to the secure or
+ * insecure version of the page.
+ */
+function securepages_redirect() {
+  $is_https = securepages_is_secure();
+  global $base_url, $user;
+
+  $path = isset($_GET['q']) ? $_GET['q'] : '';
+  $page_match = securepages_match($path);
+  $role_match = securepages_roles($user);
+
+  if ($_POST) {
+    // If something has been posted to here then ignore the rules.
+  }
+  elseif ($role_match && !$is_https) {
+    securepages_goto(TRUE);
+  }
+  elseif ($page_match && !$is_https) {
+    securepages_goto(TRUE);
+  }
+  elseif ($page_match === 0 && $is_https && variable_get('securepages_switch', FALSE) && !$role_match) {
+    securepages_goto(FALSE);
+  }
+
+  // Correct the base_url so that everything comes from HTTPS.
+  if ($is_https) {
+    $base_url = securepages_baseurl();
+  }
+}
+
+/**
+ * Redirects the current page to the secure or insecure version.
+ *
+ * @param $secure
+ *   Determines which version of the set to move to.
+ */
+function securepages_goto($secure) {
+
+  $url['path'] = drupal_is_front_page() ? '' : $_GET['q'];
+  $url['query'] = $_GET;
+  unset($url['query']['q']);
+  $url['https'] = $secure;
+  $url['base_url'] = securepages_baseurl($secure);
+  $url['absolute'] = TRUE;
+  $url['external'] = FALSE; // prevent an open redirect
+
+  if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest') {
+    return;
+  }
+  else {
+    // Setting the redirect headers manually allows them to be cached.
+    drupal_set_header('Location: ' . url($url['path'], $url));
+    drupal_set_header('Status: ' . '302 Found');
+    print "302 Found";
+
+    // Store the response in the page cache.
+    drupal_page_footer();
+    exit();
+  }
+}
+
+/**
+ * Checks the page past and see if it should be secure or insecure.
+ *
+ * @param $path
+ *   The page of the page to check.
+ *
+ * @return
+ *   - 0: Page should be insecure.
+ *   - 1: Page should be secure.
+ *   - NULL: Do not change page.
+ */
+function securepages_match($path) {
+  $is_https = securepages_is_secure();
+
+  $secure = variable_get('securepages_secure', 1);
+  $pages = drupal_strtolower(variable_get('securepages_pages', SECUREPAGES_PAGES));
+  $ignore = drupal_strtolower(variable_get('securepages_ignore', SECUREPAGES_IGNORE));
+  $path = securepages_strtolower(trim($path, '/'));
+
+  // Checks to see if the page matches the current settings.
+  if ($ignore) {
+    if (drupal_match_path($path, $ignore)) {
+      return $is_https ? 1 : 0;
+    }
+  }
+  if ($pages) {
+    $result = drupal_match_path($path, $pages);
+    if (function_exists('drupal_get_path_alias')) {
+      $path_alias = drupal_get_path_alias($path);
+      $result |= drupal_match_path($path_alias, $pages);
+    }
+    return !($secure xor $result) ? 1 : 0;
+  }
+  else {
+    return;
+  }
+}
+
+/**
+ * Checks if the user is in a role that is always forced onto HTTPS.
+ *
+ * @param $account
+ *   A valid user object.
+ *
+ * @return
+ *   The number of roles set on the user that require HTTPS enforcing.
+ */
+function securepages_roles($account) {
+  // All rids are in the settings, so first we need to filter out the ones
+  // that aren't enabled. Otherwise this would match positive against all
+  // roles a user has set.
+
+  $roles = array_filter(variable_get('securepages_roles', array()));
+  $matches = array_intersect_key($account->roles, $roles);
+  return count($matches);
+}
+
+/**
+ * Secure Pages SSL Test.
+ */
+function securepages_test() {
+  $is_https = securepages_is_secure();
+
+  // If we are in an SSL page then assume that SSL is configured correctly.
+  if ($is_https) {
+    return TRUE;
+  }
+  $url = 'https://' . preg_replace(';^http[s]?://;s', '', url('admin/build/securepages/test', array('absolute' => TRUE)));
+
+  $response = drupal_http_request($url);
+
+  return $response->code == 200 ? TRUE : FALSE;
+}
+
+/**
+ * Check if the current page is SSL
+ */
+function securepages_is_secure() {
+  // This check is identical to Drupal 7's.  See D7 bootstrap.inc.
+  return (isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on');
+}
+
+/**
+ * Returns the secure base path.
+ */
+function securepages_baseurl($secure = TRUE) {
+  global $base_url;
+
+  if ($secure) {
+    $url = variable_get('securepages_basepath_ssl', NULL);
+  }
+  else {
+    $url = variable_get('securepages_basepath', NULL);
+  }
+
+  if (!empty($url)) {
+    return $url;
+  }
+
+  // No url has been set, so convert the base_url from 1 to the other
+  return preg_replace('/http[s]?:\/\//i', ($secure ? 'https://' : 'http://'), $base_url, 1);
+}
+
+/**
+ * Lowercase a UTF-8 string.
+ *
+ * @param $text
+ * The string to run the operation on.
+ *
+ * @return string
+ * The string in lowercase.
+ *
+ * @ingroup php_wrappers
+ */
+function securepages_strtolower($text) {
+  global $multibyte;
+  if ($multibyte == 1) {
+    return mb_strtolower($text);
+  }
+  else {
+    // Use C-locale for ASCII-only lowercase
+    $text = strtolower($text);
+    // Case flip Latin-1 accented letters
+    $text = preg_replace_callback('/\xC3[\x80-\x96\x98-\x9E]/', '_securepages_unicode_caseflip', $text);
+    return $text;
+  }
+} 
+
+/**
+ * Helper function for case conversion of Latin-1.
+ * Used for flipping U+C0-U+DE to U+E0-U+FD and back.
+ */
+function _securepages_unicode_caseflip($matches) {
+  return $matches[0][0] . chr(ord($matches[0][1]) ^ 32);
+} 
+
+/**
+ * Check the url and make sure that it is a url that you can alter this url.
+ * @param $url
+ *   URL to check.
+ */
+function securepages_can_alter_url($url) {
+  global $base_path, $base_url;
+
+  $url = @parse_url($url);
+
+  // If there is no scheme then it is a relative url and can be altered
+  if (!isset($url['scheme']) && $base_path == '/') {
+    return TRUE;
+  }
+
+  // If the host names are not the same then don't allow altering of the path.
+  if (isset($url['host']) && strtolower($url['host']) != strtolower($_SERVER['HTTP_HOST'])) {
+    return FALSE;
+  }
+
+  if (strlen($base_path) > 1 && substr($base_url, -1) != substr($url['path'], 1, strlen($base_path))) {
+    return FALSE;
+  }
+
+  return TRUE;
+}

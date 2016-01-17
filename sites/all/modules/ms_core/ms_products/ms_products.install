@@ -1,0 +1,222 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Products API Helper
+ * Licensed under the GNU GPLv2 License
+ */
+
+/**
+* Implementation of hook_install().
+*/
+function ms_products_install() {
+  // Create tables.
+  drupal_install_schema('ms_products');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function ms_products_uninstall() {
+  // Drop tables.
+  drupal_uninstall_schema('ms_products');
+
+  // Delete related variables all at once.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_products_%%'");
+}
+
+/**
+ * Implements hook_schema().
+ */
+function ms_products_schema() {
+  $schema['ms_products_plans'] = array(
+    'description' => 'Used to hold products',
+    'fields' => array(
+      'pid' => array(
+        'type' => 'serial',
+        'description' => 'The unique product ID (primary)',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'module' => array(
+        'type' => 'varchar',
+        'description' => 'The module of the Product',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'sku' => array(
+        'type' => 'varchar',
+        'description' => 'The unique sku',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => t('The user id who owns the products.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'description' => 'The name of the Product',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'type' => 'varchar',
+        'description' => 'cart or recurring',
+        'length' => '100',
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'type' => 'text',
+        'description' => 'Description of the Product',
+      ),
+      'signup_mail_subject' => array(
+        'type' => 'varchar',
+        'description' => 'Subject for Signup Email',
+        'length' => '255',
+      ),
+      'signup_mail_body' => array(
+        'type' => 'text',
+        'description' => 'Body for Signup Email',
+      ),
+      'eot_mail_subject' => array(
+        'type' => 'varchar',
+        'description' => 'Subject for End of Term Email',
+        'length' => '255',
+      ),
+      'eot_mail_body' => array(
+        'type' => 'text',
+        'description' => 'Body for End of Term Email',
+      ),
+      'cancel_mail_subject' => array(
+        'type' => 'varchar',
+        'description' => 'Subject for Cancellation Email',
+        'length' => '255',
+      ),
+      'cancel_mail_body' => array(
+        'type' => 'text',
+        'description' => 'Body for Cancellation Email',
+      ),
+      'modify_mail_subject' => array(
+        'type' => 'varchar',
+        'description' => 'Subject for Modification Email',
+        'length' => '255',
+      ),
+      'modify_mail_body' => array(
+        'type' => 'text',
+        'description' => 'Body for Modification Email',
+      ),
+      'expiring_mail_subject' => array(
+        'type' => 'varchar',
+        'description' => 'Subject for Expiring Soon Email',
+        'length' => '255',
+      ),
+      'expiring_mail_body' => array(
+        'type' => 'text',
+        'description' => 'Body for Expiring Soon Email',
+      ),
+      'expiring_mail_days' => array(
+        'type' => 'int',
+        'description' => 'How many days before the membership Expires to send the email',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'description' => 'Weight',
+        'not null' => TRUE,
+        'disp-width' => '11',
+        'default' => 0,
+      ),
+      'recurring_schedule' => array(
+        'type' => 'text',
+        'description' => 'Serialized Array of the recurring schedule',
+        'serialize' => TRUE,
+      ),
+      'modify_options' => array(
+        'type' => 'text',
+        'description' => 'Which products can be changed to from this product',
+        'serialize' => TRUE,
+      ),
+      'data' => array(
+        'type' => 'text',
+        'description' => 'Serialized Array of Data for the plan',
+        'serialize' => TRUE,
+      ),
+    ),
+    'primary key' => array('pid'),
+  );
+
+  $schema['ms_product_purchases'] = array(
+    'description' => 'Used to record all product purchases',
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'description' => 'The unique ID (primary)',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'oid' => array(
+        'type' => 'int',
+        'description' => 'The unique order ID',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'description' => 'The uid of the user making the record',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'pid' => array(
+        'type' => 'int',
+        'description' => 'The id of the product plan purchased',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'status' => array(
+        'type' => 'varchar',
+        'description' => 'The Status of the Purchase',
+        'length' => '255',
+      ),
+      'expiration' => array(
+        'type' => 'int',
+        'description' => 'The Expiration of the Purchase',
+        'not null' => TRUE,
+        'disp-width' => '11',
+        'default' => 0,
+      ),
+      'start_date' => array(
+        'type' => 'int',
+        'description' => 'Start Date for the Purchase',
+        'not null' => TRUE,
+        'disp-width' => '11',
+        'default' => 0,
+      ),
+      'current_payments' => array(
+        'type' => 'int',
+        'description' => 'The current number of payments made',
+        'not null' => TRUE,
+        'disp-width' => '11',
+        'default' => 0,
+      ),
+      'max_payments' => array(
+        'type' => 'int',
+        'description' => 'The max number of payments for the Purchase',
+        'not null' => TRUE,
+        'disp-width' => '11',
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}
+
+// ======================================
+// Updates:
+// ======================================

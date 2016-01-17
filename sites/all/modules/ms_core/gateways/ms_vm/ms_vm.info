@@ -1,0 +1,7 @@
+;$Id$
+name = Virtual Merchant
+description = Gateway to use Virtual Merchant
+version = "6.x-1.50"
+core = 6.x
+package = MoneyScripts - Gateways
+dependencies[] = ms_core

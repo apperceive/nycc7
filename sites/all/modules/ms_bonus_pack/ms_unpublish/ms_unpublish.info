@@ -1,0 +1,9 @@
+;$Id$
+name = Pay to Unpublish
+description = Let users pay to unpublish a node
+version = "6.x-1.11"
+core = 6.x
+package = MoneyScripts - Bonus Pack
+dependencies[] = ms_core
+dependencies[] = rules
+datestamp = "1271138308"

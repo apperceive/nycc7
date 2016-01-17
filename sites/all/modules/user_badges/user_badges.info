@@ -1,0 +1,12 @@
+
+name = User badges
+description = Enables assignment of graphical badges to users and roles.
+dependencies[] = upload
+core = 6.x
+
+; Information added by Drupal.org packaging script on 2014-01-10
+version = "6.x-2.0"
+core = "6.x"
+project = "user_badges"
+datestamp = "1389333514"
+

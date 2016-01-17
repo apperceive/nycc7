@@ -1,0 +1,10 @@
+; $Id: $
+name = Membership Suite
+description = Sell Membership to your Drupal Site
+package = MoneyScripts
+dependencies[] = ms_core
+version = "6.x-6.39"
+core = "6.x"
+project = "ms_membership"
+l10n server = moneyscripts.net
+l10n url = https://www.moneyscripts.net/sites/default/filesnew/l10n_packager/l10n_server.xml

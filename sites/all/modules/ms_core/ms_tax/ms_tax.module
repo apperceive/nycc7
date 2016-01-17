@@ -1,0 +1,475 @@
+<?php
+// $Id$
+/**
+* @file
+* MoneyScripts Tax
+* Copyright 2010 MoneyScripts.net
+* http://www.moneyscripts.net
+*/
+
+/**
+ * Display help and module information
+ */
+function ms_tax_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case "admin/moneyscripts/ms_tax":
+    case "admin/help#ms_tax":
+      $output .= '<p>'.  t("MoneyScripts Tax Module. This allows you to set a universal tax that will be
+      applied to every order. The tax can be a fixed amount or a percentage.") .'</p>';
+      break;
+  }
+  return $output;
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function ms_tax_menu() {
+  $items = array();
+
+  $items['admin/moneyscripts/ms_tax'] = array(
+    'title' => 'Tax',
+    'description' => 'Add a tax to all products',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ms_tax_admin'),
+    'access arguments' => array('administer moneyscripts settings'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+// ======================================
+// Administration Page:
+// ======================================
+
+/**
+ * Implements hook_ms_core_overrides().
+ */
+function ms_tax_ms_core_overrides() {
+  return array(
+    'ms_tax' => array(
+      'title' => t('MS Tax'),
+      'form' => 'ms_tax_admin',
+    ),
+  );
+}
+
+/**
+ * Admin Settings Form
+ */
+function ms_tax_admin() {
+  $form['main'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Main Settings'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['countries'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Country Specific Settings'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#description' => t("Here you can specify country specific settings for taxes.
+      This can be very useful for charging VAT for different countries at different rates.
+      If you have a profile field set in the MS Core Settings for the Billing Country,
+      then that field will be used to determine the country associated with the user.
+      This field should use the ISO2 of the countries for the key. For example, the
+      United States of America would be 'US'. If the user is not logged in, then
+      if the profile field is included in the registration form, it will be used to
+      determine the country. Other means are also used to attempt to automatically
+      determine the country based on the user's past information. If all of these
+      methods fail, then the user will be asked to select a country before they go
+      to checkout."),
+  );
+  $form['countries']['ms_tax_use_country_specific_rates'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use Country-Specific Rates?'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#default_value' => variable_get('ms_tax_use_country_specific_rates', FALSE),
+    '#description' => t("If this is checked, every order will be given a specific country during checkout.
+      This could add an extra step to the checkout process if the country isn't selected during registration
+      or if the country is not stored in the user's profile (user is anonymous)."),
+  );
+
+  // -----------------------------
+  // Main Settings
+  // -----------------------------
+  $form['main']['ms_tax_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Display Text for Tax in Cart and Order'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#default_value' => variable_get('ms_tax_name', t('Tax')),
+    '#description' => t("This is what will appear next to the Tax amount on orders."),
+    '#required' => TRUE,
+    '#ms_override' => TRUE,
+  );
+  $form['main']['ms_tax_amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Tax Amount to apply to orders by default'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#default_value' => variable_get('ms_tax_amount', 0),
+    '#description' => t("This tax will apply to all orders by default."),
+    '#required' => TRUE,
+    '#ms_override' => TRUE,
+  );
+  $form['main']['ms_tax_type'] = array(
+    '#type' => 'radios',
+    '#title' => t('Percentage or Fixed Amount?'),
+    '#default_value' => variable_get('ms_tax_type', 'percentage'),
+    '#options' => array('percentage' => t('Percentage'), 'fixed' => t('Fixed')),
+    '#required' => TRUE,
+    '#ms_override' => TRUE,
+  );
+  $scopes = ms_core_get_scopes();
+  $form['main']['ms_tax_scope'] = array(
+    '#type' => 'radios',
+    '#title' => t('Scope'),
+    '#default_value' => variable_get('ms_tax_scope', 'recurring'),
+    '#options' => $scopes,
+    '#required' => TRUE,
+    '#description' => t('Whether the tax should affect the first payment only or all payments. Only applies for Recurring Payments.'),
+    '#ms_override' => TRUE,
+  );
+
+  $countries_list = ms_core_get_countries('iso');
+  $specific_countries = variable_get('ms_tax_specific_countries', array());
+
+  if (isset($form_state['specific_countries']) AND is_array($form_state['specific_countries'])) {
+    $specific_countries = array_merge($specific_countries, $form_state['specific_countries']);
+  }
+
+  foreach ($specific_countries as $country_iso) {
+    // -----------------------------
+    // Country Specific Settings
+    // -----------------------------
+    $form['countries']['specific_countries'][$country_iso] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Country Specific Settings for @name', array('@name' => $countries_list[$country_iso])),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+
+    $form['countries']['specific_countries'][$country_iso]['ms_tax_name_' . $country_iso] = array(
+      '#type' => 'textfield',
+      '#title' => t('Display Text for Tax in Cart and Order'),
+      '#size' => 32,
+      '#maxlength' => 64,
+      '#default_value' => variable_get('ms_tax_name_' . $country_iso, t('Tax')),
+      '#description' => t("This is what will appear next to the Tax amount on orders."),
+      '#required' => TRUE,
+      '#ms_override' => TRUE,
+    );
+    $form['countries']['specific_countries'][$country_iso]['ms_tax_amount_' . $country_iso] = array(
+      '#type' => 'textfield',
+      '#title' => t('Tax Amount to apply to orders by default'),
+      '#size' => 32,
+      '#maxlength' => 64,
+      '#default_value' => variable_get('ms_tax_amount_' . $country_iso, 0),
+      '#description' => t("This tax will apply to all orders by default."),
+      '#required' => TRUE,
+      '#ms_override' => TRUE,
+    );
+    $form['countries']['specific_countries'][$country_iso]['ms_tax_type_' . $country_iso] = array(
+      '#type' => 'radios',
+      '#title' => t('Percentage or Fixed Amount?'),
+      '#default_value' => variable_get('ms_tax_type_' . $country_iso, 'percentage'),
+      '#options' => array('percentage' => t('Percentage'), 'fixed' => t('Fixed')),
+      '#required' => TRUE,
+      '#ms_override' => TRUE,
+    );
+    $form['countries']['specific_countries'][$country_iso]['ms_tax_scope_' . $country_iso] = array(
+      '#type' => 'radios',
+      '#title' => t('Scope'),
+      '#default_value' => variable_get('ms_tax_scope_' . $country_iso, 'recurring'),
+      '#options' => $scopes,
+      '#required' => TRUE,
+      '#description' => t('Whether the tax should affect the first payment only or all payments. Only applies for Recurring Payments.'),
+      '#ms_override' => TRUE,
+    );
+    $form['countries']['specific_countries'][$country_iso]['ms_tax_remove_country-' . $country_iso] = array(
+      '#type' => 'submit',
+      '#value' => t('Remove @name', array('@name' => $countries_list[$country_iso])),
+      '#submit' => array('ms_tax_remove_country'),
+      // Since we are removing a country, don't validate until later.
+      '#limit_validation_errors' => array(),
+    );
+  }
+
+  $form['countries']['add'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('New Country Specific Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['countries']['add']['ms_tax_new_country'] = array(
+    '#type' => 'select',
+    '#title' => t('Country'),
+    '#options' => $countries_list,
+    '#required' => FALSE,
+  );
+  $form['countries']['add']['ms_tax_add_country'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add Country Specific Settings'),
+    '#submit' => array('ms_tax_add_country'),
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Submit handler for "Add Country Specific Settings" button
+ */
+function ms_tax_add_country($form, &$form_state) {
+  $specific_countries = variable_get('ms_tax_specific_countries', array());
+  if (isset($form_state['values']['ms_tax_new_country'])) {
+    $country_iso = $form_state['values']['ms_tax_new_country'];
+    $form_state['specific_countries'][$country_iso] = $country_iso;
+    $specific_countries[$country_iso] = $country_iso;
+  }
+
+  variable_set('ms_tax_specific_countries', $specific_countries);
+
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Submit handler for "Remove Country Specific Settings" button
+ */
+function ms_tax_remove_country($form, &$form_state) {
+  $specific_countries = variable_get('ms_tax_specific_countries', array());
+  $op = $form_state['values']['op'];
+  foreach ($form_state['values'] as $key => $value) {
+    if ($key != 'op' AND $value == $op) {
+      list($name, $country_iso) = explode("-", $key);
+      unset($specific_countries[$country_iso]);
+      variable_del('ms_tax_remove_country-' . $country_iso);
+      variable_del('ms_tax_name_' . $country_iso);
+      variable_del('ms_tax_amount_' . $country_iso);
+      variable_del('ms_tax_type_' . $country_iso);
+      variable_del('ms_tax_scope_' . $country_iso);
+    }
+  }
+  variable_set('ms_tax_specific_countries', $specific_countries);
+  $form_state['specific_countries'] = $specific_countries;
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Implements hook_ms_cart_added()
+ *
+ * If the country is not present and it should be, we can add a step to the checkout form to collect the country
+ * This could be done with hook_form_alter or maybe a new hook in MS Core...
+ */
+function ms_tax_ms_cart_added($cart, $product) {
+  global $user;
+  $country_iso = '';
+  if (variable_get('ms_tax_use_country_specific_rates', FALSE)) {
+    $add_tax = FALSE;
+    // Check if the cart already has a country_iso set in the data
+    if (isset($cart->data['country_iso'])) {
+      $country_iso = $cart->data['country_iso'];
+      $add_tax = TRUE;
+    }
+    // First, check if the user is logged in and if their profile has the data info
+    else if ($user->uid) {
+      $account = user_load($user->uid);
+      // First check if the user has any saved payment profiles
+      $profiles = ms_core_payment_profiles_load_by_user($account->uid);
+      if (!empty($profiles)) {
+        foreach ($profiles as $profile) {
+          if (isset($profile->country) AND $profile->country) {
+            $country_iso = $profile->country;
+            $add_tax = TRUE;
+            break;
+          }
+        }
+      }
+      // Then check if the country is set in their profile
+      else if ($field_name = variable_get('ms_core_profile_billing_country', '') AND isset($account->$field_name)) {
+        $country_iso = $account->$field_name;
+        $add_tax = TRUE;
+      }
+      else {
+        // Finally, check if it may be in one of their past orders
+        $orders = ms_core_get_orders($account->uid);
+        foreach ($orders as $order) {
+          if (isset($order->billing_address['country']) AND $order->billing_address['country']) {
+            $country_iso = $order->billing_address['country'];
+            $add_tax = TRUE;
+            break;
+          }
+        }
+      }
+    }
+    // Otherwise we'll try and get one from other means
+    else if ($field_name = variable_get('ms_core_profile_billing_country', '')) {
+      // Next, check to see if the product has the billing country set in the data
+      if (isset($product->data['form']['values'][$field_name][0]['value'])) {
+        $country_iso = $product->data['form']['values'][$field_name][0]['value'];
+        $add_tax = TRUE;
+      }
+      else {
+        // No country code found, let's hold off on adding the tax until later on
+        $add_tax = FALSE;
+      }
+    }
+    else {
+      // No country code found, let's hold off on adding the tax until later on
+      $add_tax = FALSE;
+    }
+  }
+  else {
+    $add_tax = TRUE;
+  }
+  if ($add_tax) {
+    ms_tax_add_tax_adjustment($product, $country_iso);
+  }
+}
+
+/**
+ * Adds a tax adjustment to the cart
+ */
+function ms_tax_add_tax_adjustment(&$product, $country_iso = '') {
+  $adjustment = new MsAdjustment();
+  $adjustment->id = 'ms_tax_1';
+  $adjustment->product_id = NULL;
+
+  // Add the product specific settings if applicable
+  if (!empty($product->cart_product_id)) {
+    // FIXME - This was sometimes adding extra tax when it shouldn't...
+    //$adjustment->id = 'ms_tax_1_' . $product->cart_product_id;
+    //$adjustment->product_id = $product->cart_product_id;
+  }
+
+  $adjustment->weight = 1;
+  $product->data['country_iso'] = $country_iso;
+  if ($country_iso AND ms_core_variable_get('ms_tax_name_' . $country_iso, '', $product)) {
+    // Use the country specific tax
+    $adjustment->display = ms_core_variable_get('ms_tax_name_' . $country_iso, '', $product);
+    $adjustment->type = ms_core_variable_get('ms_tax_type_' . $country_iso, 'percentage', $product);
+    $adjustment->value = ms_core_variable_get('ms_tax_amount_' . $country_iso, 0, $product);
+    $adjustment->scope = ms_core_variable_get('ms_tax_scope_' . $country_iso, 'recurring', $product);
+  }
+  else {
+    // Use the default tax
+    $adjustment->display = ms_core_variable_get('ms_tax_name', '', $product);
+    $adjustment->type = ms_core_variable_get('ms_tax_type', 'percentage', $product);
+    $adjustment->value = ms_core_variable_get('ms_tax_amount', 0, $product);
+    $adjustment->scope = ms_core_variable_get('ms_tax_scope', 'recurring', $product);
+  }
+
+  // Add the tax to the order
+  if ($adjustment->value) {
+    ms_core_add_cart_adjustment($adjustment, TRUE);
+  }
+}
+
+/*
+ * Implements hook_ms_checkout_steps()
+ */
+function ms_tax_ms_checkout_steps($cart) {
+  $steps = array();
+  // If we are using country specific rates, and the country has not been set, we need to collect it during checkout
+  if (variable_get('ms_tax_use_country_specific_rates', FALSE)) {
+    $adjustments = array();
+    foreach ($cart->adjustments as $adjustment) {
+      $adjustments[$adjustment->id] = $adjustment;
+    }
+    // Check to see if the cart already has a country set for it
+    if (!isset($cart->data['country_iso']) AND !isset($adjustments['ms_tax_1'])) {
+      // Show the Coupon Entry Form
+      $steps[] = array(
+        'id' => 'ms_tax_select_country',
+        'form_id' => 'ms_tax_select_country_form',
+        'weight' => 0,
+      );
+    }
+  }
+
+  return $steps;
+}
+
+/**
+ * Select Country Form
+ */
+function ms_tax_select_country_form(&$form_state, $cart) {
+  $countries_list = ms_core_get_countries('iso');
+  $form['ms_tax_country'] = array(
+    '#type' => 'select',
+    '#title' => t('Select Country'),
+    '#options' => $countries_list,
+    '#required' => TRUE,
+    '#description' => t("Please select your country before continuing."),
+  );
+
+  // Add the cart object to the form
+  $form['ms_core_cart'] = array(
+    '#type' => 'value',
+    '#value' => $cart,
+  );
+
+  // Add the Continue button to the form
+  $form['continue_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Continue'),
+  );
+
+  return $form;
+}
+
+/**
+ * Select Country Form Submit Callback
+ */
+function ms_tax_select_country_form_submit($form, &$form_state) {
+  // Add the proper tax to the cart
+  $cart = $form_state['values']['ms_core_cart'];
+  $product = $cart->products[0];
+  $country_iso = $form_state['values']['ms_tax_country'];
+  ms_tax_add_tax_adjustment($product, $country_iso);
+
+  // Add the data to the first product in the cart
+  db_query("UPDATE {ms_cart_products} SET data = '%s' WHERE cart_product_id = '%s'", serialize($product->data), $product->cart_product_id);
+}
+
+// ======================================
+// TOKEN
+// ======================================
+
+/**
+ * Implementation of hook_token_list
+ */
+function ms_tax_token_list($type = 'all') {
+  $tokens = array();
+  if ($type == 'ms_core_order' || $type == 'all') {
+    $tokens['MS Order']['taxRate'] = t("The tax rate. This could be a fixed amount or a percentage.");
+    $tokens['MS Order']['taxAmount'] = t("The tax amount.");
+  }
+  return $tokens;
+}
+
+/**
+ * Implementation of hook_token_values
+ */
+function ms_tax_token_values($type, $object = NULL, $options = array()) {
+  $tokens = array();
+  if ($type == 'ms_core_order' AND $object) {
+    $tokens['taxRate'] = t('N/A');
+    $tokens['taxAmount'] = t('N/A');
+    if (is_array($object->adjustments)) {
+      foreach ($object->adjustments as $adjustment) {
+        if ($adjustment->id == 'ms_tax_1') {
+          $tokens['taxRate'] = $adjustment->display;
+          $price = ms_core_get_order_products_total($object);
+          $tokens['taxAmount'] = ms_core_get_adjusted_price($adjustment, $price);
+        }
+      }
+    }
+  }
+  return $tokens;
+}

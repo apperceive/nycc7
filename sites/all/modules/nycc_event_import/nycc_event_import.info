@@ -1,0 +1,6 @@
+name = NYCC Event Import 
+description = Handle importing of events and assigning badges
+package = NYCC
+core = 6.x
+dependencies[] = nycc
+dependencies[] = user_badges

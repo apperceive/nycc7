@@ -1,0 +1,10 @@
+name = Security Kit
+description = Enhance security of your Drupal website
+package = Security
+core = 6.x
+; Information added by drupal.org packaging script on 2013-09-18
+version = "6.x-1.7"
+core = "6.x"
+project = "seckit"
+datestamp = "1379512387"
+

@@ -1,0 +1,7 @@
+;$Id$
+name = Coupons
+description = Add Discount Coupons functionality
+version = "6.x-1.50"
+core = 6.x
+package = MoneyScripts
+dependencies[] = ms_core

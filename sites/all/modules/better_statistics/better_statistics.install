@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @file
+ * Install and uninstall functions for the Better Statistics module.
+ */
+
+
+/**
+ * Implements hook_install().
+ *
+ * Adds fields provided by this module to the accesslog table.
+ */
+function better_statistics_install() {
+  // Load our field definitions.
+  module_load_include('inc', 'better_statistics', 'better_statistics.helpers');
+  $fields = _better_statistics_define_fields(TRUE);
+
+  // For each field defined, add it to the accesslog.
+  foreach ($fields as $name => $field) {
+    $return[$name] = array();
+    db_add_field($return[$name], 'accesslog', $name, $field);
+  }
+
+  // Update this module's weight to something below Statistics' weight.
+  db_query("UPDATE {system} SET weight = -1 WHERE name = 'better_statistics'");
+}
+
+
+/**
+ * Implements hook_uninstall().
+ *
+ * Removes fields provided by this module from the accesslog table.
+ */
+function better_statistics_uninstall() {
+  // Load our field definitions.
+  module_load_include('inc', 'better_statistics', 'better_statistics.helpers');
+  $fields = _better_statistics_define_fields(TRUE);
+
+  // For each field defined, remove it from the accesslog table.
+  foreach ($fields as $name => $field) {
+    $return[$name] = array();
+    db_drop_field($return[$name], 'accesslog', $name, $field);
+  }
+}

@@ -1,0 +1,586 @@
+<?php
+
+function nycc_profile_menu() {
+  $items = array();
+
+  $items['nycc-review-membership'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nycc_profile_review_membership'),
+    'type' => MENU_NORMAL_ITEM,
+    'access callback' => TRUE,
+    'title' => 'Review NYCC Profile Information'
+  );
+
+// 
+//   $items['nycc-update-contact-info'] = array(
+//     'page callback' => 'nycc_profile_get_contact_info',
+//     'type' => MENU_CALLBACK,
+//     'access callback' => TRUE,
+//   );
+  return $items;
+}
+
+function nycc_profile_perm() {
+//  return array('view incentives report');
+}
+
+function nycc_profile_output_profile_buttons($account) {
+  global $user;
+
+  // logic controls access and button content
+  // do we need $cp ?
+  if (is_numeric($account))
+    $uid = $account;
+  else
+    $uid = $account->uid;
+
+  $output = "<div id='nycc-profile-buttons'>";
+  if (arg(2))
+    $output .= nycc_output_button("View Profile", "/user/$uid", "nycc-profile-view");
+  if (arg(2) != 'edit' && ($user->uid == $account->uid || in_array("administer", $user->roles) || user_access('administer users')))
+    $output .= nycc_output_button("Account Settings", "/user/$uid/edit", "nycc-profile-account");
+  if (arg(2) != 'profile' && ($user->uid == $account->uid || in_array("administer", $user->roles) || user_access('administer users')))
+    $output .= nycc_output_button("Profile Settings", "/user/$uid/profile/profile", "nycc-profile-settings", "", "");
+  // todo: check for contact setting
+  if (arg(2) != 'contact' && $user->contact)
+    $output .= nycc_output_button("Contact Me", "/user/$uid/contact", "nycc-profile-contact");
+  if (arg(2) != 'myrides')
+    $output .= nycc_output_button("My Rides", "/user/$uid/myrides", "nycc-profile-rides");
+  if (arg(2) != 'myleads')
+    $output .= nycc_output_button("My Leads", "/user/$uid/myleads", "nycc-profile-leads");
+  $output .= '</div>';
+  return $output;
+}
+
+function nycc_profile_has_required_profile_info() {
+  global $user;
+  $cp = content_profile_load('profile', $user->uid);
+  return drupal_strlen($cp->field_emergency_contact_no[0]['value'])
+      && drupal_strlen($cp->field_contact_name[0]['value']);
+}
+
+
+function nycc_profile_output_profile_item($label, $value, $classes="") {
+  $classes = drupal_strlen($classes) ? "class='$classes'" : "";
+  $output = "";
+  if (drupal_strlen($label))
+    $label = "<label>$label</label>";
+  if (!drupal_strlen($label))
+    $nolabel = " class='nycc-profile-item-no-label'";
+  if (drupal_strlen($value))
+    $output = "<div $classes>$label<span$nolabel>$value</span></div>";
+  return $output;
+}
+
+function nycc_profile_output_user_profile($account, $cp = null) {
+  global $user;
+  //dsm(array($account, $cp));
+  if (is_numeric($account))
+    $account = user_load(array("uid" => $account));
+  if ($account) {
+    if (!is_object($cp))
+      $cp = content_profile_load('profile', $account->uid);
+
+    if (in_array("board members", $account->roles)) {
+      $output .= $cp->field_board_picture_1[0]['view'];
+      $output .= nycc_profile_output_profile_item("Title:", $cp->field_board_title[0]['value'] );
+      $output .= nycc_profile_output_profile_item("Bio:", $cp->field_board_bio[0]['value'] );
+      $output .= nycc_profile_output_profile_item("Board email:", $cp->field_board_email_address[0]['value'] );
+    }
+
+    $output .= nycc_profile_output_profile_item("Riding style:", $cp->field_riding_style[0]['value'] );
+
+    if (in_array("administer", $account->roles)) {
+      $output .= nycc_profile_output_profile_item("Age range:", $cp->field_age_range[0]['value'] );
+      $output .= nycc_profile_output_profile_item("Gender:", $cp->field_gender[0]['value'] );
+    }
+
+    
+/*
+    // todo: make this visible to membership director role, etc
+    $expdate = nycc_get_membership_expiration_date($account->uid);
+    if ($expdate && (($user->uid == $account->uid) || nycc_can_approve()))
+      $output .= nycc_profile_output_profile_item("Membership expiration date:", date('Y-m-d', $expdate));
+    if (($expdate < (time() + (3 * 24 * 60 * 60))) && (($user->uid == $account->uid) || nycc_can_approve()))
+      $output .= nycc_profile_output_profile_item("", "<a href='/renew'><strong>Renew your membership</strong></a>");
+*/
+
+    if (in_array("administer", $account->roles)) {
+      $output .= nycc_profile_output_profile_item("Last waiver acknowledged:", $cp->field_waiver_last_date[0]['value'] );
+      $output .= nycc_profile_output_profile_item("Last profile review:", $cp->field_review_last_date[0]['value'] );
+      $output .= nycc_profile_output_profile_item("Imported registration date:", $cp->field_registration_date_import[0]['value'] );
+    }
+    if (in_array("administer", $account->roles) || in_array("ENY Director", $account->roles)) {
+      $output .= nycc_profile_output_profile_item("Last ENY year:", $cp->field_profile_last_eny_year[0]['value'] );
+    }
+    $output .= nycc_profile_output_profile_item("Year joined:", $cp->field_date_joined[0]['value'] );
+    $output .= nycc_profile_output_profile_item("Site username:", $account->name );
+    $output .= nycc_profile_output_profile_item("Site registration date:", date('Y-m-d', $account->created) );
+
+    if (($cp->field_publish_email_flag[0]['value'] != "false") || nycc_can_approve())
+      $output .= nycc_profile_output_profile_item("Email:", $account->mail);
+
+    if (($cp->field_publish_phone_flag[0]['value'] != "false") || nycc_can_approve())
+      $output .= nycc_profile_output_profile_item("Phone:", $cp->field_phone[0]['value'] );
+
+    if (($cp->field_publish_address_flag[0]['value'] != "false") || nycc_can_approve())
+      $output .= nycc_profile_output_profile_item("Address:", $cp->field_address[0]['value'] .", ". $cp->field_city[0]['value'] .", ". $cp->field_state[0]['value'] .", ". $cp->field_zip[0]['value'] .", ". $cp->field_country[0]['value']);
+
+    // TODO: self or can approve or ride leader of a ride you are either a leader or rider
+    if (($user->uid == $account->uid) || nycc_can_approve() || nycc_is_ride_leader($account, $cp)) {
+      $output .= nycc_profile_output_profile_item("Emergency contact name:", $cp->field_contact_name[0]['value'] );
+      $output .= nycc_profile_output_profile_item("Emergency contact phone:", $cp->field_emergency_contact_no[0]['value'] );
+    }
+
+  }
+
+  if (in_array("administer", $account->roles)) {
+    $roles = implode("<br/>", $account->roles);
+    $roles = str_replace('authenticated user<br/>', '', $roles);
+    $roles = str_replace('super user<br/>', '', $roles);
+    $roles = str_replace('paid member', ' Paid member', $roles);
+    $roles = str_replace('board members', 'Board member', $roles);
+    $roles = str_replace('vp of rides', 'VP of rides', $roles);
+    $roles = str_replace('administer', 'Administer', $roles);
+    foreach ($cp->field_ride_coordinator as $item) {
+      if (drupal_strlen($item['safe']))
+        $roles = str_replace('ride coordinator', $item['safe'] .' coordinator', $roles);
+    }
+    $output .= $roles;
+  }
+  return $output;
+}
+
+function nycc_profile_review_membership() {
+  global $user;
+  $form = array();
+
+  if ($user->uid) {
+    nycc_turn_off_journal_form('nycc_profile_review_membership');
+
+    $cp = content_profile_load('profile', $user->uid);
+
+    $form['#redirect'] = "<front>";
+
+    $descnode = variable_get('nycc_review_membership_header_node', 0);
+    if (!$descnode)
+      $descnode = nycc_profile_create_review_membership_header_node();
+    if ($descnode > 0)
+      $descnode = node_load(array('nid' => $descnode));
+    if (is_object($descnode)) {
+      $description = $descnode->body;
+      if ( in_array("administer", $user->roles) || ($user->uid == 1) ) {
+        $nid = $descnode->nid;
+        $description .= " <small><a href='/node/$nid/edit?destination=nycc-review-membership' title='Admins can edit this header text.'>edit header text (admins only)</a></small>";
+      }
+    } else {
+      $description = nycc_profile_default_review_membership_header();
+      variable_del('nycc_review_membership_header_node');
+    }
+    $form['description'] = array(
+      '#prefix' => '<div>',
+      '#value' => $description,
+      //'#value' => t("Please review your contact information and acknowledge your agreement with the NYCC Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement."),
+      '#suffix' => '</div>',
+    );
+
+    $form['first_name'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("First Name"),
+      '#default_value' => $cp->field_first_name[0]['value'],
+    );
+    $form['last_name'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("Last Name"),
+      '#default_value' => $cp->field_last_name[0]['value'],
+    );
+
+    $form['mail'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("Email"),
+      '#default_value' => $user->mail,
+    );
+    $form['phone'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("Phone"),
+      '#default_value' => $cp->field_phone[0]['value'],
+    );
+
+    $form['contact_name'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("Emergency Contact Name"),
+      '#default_value' => $cp->field_contact_name[0]['value'],
+    );
+    $form['emergency_contact_no'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("Emergency Contact Number"),
+      '#default_value' => $cp->field_emergency_contact_no[0]['value'],
+    );
+
+    $form['address'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("Address"),
+      '#default_value' => $cp->field_address[0]['value'],
+    );
+    $form['city'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("City"),
+      '#default_value' => $cp->field_city[0]['value'],
+    );
+    $form['state'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("State"),
+      '#default_value' => $cp->field_state[0]['value'],
+    );
+    $form['zip'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("Zip"),
+      '#default_value' => $cp->field_zip[0]['value'],
+    );
+    $form['country'] = array(
+      '#type' => 'textfield',
+      '#required' => true,
+      '#title' => t("Country"),
+      '#default_value' => $cp->field_country[0]['value'],
+    );
+
+
+
+    $wdate = $cp->field_waiver_last_date[0]['value'];
+    if (drupal_strlen($wdate))
+      $sdate = t("Aggrement last acknowleged on %date.", array('%date' => $wdate));
+    else
+      $sdate = t("This account has no prior agreement date recorded.");
+    $form['waiver'] = array(
+      '#type' => 'checkbox',
+      '#required' => true,
+      '#title' => t("NYCC Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement"),
+      '#description' => t("Check the box above to indicate your agreement with the <a href='/node/45438' target='_blank' title='View waiver in another tab or window...'>Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement</a>. $sdate"),
+    );
+    $form['button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Update Your Profile'),
+    );
+
+    // $form['summary'] = array(
+    //   '#prefix' => '<small>',
+    //   '#suffix' => '</small>',
+    // );
+    // $expdate = nycc_get_membership_expiration_date($user->uid);
+    // if (drupal_strlen($expdate))
+    //   $sdate = t("This membership expires on %date", array('%date' => $expdate));
+    // else
+    //   $sdate = t("This account has no associated expiration date.");
+    // $form['summary']['expiration'] = array(
+    //   '#prefix' => '<div>',
+    //   '#value' => $sdate,
+    //   '#suffix' => '</div>',
+    // );
+
+    drupal_set_title(t("Review NYCC Profile Information for %mail", array('%mail' => $user->mail, '%account' => $user->name)));
+
+  }  else {
+    drupal_set_message("Please login.");
+    // TODO: can we save original distination?
+    // alternative: show login form and include destinatation in #redirect?
+    drupal_goto("user");
+    //$form = user_login($form_state);
+    //$form['#redirect'] = "nycc-review-membership?destination=$destination";
+  }
+
+  return $form;
+}
+
+function nycc_profile_review_membership_submit($form, $form_state) {
+  global $user;
+  $user->mail = $form_state['values']['mail'];
+  user_save($user);
+  //dsm($form_state);
+  $cp = content_profile_load('profile', $user->uid);
+  if (!$cp) {
+    watchdog("nycc_profile review_membership_submit", "No content profile found. Creating one.", array(), WATCHDOG_INFO);
+    $cp = new stdClass();
+    $cp->type = 'profile';
+    $cp->uid = $user->uid;
+    $cp->status = 1;
+    $cp->field_terms_of_use[0]['value'] = "I agree";
+    // assume $node->title handled by autotitle module
+    // same for $node->name
+    node_save($cp);
+    //$cp = content_profile_load('profile', $user->uid);
+    watchdog("nycc_profile review_membership_submit", "Profile created.", array(), WATCHDOG_INFO);
+  }
+  if ($cp) {
+    $cp->field_review_last_date[0]['value'] = date('Y-m-d');
+    $cp->field_waiver_last_date[0]['value'] = date('Y-m-d');
+    $cp->field_first_name[0]['value'] = $form_state['values']['first_name'];
+    $cp->field_last_name[0]['value'] = $form_state['values']['last_name'];
+    $cp->field_contact_name[0]['value'] = $form_state['values']['contact_name'];
+    $cp->field_emergency_contact_no[0]['value'] = $form_state['values']['emergency_contact_no'];
+    $cp->field_phone[0]['value'] = $form_state['values']['phone'];
+    $cp->field_address[0]['value'] = $form_state['values']['address'];
+    $cp->field_city[0]['value'] = $form_state['values']['city'];
+    $cp->field_state[0]['value'] = $form_state['values']['state'];
+    $cp->field_zip[0]['value'] = $form_state['values']['zip'];
+    $cp->field_country[0]['value'] = $form_state['values']['country'];
+    node_save($cp);
+    watchdog("nycc_profile review_membership_submit", "Profile updated.", array(), WATCHDOG_INFO);
+  }
+  else {
+    watchdog("nycc_profile review_membership_submit", "No content profile created.", array(), WATCHDOG_INFO);
+  }
+  drupal_set_message("Your profile information has been updated. Thank you.");
+}
+
+function nycc_profile_has_valid_review_date() {
+  global $user;
+  if ($user->uid) {
+    $cp = content_profile_load('profile', $user->uid);
+    if ($cp) {
+      $wdate = $cp->field_waiver_last_date[0]['value'];
+      $rdate = $cp->field_review_last_date[0]['value'];
+      if (drupal_strlen($wdate))
+        $wdiff = time() - strtotime($wdate);
+      if (drupal_strlen($rdate))
+        $rdiff = time() - strtotime($rdate);
+      $oneyear = 365 * 24 * 60 * 60;
+      if (drupal_strlen($wdate) && ($wdiff < $oneyear) && drupal_strlen($rdate) && ($rdiff < $oneyear))
+        return true;
+    }
+  }
+  return false;
+}
+
+function nycc_profile_should_redirect_to_membership_review() {
+  global $user;
+  if (!$user->uid || !in_array("paid member", $user->roles) || arg(0) == 'user')
+    return false;
+  if ( (arg(0) == 'node') && ( (arg(1) == '2') || (arg(1) == '27725') || (arg(1) == '45438') ) )
+    return false;  // about, contact pages and waiver
+  if ( (arg(0) == 'admin') || (arg(0) == 'nycc-review-membership') || (arg(0) == "logout") )
+    return false;  // avoid infinite loop redirect and allow admin pages and sign out
+  if ( nycc_profile_has_required_profile_info() && nycc_profile_has_valid_review_date() )
+    return false;
+  return true;
+}
+
+function nycc_profile_init() {
+  if (nycc_profile_should_redirect_to_membership_review()) {
+    drupal_set_message("Before proceeding, please review your profile information and verify your agreement with the NYCC liability waiver.", 'status', FALSE);
+    // TODO: set destination?
+    drupal_goto("nycc-review-membership");
+  }
+}
+
+function nycc_profile_create_review_membership_header_node() {
+  $node = new stdClass();
+  $node->type = 'page';
+  $node->title = "Membership Review Header";
+  $node->uid = 1;
+  $node->body = nycc_profile_default_review_membership_header();
+  $node->created = time();
+  $node->changed = $node->created;
+  $node->status = 1;
+  $node->promote = 0;
+  $node->field_date[0]['value'] = date("m/d/Y h:i");
+  node_save($node);
+  variable_set("nycc_review_membership_header_node", $node->nid);
+  return $node->nid;
+}
+
+function nycc_profile_default_review_membership_header() {
+  return "Please review your contact information and acknowledge your agreement with the NYCC Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement.";
+}
+
+
+
+// function nycc_form_alter(&$form, &$form_state, $form_id) {
+//   global $user;
+// 
+// 
+//   if ($form_id == "profile_node_form") {
+//     // dsm($form);
+//     // dsm(implode(",", array_keys($form)));
+//     $form['account']['#weight'] = -20;
+//     $form['uc_roles']['#weight'] = -18;
+//     $form['field_ride_coordinator']['#weight'] = -14;
+// 
+//     $form['field_first_name']['#weight'] = -12;
+//     $form['field_last_name']['#weight'] = -12;
+// 
+//     $form['field_phone']['#weight'] = -10;
+// 
+//     $form['field_address']['#weight'] = -6;
+// 
+//     $form['field_city']['#weight'] = -4;
+//     $form['field_state']['#weight'] = -4;
+//     $form['field_zip']['#weight'] = -4;
+//     $form['field_country']['#weight'] = -4;
+// 
+//     $form['field_emergency_contact_no']['#weight'] = -3;
+//     $form['field_contact_name']['#weight'] = -3;
+// 
+//     $form['field_gender']['#weight'] = -2;
+//     $form['field_age_range']['#weight'] = -2;
+//     $form['field_riding_style']['#weight'] = -2;
+// 
+// 
+//     //$form['field_year_joined']['#weight'] = 1;
+//     $form['profile_joined_NYCC']['#weight'] = 1;
+//     $form['field_registration_date_import']['#weight'] = 1;
+//     $form['field_waiver_last_date']['#weight'] = 1;
+//     $form['field_review_last_date']['#weight'] = 1;
+// 
+//     $form['field_publish_email_flag']['#weight'] = 2;
+//     $form['field_publish_phone_flag']['#weight'] = 2;
+//     $form['field_publish_address_flag']['#weight'] = 2;
+// 
+//     $form['field_email_list_flag']['#weight'] = 3;
+//     $form['field_ride_reminders']['#weight'] = 3;
+//     $form['field_ride_rosters']['#weight'] = 3;
+// 
+//     $form['picture']['#weight'] = 4;
+// 
+//     $form['field_board_picture_1']['#weight'] =5;
+// 
+//     $form['field_board_title']['#weight'] = 6;
+//     $form['field_board_email_address']['#weight'] = 7;
+//     $form['field_board_order_value']['#weight'] = 8;
+//     $form['field_board_bio']['#weight'] = 9;
+// 
+//     $form['contact']['#weight'] = 15;
+//     $form['mimemail']['#weight'] = 16;
+//     $form['comment_notify_settings']['#weight'] = 17;
+//     $form['timezone']['#weight'] = 18;
+// 
+//     $form['legal']['#weight'] = 20;
+//     $form['field_terms_of_use']['#weight'] = 21;
+//     $form['field_terms_of_use']['#attributes'] = array('class', 'hide');
+// 
+//     $form['options']['#weight'] = 35;
+//     $form['author']['#weight'] = 35;
+//     $form['current_date']['#weight'] = 35;
+//     $form['language_value']['#weight'] = 35;
+//     $form['attachments']['#weight'] = 35;
+//     $form['menu']['#weight'] = 35;
+//     $form['file']['#weight'] = 35;
+//     $form['path']['#weight'] = 35;
+//     $form['theme_select']['#weight'] = 35;
+//     $form['block']['#weight'] = 35;
+//     $form['journal']['#weight'] = 50;
+//     //dsm($form);
+//   }
+// 
+// }
+// 
+// 
+// function nycc_user($op, &$edit, &$account, $category = NULL) {
+//   switch ($op) {
+//     case 'after_update':
+//       $eny_import_role = 22;
+//       if (isset($account->roles[$eny_import_role])) {
+//         $cp = content_profile_load('profile', $account->uid);
+//         if ($cp) {
+//           //$cp->field_review_last_date[0]['value'] = "";
+//           node_save($cp);
+//         } // cp
+//         //unset($account->roles[$eny_import_role]);
+//         //user_save($account);
+//       } // if eny_import_role
+//       break;   // case update
+//   } // switch
+//   return;
+// }
+
+//function nycc_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+//  global $user;
+//  switch ($op) {
+
+//    case 'presave':
+//       if ($node->type == 'profile') {
+//         $account = user_load($node->uid);
+//         if ($account) {
+//           // strip spaces from imported names
+//           //if (false !== strpos($account->name, " ")) {
+//           //  $account->name = str_replace($account->name, " ", "");
+//           //  user_save($account);
+//           //}
+// //          $eny_import_role = 22;
+//           $paid_member_role = 3;
+//           // eny trial period role set
+//           if (isset($account->roles[$eny_import_role])) {
+//             $oct1 = strtotime("Oct 1"); // current year
+//             $node->field_profile_last_eny_year[0]['value'] = date("Y");
+// 
+//             $exp = nycc_get_membership_expiration_date($node->uid);
+//             /*
+//             if ($exp) {
+//               // already a member with an expiration date
+//               // check if date is before Oct 1 of this year, if so extend to Oct 1 otherwise do nothing
+//               //if (($exp < $oct1) && !isset($account->roles[$paid_member_role])) {
+//               //watchdog('nycc_nodeapi', "about to extend membership for user/". $account->uid);
+//               //uc_roles_renew($account, $paid_member_role, $oct1);
+//               //}
+//             } else {
+//               // if user does not already have paid-membership role (e.g., lifetime member)
+//               // set expiration date to Oct 1 and assign paid-member role
+//               if (!isset($account->roles[$paid_member_role])) {
+//                 //watchdog('nycc_nodeapi', "about to grant membership for user/". $account->uid);
+//                 //uc_roles_grant($account, $paid_member_role, $oct1);
+//               }
+//             } // else
+//             */
+//           } else {
+//             // allows manual renew date setting?
+//             // grant or renew membership if import reg date set
+//             $rdi = $node->field_registration_date_import[0]['value'];
+//             if (drupal_strlen($rdi)) {
+//               $rdi = strtotime($rdi);
+//               if ($rdi) {
+//                 // the following requires that we are in presave
+//                 $node->field_registration_date_import[0]['value'] = "";
+//                 //$account = user_load($node->uid);
+//                 //if ($account) {
+//                 $exp = nycc_get_membership_expiration_date($node->uid);
+//                 $timestamp = ($exp ? $exp : $rdi) +  365 * 24 * 60 * 60;
+//                 if ($timestamp > time()) {
+//                   $paid_member_role = 3;
+//                   if ($exp) {
+//                     //watchdog('nycc_nodeapi', "about to renew membership for user/". $account->uid);
+//                     //uc_roles_renew($account, $paid_member_role, $timestamp);
+//                   } else {
+//                     //watchdog('nycc_nodeapi', "about to grant membership for user/". $account->uid);
+//                     //uc_roles_grant($account, $paid_member_role, $timestamp);
+//                   }
+//                 } else {
+//                   drupal_set_message("Registration date import field already expired for <a href='/node/$nid'>node/$nid</a>.");
+//                 }
+//                 //}
+//               } else {
+//                 $nid = $node->nid;
+//                 drupal_set_message("Invalid date ignored in registration date import field for <a href='/node/$nid'>node/$nid</a>: ". $node->field_registration_date_import[0]['value']);
+//               }
+//             }
+//           } // not eny import
+//         } // account
+// 
+// 
+//       } /* profile */
+
+ 
+//      break;
+//  }
+//}
+
+
+?>

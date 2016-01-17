@@ -1,0 +1,10 @@
+name = User Role history
+description = "Maintain a table that updates when a role is added or removed."
+core = 6.x
+
+; Information added by drupal.org packaging script on 2012-02-17
+version = "6.x-1.0"
+core = "6.x"
+project = "user_role_history"
+datestamp = "1329474644"
+

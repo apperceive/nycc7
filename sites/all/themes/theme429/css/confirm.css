@@ -1,0 +1,92 @@
+/*
+ * SimpleModal Confirm Modal Dialog
+ * http://www.ericmmartin.com/projects/simplemodal/
+ * http://code.google.com/p/simplemodal/
+ *
+ * Copyright (c) 2010 Eric Martin - http://ericmmartin.com
+ *
+ * Licensed under the MIT license:
+ *   http://www.opensource.org/licenses/mit-license.php
+ *
+ * Revision: $Id: confirm.css 242 2010-03-14 00:55:02Z emartin24 $
+ *
+ */
+
+#confirm {display:none;}
+
+/* Overlay */
+#confirm-overlay {background-color:#eee; cursor:wait;}
+
+/* Container */
+#confirm-container {height:140px; width:420px; font: 16px/22px 'Trebuchet MS', Verdana, Arial; text-align:left; background:#fff; border:2px solid #336699;}
+#confirm-container .header {height:30px; line-height:30px; width:100%; background:url(../images/confirm/header.gif) repeat-x; color:#000; font-weight:bold;}
+#confirm-container .header span {padding-left:8px;}
+#confirm-container .message {color:#333; font-size:14px; margin:0; padding:0px;}
+/*#confirm-container .buttons {line-height:26px; width:160px; float:right; padding:10px 8px 0;} 
+*/#confirm-container .buttons div {float:right; margin-left:4px; width:70px; height:26px; color:#666; font-weight:bold; text-align:center; background:url(../images/confirm/button.gif) repeat-x; border:1px solid #bbb; cursor:pointer;} 
+#confirm-container a.modal-close,
+#confirm-container a.modal-close:link,
+#confirm-container a.modal-close:active,
+#confirm-container a.modal-close:visited {text-decoration:none; font-weight:bold; position:absolute; right:10px; top:2px; color:#000;}
+#confirm-container a.modal-close:hover {color:#000;}
+#confirm-checkbox{
+float:left;
+margin-left:24px;
+margin-right:5px;
+}
+#not-submit-button{
+}
+#confirm-container .header {
+-moz-border-radius:15px 15px 15px 15px;
+background:none repeat scroll 0 0 #FFFFFF;
+color:#09304E;
+font-weight:bold;
+height:30px;
+line-height:30px;
+width:100%;
+}
+#confirm-overlay {
+background-color:#000000;
+cursor:wait;
+}
+#confirm-container {
+-moz-border-radius:15px 15px 15px 15px;
+background:none repeat scroll 0 0 #FFFFFF;
+border:medium none;
+font:16px/22px 'Trebuchet MS',Verdana,Arial;
+height:140px;
+padding:10px 20px 20px;
+text-align:left;
+width:420px;
+margin-top:50px;
+}
+
+
+#confirm-container .buttons {
+line-height:26px;
+padding-top:10px;
+text-align:center;
+width:199px;
+}
+
+
+.simplemodal-wrap #confirm .buttons input#submit-button {
+background:url("/sites/all/themes/theme429/images/submit-ride.gif") no-repeat;
+border:medium none;
+height:53px;
+width:178px;
+cursor:pointer;
+}
+
+
+.simplemodal-wrap #confirm .buttons input#not-submit-button {
+background:url("/sites/all/themes/theme429/images/submit-ride.gif") no-repeat;
+border:medium none;
+height:53px;
+width:178px;
+}
+#confirm-dialog #join-a-ride #join-a-ride-button
+{
+display:none;
+}
+

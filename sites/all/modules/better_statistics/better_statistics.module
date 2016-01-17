@@ -1,0 +1,91 @@
+<?php
+
+/**
+ * @file
+ * Drupal hook implementations for the Better Statistics module.
+ */
+
+
+/**
+ * Implements hook_schema_alter().
+ *
+ * Reflects the changes we made at install-time in the accesslog schema.
+ */
+function better_statistics_schema_alter(&$schema) {
+  // Fetch the fields defined by this module.
+  module_load_include('inc', 'better_statistics', 'better_statistics.helpers');
+  $fields = _better_statistics_define_fields();
+
+  // For each field defined, add it to the schema.
+  foreach ($fields as $name => $field) {
+    $schema['accesslog']['fields'][$name] = $field;
+  }
+}
+
+
+/**
+ * Implements hook_exit().
+ *
+ * Gathers additional data and inserts our data into accesslog.
+ */
+function better_statistics_exit() {
+  global $user;
+
+  drupal_bootstrap(DRUPAL_BOOTSTRAP_PATH);
+
+  // Write our own (but mostly the same) data to accesslog.
+  // @see statistics_exit()
+  if ((variable_get('statistics_enable_access_log', 0)) && (module_invoke('throttle', 'status') == 0)) {
+    // Core statistics accesslog values.
+    $insert_values = array(
+      'title' => strip_tags(drupal_get_title()),
+      'path' => $_GET['q'],
+      'url' => referer_uri(),
+      'hostname' => ip_address(),
+      'uid' => $user->uid,
+      'sid' => session_id(),
+      'timer' => timer_read('page'),
+      'timestamp' => time(),
+    );
+
+    // Determine the cache hit/miss value. We must manually include the helper
+    // file here because drupal_get_path isn't bootstrapped yet.
+    require_once(dirname(__FILE__) . '/better_statistics.helpers.inc');
+    $insert_values['cache'] = _better_statistics_page_is_cached();
+
+    // Determine and limit the user-agent value.
+    $insert_values['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+    if (strlen($insert_values['user_agent']) > 255) {
+      $insert_values['user_agent'] = substr($fields['user_agent'], 0, 255);
+    }
+
+    // Insert placeholders.
+    $placeholders = "'%s', '%s', '%s', '%s', %d, '%s', %d, %d, '%s', '%s'";
+
+    // To insert a NULL value into the DB for cache, we unset the value here.
+    if ($insert_values['cache'] === NULL) {
+      unset($insert_values['cache']);
+      $placeholders = substr($placeholders, 0, -6);
+    }
+
+    // Format the query fields and values.
+    $insert_fields = trim(implode(', ', array_keys($insert_values)));
+
+    db_query("INSERT INTO {accesslog} ($insert_fields) VALUES ($placeholders)", $insert_values);
+  }
+
+  // Keep statistics from writing additional data to the accesslog.
+  global $conf;
+  $conf['statistics_enable_access_log'] = FALSE;
+}
+
+
+/**
+ * Implements hook_views_api().
+ */
+function better_statistics_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'better_statistics') . '/views',
+  );
+}

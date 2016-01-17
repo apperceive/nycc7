@@ -1,0 +1,12 @@
+name = File Tree
+description = Renders an interactive list from a folder of files.
+package = Input filters
+core = 6.x
+dependencies[]  = token
+
+; Information added by drupal.org packaging script on 2013-01-25
+version = "6.x-2.2"
+core = "6.x"
+project = "filetree"
+datestamp = "1359105706"
+

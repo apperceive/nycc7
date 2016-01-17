@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * Implementation of hook_install().
+ */
+function ms_pfp_install() {
+  drupal_install_schema('ms_pfp');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function ms_pfp_uninstall() {
+  drupal_uninstall_schema('ms_pfp');
+
+  // Delete related variables all at once.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_pfp_%%'");
+}

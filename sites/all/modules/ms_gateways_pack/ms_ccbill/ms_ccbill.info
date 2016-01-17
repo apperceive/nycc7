@@ -1,0 +1,7 @@
+;$Id$
+name = CCBill
+description = Gateway to use CCBill
+version = "6.x-1.4"
+core = 6.x
+package = MoneyScripts - Gateways
+dependencies[] = ms_core

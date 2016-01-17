@@ -1,0 +1,95 @@
+<?php
+
+// ======================================
+// Administration Page:
+// ======================================
+
+/**
+ * Implements hook_ms_core_overrides().
+ */
+function ms_fees_ms_core_overrides() {
+  // Set some variables so they have default values
+  variable_set('ms_fees_name', t('Fee'));
+  variable_set('ms_fees_type', 'percentage');
+  variable_set('ms_fees_amount', 0);
+  variable_set('ms_fees_scope', 'recurring');
+
+  return array(
+    'ms_fees' => array(
+      'title' => t('Extra Product Fees'),
+      'form' => 'ms_fees_admin',
+    ),
+  );
+}
+
+/**
+ * Admin Settings Form
+ */
+function ms_fees_admin() {
+  $form['main'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Main Settings'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  // -----------------------------
+  // Main Settings
+  // -----------------------------
+  $form['main']['ms_fees_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Fee Label'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#default_value' => variable_get('ms_fees_name', t('Fee')),
+    '#description' => t("This is what will appear next to the Fee amount on orders."),
+    '#ms_override' => TRUE,
+  );
+  $form['main']['ms_fees_type'] = array(
+    '#type' => 'radios',
+    '#title' => t('Percentage or Fixed Amount?'),
+    '#default_value' => variable_get('ms_fees_type', 'percentage'),
+    '#options' => array('percentage' => t('Percentage'), 'fixed' => t('Fixed')),
+    '#ms_override' => TRUE,
+  );
+  $form['main']['ms_fees_amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Fee Amount'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#default_value' => variable_get('ms_fees_amount', 0),
+    '#description' => t("The amount for the fee."),
+    '#ms_override' => TRUE,
+  );
+  $form['main']['ms_fees_scope'] = array(
+    '#type' => 'radios',
+    '#title' => t('Scope'),
+    '#default_value' => variable_get('ms_fees_scope', 'recurring'),
+    '#options' => ms_core_get_scopes(),
+    '#ms_override' => TRUE,
+    '#description' => t('Whether the fee should affect the first payment only or all payments. Only applies for Recurring Payments.'),
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Implementation of hook_ms_cart_added()
+ */
+function ms_fees_ms_cart_added($cart, $product) {
+  if (ms_core_variable_get('ms_fees_amount', 0, $product)) {
+    $adjustment = new MsAdjustment();
+    $adjustment->id = 'ms_fees_1';
+    $adjustment->product_id = $product->cart_product_id;
+    $adjustment->display = ms_core_variable_get('ms_fees_name', '', $product);
+    $adjustment->type = ms_core_variable_get('ms_fees_type', 'percentage', $product);
+    $adjustment->value = ms_core_variable_get('ms_fees_amount', 0, $product);
+    $adjustment->weight = 1;
+    $adjustment->scope = ms_core_variable_get('ms_fees_scope', 'recurring', $product);
+
+    // Add the tax to the order
+    if ($adjustment->value) {
+      ms_core_add_cart_adjustment($adjustment, TRUE);
+    }
+  }
+}

@@ -1,0 +1,13 @@
+name = Signup Rules
+description = Provides Rules integration for Signup module.
+core = 6.x
+package = Signup
+dependencies[] = signup
+dependencies[] = rules
+
+; Information added by drupal.org packaging script on 2012-02-09
+version = "6.x-1.4"
+core = "6.x"
+project = "signup_rules"
+datestamp = "1328779842"
+

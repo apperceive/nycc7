@@ -1,0 +1,168 @@
+<?php
+
+/**
+ * Implementation of hook_init()
+ */
+function aef_jcarousel_init()
+{
+  drupal_add_js(drupal_get_path('module', 'aef_jcarousel') . '/aef_jcarousel.js');
+  drupal_add_css(drupal_get_path('module', 'aef_jcarousel') . '/aef_jcarousel.css');
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+function aef_jcarousel_theme()
+{
+  return array(
+    'aef_jcarousel' => array(
+      'arguments' => array(
+        'item' => array(),
+        'options' => array(),
+        'skin' => 'tango', 
+        'id' => 'jcarousel'
+      ),
+    ),
+  );
+}
+
+
+function theme_aef_jcarousel($items = array(), $options = array(), $skin = 'tango', $skin_path = NULL, $id = 'jcarousel') {
+  $name = form_clean_id($id);
+
+  //Get the class name to use
+  if($skin_path == null)
+    //Use the skin name as class name
+    $class_name = $skin;
+  else
+  {
+    //Use the CSS filename as class name
+    $parts = explode('/', $skin_path);
+    $subparts = explode('.', array_pop($parts));
+    $class_name = $subparts[0];
+  }
+
+  $output = '<ul id="'. $name .'" class="jcarousel-skin-'. $class_name .'">';
+
+  $full_items = array();
+  foreach ($items as $item) {
+    if(trim($item) != "")
+      $full_items[] = $item;
+  }
+
+  $i = 0;
+  foreach ($full_items as $item) {
+    $class = "";
+
+    if($i == count($full_items) - 1)
+      $class = "jcarousel-item-last";
+
+    $output .= '<li class="' . $class . '">'. $item .'</li>';
+    $i++;
+  }
+  $output .= '</ul>';
+
+  //Add the JS lib
+  jq_add('jcarousel');
+
+  //Add the CSS skin
+  if($skin_path == null)
+    $skin_path = drupal_get_path('module', 'aef_jcarousel') . "/jcarousel/skins" . "/" . $skin . "/skin.css";
+  drupal_add_css($skin_path);
+
+  //If a container element want to define its own navigation, we will let him do. See doc on the .js
+  $options['initCallback'] = 'aef_jcarousel_load_custom_navigation';
+
+  //If we are in RTL, put the jcarousel in LTR mode, and start from the last one
+  global $language;
+  if($language->direction && isset($options['start']) == false)
+  {
+    $options['start'] = count($full_items);
+  }
+
+  //Prepare the options
+  $prepared_options = array();
+  foreach($options as $option_name => $option_value)
+  {
+    $prepared_options[] = $option_name . ":" . ((is_numeric($option_value) || $option_name == "initCallback")? $option_value : "'" . $option_value . "'");
+  }
+
+  $output .= '<script type="text/javascript">' . 
+    "jQuery.each(jQuery.browser, function(i, val) {" . 
+      'if((i=="msie" || i=="safari") && val == true) {' . 
+        'jQuery(document).ready(function() {' .
+          "$('#" . $name . ":not(.jcarousel-list)').jcarousel({" . implode(',', $prepared_options) . '});' .
+        '});' . 
+      '} else if((i=="mozilla" || i=="opera") && val) {' . 
+        "$('#" . $name . "').jcarousel({" . implode(',', $prepared_options) . '});' .
+      '}' . 
+    '});' . 
+    '</script>';
+
+  //Put the informations for the fallback processing with Drupal behavior. Now only used with AHAH preview
+  //(see why on the .js file)
+  drupal_add_js(array('aefjcarousel' => array('#' . $name => $options)), 'setting');
+
+  return $output;
+}
+
+
+/**
+ * Return a list of jcarousel theme declarations.
+ * Each module can declare its theme using this template
+ * function my_module_jcarousel_themes() {
+ *   return array(
+ *     'my_theme' => array(
+ *       'name' => t('My theme name'),
+ *       'css file' => drupal_get_path('module', 'my_module') . '/lalaala.css',
+ *       'minimum width' => 500,
+ *     ),
+ *   );
+ * }
+ */
+function aef_jcarousel_get_jcarousel_themes()
+{
+  $jcarousel_themes = cache_get('aef_jcarousel_themes');
+
+  if($jcarousel_themes == 0)
+  {
+    $jcarousel_themes = array();
+    foreach (module_implements('jcarousel_themes') as $module) 
+    {
+      $function = $module .'_jcarousel_themes';
+      $result = $function();
+      foreach($result as $new_jcarousel_theme_name => $new_jcarousel_theme_info)
+      {
+        $jcarousel_themes[$new_jcarousel_theme_name] = $new_jcarousel_theme_info;
+      }
+    }
+
+    drupal_alter('jcarousel_themes', $jcarousel_themes);
+
+    cache_set('aef_jcarousel_themes', $jcarousel_themes);
+  }
+  else
+  {
+    $jcarousel_themes = $jcarousel_themes->data;
+  }
+
+  return $jcarousel_themes;
+}
+
+/**
+ * Return a list of (carousel theme)<->(formatter) links defined by others modules.
+ * Because only a given set of formatters can enter a given carousel theme.
+ */
+function aef_jcarousel_get_formatter_carousel_links()
+{
+  $formatter_carousel_links = array();
+  foreach (module_implements('formatter_carousel_links') as $module) 
+  {
+    $function = $module .'_formatter_carousel_links';
+    $results = $function();
+    if(is_array($results))
+      $formatter_carousel_links = $formatter_carousel_links + $results;
+  }
+
+  return $formatter_carousel_links;
+}

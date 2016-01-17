@@ -1,0 +1,319 @@
+<?php
+function nycc_reminders_menu() {
+	$items = array();
+
+  	$items['admin/settings/nycc_reminders'] = array(
+    	'title' => 'NYCC Reminders',
+    	'page callback' => 'drupal_get_form',
+    	'page arguments' => array('nycc_reminders_admin_settings'),
+    	'access arguments' => array('configure ride reminders'),
+    	'description' => 'configure NYCC Ride Reminders',
+    	'type' => MENU_NORMAL_ITEM,
+  	);
+	return $items;
+}
+
+function nycc_reminders_perm() {
+  return array('configure ride reminders');
+}
+
+function nycc_reminders_admin_settings(&$form_state) {
+
+  	
+	$form['nycc_reminders_debug_to_log'] = array(
+		'#type' =>'checkbox', 
+		'#title' => t('Write debug messages to Database Log'),
+		'#default_value' => variable_get('nycc_reminders_debug_to_log', '')
+	);  	
+	
+  	$form['nycc_reminders_ride_reminder_period'] = array(
+    	'#type' => 'textfield',
+    	'#required' => true,
+    	'#title' => t('Reminder Period'),
+    	'#default_value' => variable_get('nycc_ride_reminder_period', "48"),
+    	'#description' => t('How many hours before a ride should the reminder be sent?'),
+  	);
+
+  	$form['nycc_reminders_action_id'] = array(
+    	'#type' => 'textfield',
+    	'#required' => true,
+    	'#title' => t('ID of Tokenized Email Send Action'),
+    	'#default_value' => variable_get('nycc_reminders_action_id',''),
+    	'#description' => t('Action ID can found under /admin/settings/actions'),
+  	);
+  	
+  	$form['nycc_reminders_view_name'] = array(
+    	'#type' => 'textfield',
+    	'#required' => true,
+    	'#title' => t('Name of View to be used for Ride rosters'),
+    	'#default_value' => variable_get('nycc_reminders_view_name','ride_participants'),
+    	'#description' => t('View name should be ride_participants'),
+  	);
+  
+  	$form['nycc_reminders_view_display_name'] = array(
+    	'#type' => 'textfield',
+    	'#required' => true,
+    	'#title' => t('View Display Name'),
+    	'#default_value' => variable_get('nycc_reminders_view_display_name','block_4'),
+    	'#description' => t('Display name should be block_4'),
+  	);
+
+	$form['#submit'][] = 'nycc_reminders_admin_settings_submit';
+	
+	
+	return system_settings_form($form);
+}
+
+function nycc_reminders_admin_settings_validate($form, $form_state) {
+
+}
+
+function nycc_reminders_admin_settings_submit($form, &$form_state) {
+
+}
+
+//This function accepts a timestamp (generally time()) and an hours interval and generates an email to the leaders of rides starting between those intervals
+//NOTE: It has a hard coded action ID
+function nycc_reminders_ride_roster_email($timestamp, $hrs) {
+
+	$rr_debug = variable_get('nycc_reminders_debug_to_log', '');
+	$actionID = variable_get('nycc_reminders_action_id', '');	// 5 is the tokenized email action for roster emails
+	
+  $sql =<<<EOS
+SELECT N.nid AS nid, U.uid AS uid 
+FROM node N  
+INNER JOIN content_type_rides R ON N.nid = R.nid  AND N.vid = R.vid
+Inner JOIN content_field_ride_leaders L ON N.vid = L.vid AND N.nid = L.nid
+INNER JOIN node NL ON L.field_ride_leaders_nid = NL.nid 
+INNER JOIN users U ON NL.uid = U.uid 
+WHERE  R.field_ride_status_value = 'Approved' 
+AND N.type = 'rides'
+AND (R.field_ride_timestamp_value BETWEEN from_unixtime($timestamp) AND DATE_ADD(NOW(), INTERVAL $hrs HOUR)) 
+; 
+EOS;
+	if ($rr_debug ) watchdog("nycc-ride_roster", "SQL is " .  $sql, array(), WATCHDOG_NOTICE);        
+	$ride_count = 0;
+	$q = db_query($sql);
+  	while ($row = db_fetch_object($q)) {
+    	$ride = node_load(array('nid' => $row->nid));
+		$acct = user_load(array('uid' => $row->uid));
+    	if ( ($ride) && ($acct) ) {
+    		$ride_count++;
+          	$cp = content_profile_load('profile', $acct->uid);
+          	if ($cp) {
+            	if ($cp->field_ride_rosters[0]['value'] != "false") {    		
+        			$context = array('hook' => 'cron', 'op' => 'send', 'node' => $ride, 'user' => $acct);
+        			actions_do($actionID, $acct, $context);     
+    		if ($rr_debug ) watchdog("nycc-ride_roster", $acct->name . " sent a roster for ride <a href='/node/". $ride->nid ."'>". $ride->title ."</a>");        
+        		} else {
+	        	if ($rr_debug ) watchdog("nycc-ride_roster", $acct->name . " skipping roster for ride <a href='/node/". $ride->nid ."'>". $ride->title ."</a>");        
+        		}
+        	} else {// if cp
+        		watchdog("nycc-ride_roster", "Could not load profile for user: " . $acct->uid, array(), WATCHDOG_WARNING) ;    
+        	}
+    	}  else  { //no ride or user
+    		watchdog("nycc-ride_roster", "Could not load Ride: " . $row->nid . " or User: " . $row->nid, array(), WATCHDOG_WARNING) ;    
+    	}
+  	}  // while
+  	if($ride_count > 0) {
+	  	if ($rr_debug ) watchdog("nycc-ride_roster", $ride_count . " rides found starting within " . $hrs . " hours" , array(), WATCHDOG_NOTICE) ;
+  	} else {
+		if ($rr_debug ) watchdog("nycc-ride_roster", "No rides found starting within " . $hrs . " hours", array(), WATCHDOG_NOTICE);        
+  	}
+}
+
+
+function nycc_reminders_output_riders_roster_html($nid = null) {
+	//This function is used by a custom token to generate a roster to be emailed
+
+	$rr_debug = variable_get('nycc_reminders_debug_to_log', '');
+ 
+ 	$view_name = variable_get('nycc_reminders_view_name', '');
+	$display_name = variable_get('nycc_reminders_view_display_name', '');
+	
+	if (is_object($nid)) {
+		$ride = $nid;
+    	$nid = $ride->nid;
+	} elseif (is_numeric($nid) && ($nid > 0))  {
+     	$ride = node_load(array('nid' => $nid));
+ 	}
+    if ($ride) {      
+      	$leaders = nycc_refs2ids(nycc_noderefs2userrefs($ride->field_ride_leaders));
+      	$riders = nycc_refs2ids($ride->field_ride_current_riders);
+      	$waiters = nycc_refs2ids($ride->field_ride_waitlist);
+      	$roster = array(implode("+", array_filter(array_merge($leaders, $riders, $waiters))));
+      	
+//       	if ($rr_debug ) watchdog("nycc-ride_roster", "Roster for ride: " . $nid . " is: " . implode("+", array_filter(array_merge($leaders, $riders, $waiters))) , array(), WATCHDOG_NOTICE);        
+ //      	dpm(array_filter(array_merge($leaders, $riders, $waiters)));
+       	
+  		$view = views_get_view($view_name);
+  		if($view){
+  		
+			global $user;
+			$original_user = $user;
+			$old_state = session_save_session();
+			session_save_session(FALSE);
+			$user = user_load(array('uid' => 1));  		
+	  	
+	  		$view->hide_admin_links=TRUE;
+  			
+  			$output = $view->preview($display_name, $roster);
+  			
+			$user = $original_user;
+			session_save_session($old_state);
+  			return $output;
+  		} else { //coulnd't love view
+  			watchdog("nycc-ride_roster", "Could not load View: " . $view_name . " from function nycc_output_riders_roster_html", array(), WATCHDOG_ERROR) ; 
+  		}
+
+	} else { //no ride loaded
+ 		watchdog("nycc-ride_roster", "Could not load Ride: " . $nid . " from function nycc_output_riders_roster_html", array(), WATCHDOG_ERROR) ; 
+ 	}
+ }
+
+
+
+function nycc_reminders_ride_reminder($timestamp) {
+  $rrp = variable_get(nycc_ride_reminder_period, 48);
+  $rrps = $rrp * 60 * 60;
+  $r1 = $timestamp + $rrps;
+  $r2 = $r1 + 60 * 60 - 1;
+  // TODO: check for send ride reminders on ride
+  // query for all approved rides whose start date and time is during rrp from timestamp
+  $sql =<<<EOS
+SELECT N.nid as nid FROM node N, content_type_rides R WHERE N.nid = R.nid AND N.vid = R.vid AND R.field_ride_status_value = "Approved" AND N.type = "rides" AND
+  UNIX_TIMESTAMP(CONCAT(
+    DATE_FORMAT(R.field_date_ride_first_value, "%Y-%m-%%d"),
+    "T",
+    If(R.field_ride_start_time_select_value = "AM", R.field_ride_start_time_hour_value, IF(R.field_ride_start_time_hour_value < 12, R.field_ride_start_time_hour_value+12, R.field_ride_start_time_hour_value-12)),
+    ":",
+    R.field_ride_start_time_min_value,
+    ":00"
+  ))
+  BETWEEN $r1 AND $r2;
+EOS;
+  //print "<br/><br/>";
+  //var_dump(db_prefix_tables($sql));
+  $q = db_query($sql);
+  //watchdog("ride-reminders", str_replace(array("{","}"),"",$sql));
+  //print "<br/><br/>";
+  //var_dump($sql);
+  //print "<br/><br/>";
+  //var_dump($q);
+  //print "<br/><br/>";
+  //$rfound = false;
+  while ($row = db_fetch_object($q)) {
+    $ride = node_load(array('nid' => $row->nid));
+    //$rfound = true;
+    watchdog("ride reminders", date("H:i:s") ." - <a href='/node/". $ride->nid ."'>". $ride->title ."</a>", array(), WATCHDOG_INFO);
+    if ($ride) {
+      $current_riders = $ride->field_ride_current_riders;
+      //$rfound2 = false;
+      foreach($current_riders as $val) {
+        //$rfound2 = true;
+        //watchdog("ride reminders", "rider found: ". var_export($val, 1));
+        $acct = user_load($val['uid']);
+        if ($acct) {
+          $cp = content_profile_load('profile', $acct->uid);
+          if ($cp) {
+            if ($cp->field_ride_reminders[0]['value'] != "false") {
+              $context = array('hook' => 'cron', 'op' => 'send', 'node' => $ride, 'user' => $acct /*, 'profile'=> $cp*/);
+              actions_do(2, $acct, $context);     // 2 is the email action for ride reminders
+              watchdog("ride reminders", $acct->mail ." sent a reminder for ride <a href='/node/". $ride->nid ."'>". $ride->title ."</a>", array(), WATCHDOG_INFO);
+            }
+          }  // cp
+        } // acct
+      }  // for
+      //if (!$rfound2)
+        //watchdog("ride reminders", "no riders found");
+      // mark ride as notified (todo: add cck field for this and add to query)
+    }  // ride
+  }  // while
+  //var_dump($row);
+  //if (!$rfound)
+  //  watchdog("ride reminders", "no rides found");
+}
+
+function nycc_reminders_ride_reminders_test($timestr) {
+//  if (($timestr > 0) || ($timestr < 0))
+//    $timestr .= " day";
+  $t = strtotime($timestr);
+  if (!$t)
+    $t = time();
+  nycc_reminders_ride_reminder($t);
+  print "$timestr = $t done! check the watchdog log - current time is ". time();
+}
+
+function nycc_reminders_cron() {
+  //watchdog('cron', 'starting nycc_cron');
+  nycc_reminders_ride_reminder(time());
+  nycc_reminders_ride_overlaps_reminder();
+  nycc_reminders_ride_roster_email(time(), 1);
+  
+  //watchdog('cron', 'finished nycc_cron');  
+}
+
+function nycc_reminders_ride_overlaps_reminder() {
+  $now = time();
+  $lastcron = variable_get("nycc_last_ride_overlaps_cron_time", 0);
+  if (($now - $lastcron) < 24 * 60 * 60)
+    return;
+  variable_set("nycc_last_ride_overlaps_cron_time", $now);
+  watchdog("rides", "checking for ride overlaps", array(), WATCHDOG_INFO);
+
+  $sql =<<<EOS
+SELECT T1.uid, T1.nid AS ride1, T1.title AS title1, T1.time AS time1, T1.date AS date1, T1.joined AS joined1,
+T2.nid AS ride2, T2.title AS title2, T2.time AS time2, T2.date AS date2, T2.joined AS joined2, TIMESTAMPDIFF(MINUTE, T1.time, T2.time) AS diff
+FROM viewRideSignups T1, viewRideSignups T2
+WHERE T1.uid = T2.uid AND T1.date = T2.date AND ((T1.time <= T2.time AND T1.nid < T2.nid) OR (T1.time < T2.time))
+AND TIMESTAMPDIFF(MINUTE, T1.time, T2.time) < 4 * 60
+AND (T1.joined = 1 OR T2.joined = 1)
+AND (T1.uid, T1.date) IN
+  (SELECT uid, date FROM viewRideSignups
+   GROUP BY uid, date
+   HAVING count(*) > 1
+  )
+ORDER BY T1.uid, T1.date;
+EOS;
+
+  $lastuid = 0;
+  $lastdate = "";
+  $text = "";
+
+  $q = db_query($sql);
+  while ($row = db_fetch_object($q)) {
+    if ($lastuid != $row->uid) {
+      if (drupal_strlen($text)) {
+
+        $acct = user_load($lastuid);
+        if ($acct) {
+          $cp = content_profile_load('profile', $acct->uid);
+          if ($cp) {
+              $cp->field_profile_extra[0]['value'] = $text ."\n\n";
+              $context = array('hook' => 'cron', 'op' => 'send', 'node' => $cp, 'user' => $acct);
+              actions_do(3, $acct, $context);     // 3 is the email action for ride overlap reminders
+              watchdog("ride overlaps", "email user <a href='/user/". $acct->uid ."'>". $acct->name ."</a>", array(), WATCHDOG_INFO);
+          }  // cp
+        } // acct
+        $text = "";
+        $lastdate = "";
+      }
+    }
+    // TODO: use row data to generate line for email, end with newline
+    // fields: uid, ride1, time1, date1, joined1, ride2, time2, date2, joined2, diff
+    //$line = var_export($row, 1) ."\n";
+    if ($row->date1 != $lastdate)
+      $text .= substr($row->date1, 0, 10) . "\n\n";
+    $line = "Ride <a href='http://nycc.org/node/". $row->ride1 ."'>". $row->title1 ."</a> at " 
+    		. substr($row->time1, 11, 5) ." (". ($row->joined1 ? "joined" : "waiting") 
+    		.")\n overlaps with <a href='http://nycc.org/node/". $row->ride2 ."'>". $row->title2 
+    		."</a> at ". substr($row->time2, 11, 5) ." (". ($row->joined2 ? "joined" : "waiting") .")\n\n";
+    $text .= $line;
+    $lastuid = $row->uid;
+    $lastdate = $row->date1;
+  }  // while
+}  // nycc_ride_overlaps_reminder
+
+
+
+?>

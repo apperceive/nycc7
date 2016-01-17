@@ -1,0 +1,69 @@
+<?php
+/**
+ * @file
+ * Install and uninstall functions as well as schema definition for the user_role_history module.
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function user_role_history_schema() {
+  $schema['users_roles_history'] = array(
+    'description' => 'Record when a user gets a role added or deleted.',
+    'fields' => array(
+      'hid' => array(
+        'description' => 'The unique key for this entry.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The users id.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'rid' => array(
+        'description' => "The role id.",
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'instigator_uid' => array(
+        'description' => "The uid of the user that made the change",
+        'type' => 'int',
+      ),
+      'action' => array(
+        'description' => "The action carried out, 1 is addition, 0 is deletion",
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the data was created.',
+        'type' => 'int', //not using datetime so the as non of the formatting code works with datetime (as its returned as string)
+        'not null' => TRUE,
+      ),
+    ),
+    'indexes' => array(
+      'node_created'        => array('created'),
+      ),
+    'primary key' => array('hid'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function user_role_history_install() {
+  drupal_install_schema('user_role_history');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function user_role_history_uninstall() {
+  variable_del('user_role_history_roles_enabled');
+  variable_del('user_role_history_roles_to_record');
+  drupal_uninstall_schema('user_role_history');
+}

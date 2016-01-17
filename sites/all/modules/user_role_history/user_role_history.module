@@ -1,0 +1,115 @@
+<?php
+
+/**
+ * @file
+ * User Role History module
+ *
+ * Allows selected roles to be recorded into a table when they are
+ * given or removed from a user.
+ */
+
+define('USER_ROLE_HISTORY', 'user role history');
+
+/**
+ * Implementation of hook_user().
+ */
+function user_role_history_user($op, &$edit, &$account, $category = NULL) {
+  if ($op == 'update' && variable_get('user_role_history_enabled', 'no') == 'yes') {
+    // Get the current logged in user (the one thats doing the action). 
+    global $user;
+
+    // Check roles are passed in to the array, and itself is an array.
+    if (isset($edit['roles']) && is_array($edit['roles'])) {
+      // Get the roles we should record.
+      $roles_to_record = variable_get('user_role_history_roles_to_record', array());
+
+      // Loop over the roles to be monitored and check if we are setting one.
+      foreach ($roles_to_record as $rid) {
+        $event = array(
+          'hid' => '',
+          'created' => time(),
+          'uid' => $account->uid,
+          'rid' => $rid,
+          'instigator_uid' => $user->uid,
+        );
+
+        // Check for an addition of this role.
+        if (isset($edit['roles'][$rid]) && !isset($account->roles[$rid])) {
+          $event['action'] = 1;
+          drupal_write_record('users_roles_history', $event);
+        }
+
+        // Check for removal of this role.
+        if (!isset($edit['roles'][$rid]) && isset($account->roles[$rid])) {
+          $event['action'] = 0;
+          drupal_write_record('users_roles_history', $event);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function user_role_history_perm() {
+  return array('administer user role history');
+}
+
+/**
+ * Implementation of hook_enable().
+ */
+function user_role_history_enable() {
+  drupal_set_message(t('User role history module was successfully enabled. Go to the admin page and select which roles you would like any addition/deletions recorded by user.'));
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function user_role_history_menu() {
+  $items = array();
+
+  $items['admin/settings/user-role-history'] = array(
+    'title' => 'User Role History',
+    'description' => 'Configuration Settings for User Role History.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('user_role_history_settings'),
+    'access arguments' => array('administer user role history'),
+    'type' => MENU_NORMAL_ITEM
+  );
+
+  return $items;
+}
+
+/**
+ * User role history settings form.
+ */
+function user_role_history_settings() {
+  $result = db_query('SELECT rid, name FROM {role} ORDER BY name');
+
+  while ($role = db_fetch_object($result)) {
+    $roles[$role->rid] = $role->name;
+  }
+
+  $form['user_role_history_enabled'] = array(
+    '#type' => 'radios',
+    '#title' => t('Enable User role history'),
+    '#description' => t('You must first enable User Role History for your site, or it will
+      not log role changes. You can then fine tune when it is displayed by selecting
+       the roles you wish to track user additon/deletions.'),
+    '#options' => array(
+      'yes' => t('Yes'),
+      'no' => t('No'),
+    ),
+    '#default_value' => variable_get('user_role_history_enabled', 'no'),
+  );
+
+  $form['user_role_history_roles_to_record'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Enable User Role History for following roles'),
+    '#default_value' => variable_get('user_role_history_roles_to_record', array()),
+    '#options' => $roles,
+    '#description' => t('User Role History will *ONLY* be logging for those role(s) selected.'),
+  );
+  return system_settings_form($form);
+}

@@ -1,0 +1,321 @@
+<?php
+
+/**
+ * Implementation of hook_init().
+ */
+function filetree_init() {
+  drupal_add_css(drupal_get_path('module', 'filetree') . '/filetree.css');
+  drupal_add_js(drupal_get_path('module', 'filetree') . '/filetree.js');
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function filetree_theme() {
+  return array(
+    'filetree' => array(
+      'arguments' => array('files' => array(), 'params' => array()),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_filter().
+ */
+function filetree_filter($op, $delta = 0, $format = -1, $text = '', $cache_id = 0) {
+  switch ($op) {
+    case 'list':
+      return array(0 => t('File tree'));
+    case 'description':
+      return t('Replaces [filetree dir="some-directory"] with an inline list of files.');
+    case 'settings':
+      $form['filetree'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('File tree'),
+        '#collapsible' => TRUE,
+      );
+      $form['filetree']['filetree_folders_'. $format] = array(
+        '#type' => 'textarea',
+        '#title' => t('Allowed folder paths'),
+        '#description' => t('Enter one folder per line as paths which are allowed to be rendered as a list of files (relative to your <a href="@url">file system path</a>). The "*" character is a wildcard. Example paths are "*", "some-folder", and "some-folder/*".', array('@url' => url('admin/settings/file-system'))),
+        '#default_value' => variable_get('filetree_folders_'. $format, '*'),
+      );
+      return $form;
+    case 'prepare':
+      return $text;
+    case 'process':
+      $text = _filetree_process($text, $format);
+      return $text;
+  }
+}
+
+/**
+ * Implementation of hook_token_values().
+ */
+function filetree_token_values($type, $object = NULL, $options = array()) {
+  $values = array();
+  if ($type == 'filetree') {
+    $pathinfo = pathinfo($object);
+    $values['filename'] = $pathinfo['basename'];
+    $values['basename'] = defined('PATHINFO_FILENAME') ? $pathinfo['filename'] : substr($object, 0, strrpos($object, '.'));
+    $values['extension'] = $pathinfo['extension'];
+  }
+  return $values;
+}
+
+/**
+ * Implementation of hook_filter_tips().
+ */
+function filetree_filter_tips($delta, $format, $long = FALSE) {
+  $output = t('You may use [filetree dir="some-directory"] to display a list of files inline.');
+  if ($long) {
+    $output = '<p>' . $output . '</p>';
+    $output .= '<p>' . t('Additional options include "multi", "controls", "absolute", "exclude", "dirname", "dirtitle", "filename", "filetitle", and "animation". For example:') . '</p>';
+    $output .= '<blockquote>[filetree dir="some-directory" multi="false" controls="false" absolute="false" exclude="CVS; directory1; directory2" dirname="%basename" dirtitle="Click to toggle this folder." filename="%basename" filetitle="Click to download this %extension file." animation="false"]</blockquote>';
+    $output .= '<p>' . t('Available tokens for use within the "dirname", "dirtitle", "filename", and "filetitle" options include:') . '</p>';
+    $output .= theme('item_list', array(
+      '%filename: ' . t("The file's name and extension."),
+      '%basename: ' . t("The file's name, without extension."),
+      '%extension: ' . t("The file's extension."),
+    ));
+    $output .= '<p>' . t('You can also read a <a href="http://drupal.org/project/filetree">detailed explanation of these options</a>.'). '</p>';
+  }
+  return $output;
+}
+
+/**
+ * Process function for the filter.
+ */
+function _filetree_process($text, $format) {
+  // Look for our special [filetree] token.
+  if (!preg_match_all('/(?:<p>)?\[filetree\s*(.*?)\](?:<\/p>)?/s', $text, $matches)) {
+    return $text;
+  }
+
+  // Setup our default parameters.
+  $default_params = array(
+    'dir' => NULL,
+    'multi' => TRUE,
+    'controls' => TRUE,
+    'absolute' => TRUE,
+    'exclude' => array('CVS'),
+    'dirname' => '%filename',
+    'dirtitle' => '%filename',
+    'filename' => '%filename',
+    'filetitle' => '%filename',
+    'animation' => TRUE,
+  );
+
+  // The token might be present multiple times; loop through each instance.
+  foreach ($matches[1] as $key => $passed_params) {
+
+    // Load the defaults.
+    $params[$key] = $default_params;
+
+    // Parse the parameters (but only the valid ones).
+    preg_match_all('/(\w*)=(?:\"|&quot;)(.*?)(?:\"|&quot;)/', $passed_params, $matches2[$key]);
+    foreach ($matches2[$key][1] as $param_key => $param_name) {
+      if (in_array($param_name, array_keys($default_params))) {
+        // If default param is a boolean, convert the passed param to boolean.
+        // Note: "false" (as a string) is considered TRUE by PHP, so there's a
+        // special check for it.
+        if (is_bool($default_params[$param_name])) {
+          $params[$key][$param_name] = $matches2[$key][2][$param_key] == "false" ? FALSE : (bool) $matches2[$key][2][$param_key];
+        }
+        else if ($param_name == 'exclude') {
+          $params[$key][$param_name] = array_filter(array_map('trim', explode(';', $matches2[$key][2][$param_key])));
+        }
+        else {
+          $params[$key][$param_name] = $matches2[$key][2][$param_key];
+        }
+      }
+    }
+
+    // Make sure that "dir" was provided,
+    if (!$params[$key]['dir']
+        // ...it's within the files directory,
+        or !$dir = file_create_path($params[$key]['dir'])
+        // ...and it's an allowed path for this input format.
+        or !drupal_match_path($params[$key]['dir'], variable_get('filetree_folders_'. $format, '*'))) {
+      continue;
+    }
+
+    // Flatten "exclude" array.
+    $params[$key]['exclude'] = implode("\n", $params[$key]['exclude']);
+
+    // Convert params containing token values.
+    foreach (array('dirname', 'dirtitle', 'filename', 'filetitle') as $token_param) {
+      $params[$key][$token_param] = preg_replace('/%(\w+)/', '[$1]', $params[$key][$token_param]);
+    }
+
+    // Render tree.
+    $files = _filetree_list_files($dir, $params[$key]);
+    $rendered = theme('filetree', $files, $params[$key]);
+
+    // Replace token with rendered tree.
+    $text = str_replace($matches[0][$key], $rendered, $text);
+  }
+
+  return $text;
+}
+
+/**
+ * Recursively lists folders and files in this directory.
+ * 
+ * Similar to file_scan_directory(), except that we need the hierarchy.
+ * Returns a sorted list which is compatible with theme('item_list') or
+ * theme('filetree'), folders first, then files.
+ */
+function _filetree_list_files($dir, $params) {
+  $list = array();
+  if (is_dir($dir) && $handle = opendir($dir)) {
+    $folders = $files = array();
+    $descriptions = _filetree_parse_description($dir);
+    while (FALSE !== ($file = readdir($handle))) {
+      // Exclude certain paths:
+      // - those which start with a period (".", "..", and hidden files),
+      // - additional paths from the "exclude" param
+      if ($file[0] != '.' and !drupal_match_path($file, $params['exclude'])) {
+        $filename = "$dir/$file";
+        if (is_dir($filename)) {
+          $folders[$file] = array(
+            'data' => isset($descriptions[$file]) ? $descriptions[$file] : token_replace($params['dirname'], 'filetree', $file),
+            'children' => _filetree_list_files($filename, $params),
+            'title' => token_replace($params['dirtitle'], 'filetree', $file),
+            'class' => 'folder',
+          );
+        }
+        else {
+          $name = isset($descriptions[$file]) ? $descriptions[$file] : token_replace($params['filename'], 'filetree', $file);
+          // See http://drupal.org/node/278770#comment-1011434.
+          $url = $params['absolute'] ? file_create_url($filename) : substr(file_create_url($filename), strlen($GLOBALS['base_url'].'/'));
+          $files[$file] = array(
+            'data' => l($name, $url),
+            'title' => token_replace($params['filetitle'], 'filetree', $file),
+            'class' => _filetree_icon(pathinfo($file, PATHINFO_EXTENSION)),
+          );
+        }
+      }
+    }
+    closedir($handle);
+    asort($folders);
+    asort($files);
+    $list += $folders;
+    $list += $files;
+  }
+  return $list;
+}
+
+/**
+ * Parse .descript.ion file descriptions.
+ */
+function _filetree_parse_description($dir) {
+  $descriptions = array();
+  if (is_readable("$dir/.descript.ion") && ($file = file("$dir/.descript.ion"))) {
+    foreach ($file as $line) {
+      $line = trim($line);
+      // Skip empty and commented lines
+      if ($line == '' || strpos($line, '#') === 0) {
+        continue;
+      }
+      $matches = array();
+      // File names may be encapsulated in quotations.
+      if (strpos($line, '"') === 0) {
+        preg_match('/^"([^"]+)"\s+(.*)$/', $line, $matches);
+      }
+      else {
+        preg_match('/^(\S+)\s+(.*)$/', $line, $matches);
+      }
+      list(, $name, $description) = $matches;
+      if (isset($descriptions[$name])) {
+        $descriptions[$name] .= ' ' . trim($description);
+      }
+      else {
+        $descriptions[$name] = trim($description);
+      }
+    }
+  }
+  return $descriptions;
+}
+
+/**
+ * Determines which icon should be displayed, based on file extension.
+ */
+function _filetree_icon($extension) {
+  $extension = strtolower($extension);
+  $icon = 'file';
+  $map = array(
+    'application' => array('exe'),
+    // 'code' => array(''),
+    'css' => array('css'),
+    'db' => array('sql'),
+    'doc' => array('doc', 'docx'),
+    'film' => array('avi', 'mov'),
+    'flash' => array('flv', 'swf'),
+    'html' => array('htm', 'html'),
+    // 'java' => array(''),
+    // 'linux' => array(''),
+    'music' => array('mp3', 'aac'),
+    'pdf' => array('pdf'),
+    'php' => array('php'),
+    'image' => array('jpg', 'jpeg', 'gif', 'png', 'bmp'),
+    'ppt' => array('ppt'),
+    'psd' => array('psd'),
+    // 'ruby' => array(''),
+    'script' => array('asp'),
+    'txt' => array('txt'),
+    'xls' => array('xls', 'xlsx'),
+    'zip' => array('zip'),
+  );
+  foreach ($map as $key => $values) {
+    foreach ($values as $value) {
+      if ($extension == $value) {
+        $icon = $key;
+      }
+    }
+  }
+  return $icon;
+}
+
+/**
+ * Renders filetree.
+ */
+function theme_filetree($files, $params) {
+  $output = '';
+
+  // Render controls (but only if multiple folders is enabled, and only if
+  // there is at least one folder to expand/collapse).
+  if ($params['multi'] and $params['controls']) {
+    $has_folder = FALSE;
+    foreach ($files as $file) {
+      if (isset($file['children'])) {
+        $has_folder = TRUE;
+        break;
+      }
+    }
+    if ($has_folder) {
+      $controls = array(
+        '<a href="#" class="expand">'. t('expand all') .'</a>',
+        '<a href="#" class="collapse">'. t('collapse all') .'</a>',
+      );
+      $output .= theme('item_list', $controls, NULL, 'ul', array('class' => 'controls'));
+    }
+  }
+
+  // Render files.
+  $output .= theme('item_list', $files, NULL, 'ul', array('class' => 'files'));
+
+  // Generate classes and unique ID for wrapper div.
+  $id = form_clean_id(uniqid('filetree-'));
+  $classes = array('filetree');
+  if ($params['multi']) {
+    $classes[] = 'multi';
+  }
+
+  // If using animation, add class.
+  if ($params['animation']) {
+    $classes[] = 'filetree-animation';
+  }
+
+  return '<div id="'. $id. '" class="'. implode(' ', $classes) .'">'. $output .'</div>';
+}

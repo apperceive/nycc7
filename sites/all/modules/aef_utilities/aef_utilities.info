@@ -1,0 +1,15 @@
+; $Id: aef_utilities.info,v 1.2 2009/11/25 14:07:25 ndeschildre Exp $
+name = "Utilities"
+description = "Some useful methods shared by lots of AEF modules."
+version = "6.x-1.0"
+package = AEF
+core = 6.x
+
+dependencies[] = content_copy
+
+; Information added by drupal.org packaging script on 2010-02-22
+version = "6.x-1.3"
+core = "6.x"
+project = "aef_utilities"
+datestamp = "1266834903"
+

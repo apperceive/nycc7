@@ -1,0 +1,24 @@
+<?php
+// $Id: $
+
+/**
+ * @file
+ */
+
+function ms_paypal_wps_uninstall() {
+  // Delete related variables all at once.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_paypal_wps_%%'");
+}
+
+/**
+ * Set the default language encoding to UTF-8
+ */
+function ms_paypal_wps_update_6100() {
+  $ret = array();
+
+  variable_set('ms_paypal_wps_charset', 'UTF-8');
+
+  drupal_set_message(t('Updated the language encoding variable for PayPal WPS.'));
+
+  return $ret;
+}

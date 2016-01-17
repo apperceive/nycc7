@@ -1,0 +1,6 @@
+name = MS Product Kit
+description = Create generic products and attach them to Nodes
+package = MoneyScripts - Bonus Pack
+dependencies[] = ms_products
+version = "6.x-1.11"
+core = "6.x"

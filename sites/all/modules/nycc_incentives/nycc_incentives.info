@@ -1,0 +1,4 @@
+name = NYCC Incetives Module 
+description = Handle incentives
+package = NYCC
+core = 6.x

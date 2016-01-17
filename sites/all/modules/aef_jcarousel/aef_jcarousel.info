@@ -1,0 +1,15 @@
+; $Id: aef_jcarousel.info,v 1.1 2009/11/16 11:04:12 ndeschildre Exp $
+name = JCarousel formatter framework
+description = Contains the JCarousel JQuery plugin, and methods to use it. Integrates the CCK formatter <-> JCarousel theme link concept.
+package = AEF
+core = 6.x
+dependencies[] = jq
+
+dependencies[] = aef_utilities
+
+; Information added by drupal.org packaging script on 2009-11-16
+version = "6.x-1.0"
+core = "6.x"
+project = "aef_jcarousel"
+datestamp = "1258370404"
+

@@ -1,0 +1,55 @@
+*
+{
+font-family:sans-serif;  
+font-size: 18px;
+color: #444444;
+-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+body, 
+html,
+ul
+{
+  padding: 0px;
+  margin: 0px;
+}
+
+body {
+  width: : 100%;
+  /*background: #DCDCDC;*/
+}
+
+h3 {
+  font-size: 24px;
+}
+
+#busy {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-left: -65px;
+  margin-top: -31px;
+  color: #FFFFFF;
+  font-size: 24px;  
+  z-index: 6;
+  background-color: #000000;
+  opacity: 0.5;
+  width: 100px;
+  height: 32px;
+  padding: 30px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+  -khtml-border-radius: 10px;
+  border-radius: 10px;
+}
+
+#rideDetails {
+  padding: 12px 0;
+}
+
+#rideList li a {
+  display: inline-block; 
+}
+
+

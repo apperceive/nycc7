@@ -1,0 +1,89 @@
+body.node-group div#mission,
+body.node-group div.view-og-ghp-front-page div.node {
+  margin: 0 0 6px 0;
+  padding: 3px;
+}
+
+
+.view-og-ghp-front-page td.views-field-changed {
+  width: 100px;
+}
+
+
+.block-og h3 a,
+.block-og_views h3 a {
+  color: white;
+  text-decoration: none;
+}
+
+/*#block-og-0 ul li a {
+  color: white;
+  display: inline-block;
+  min-height: 20px;
+  min-width: 80px;
+  text-decoration: none; 
+  text-align: center;
+  overflow: hidden;
+  padding: 10px;
+  background-image: -ms-linear-gradient(bottom, #27B7F6 0%, #0F3F78 100%);
+  background-image: -moz-linear-gradient(bottom, #27B7F6 0%, #0F3F78 100%);
+  background-image: -o-linear-gradient(bottom, #27B7F6 0%, #0F3F78 100%);
+  background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #27B7F6), color-stop(1, #0F3F78));
+  background-image: -webkit-linear-gradient(bottom, #27B7F6 0%, #0F3F78 100%);
+  background-image: linear-gradient(bottom, #27B7F6 0%, #0F3F78 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#27B7F6', endColorstr='#0F3F78');
+}
+
+#block-og-0 ul li a:hover {
+  color: black;
+  -moz-box-shadow: 2px 2px 2px #bbb;
+  -webkit-box-shadow: 2px 2px 2px #bbb;
+  box-shadow: 2px 2px 2px #bbb;
+}*/
+
+input#edit-submit-og-search {
+  margin-top: 0px;
+}
+
+
+body.og-my .opml-icon {
+  display: none;
+}
+
+body.og .view-og td.views-field-description {
+  max-width: 400px;
+}
+
+body.node-group .view-og-ghp-front-page caption {
+  font-weight: bold;
+}
+
+body.og-context .node .groups,
+body.og-context .blog_usernames_blog {
+  display: none;
+}
+
+body.node-type-blog .field-field-docshare {
+  margin: 0 0 50px 0;
+}
+
+body.node-add-forum.og-context div#edit-taxonomy-1-wrapper {
+  /*display: none;*/
+}
+
+body.node-group .view-og-ghp-front-page .view-header .links {
+  display: none;
+}
+
+body.node-group .view-og-ghp-front-page td.views-field-phpcode {
+  width: 120px;
+}
+
+body.node-group table .calendar-agenda-hour {
+  display: none;
+}
+
+
+
+
+

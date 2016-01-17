@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * Implementation of hook_views_pre_execute().
+ */
+function shadow_views_views_pre_execute(&$view) {
+  $key = $view->name . ':' . $view->current_display;
+  $description = t('Views query');
+  
+  $q = $view->build_info['query'];
+  $args = $view->build_info['query_args'];
+  shadow($q, $args, $key, $description);
+  if ($q != $view->build_info['query']) {
+    $view->build_info['query'] = $q;
+    $q = explode('ORDER BY', $q);
+    $q = $q[0];
+    $view->build_info['count_query'] = $q;
+    $view->build_info['query_args'] = $args;
+  }
+}

@@ -1,0 +1,48 @@
+/**
+ * @file
+ * Back-end styling for the displaying all system specific blocks.
+ */
+.header {
+  background-color: #ddd;
+  padding: 2px;
+}
+.block_name {
+  background-color: #ddd;
+  padding: 5px 0px;
+  float: left;
+  width: 93%;
+}
+
+.block_action {
+  background-color: #ddd;
+  padding: 5px 5px;
+  float: right;
+  width: 6%;
+}
+
+.odd {
+  background-color: #fff;
+  padding: 3px 0px 5px 0px;
+  border-bottom: 1px #ddd solid;
+}
+.odd div.form-item {
+  display: inline;
+  margin: 3px 0px 2px 0px;
+}
+.even {
+  background-color: #eee;
+  padding: 3px 0px 5px 0px;
+  border-bottom: 1px #ddd solid;
+}
+.even div.form-item {
+  display: inline;
+  margin: 0px;
+  width: 45%;
+}
+.form-radios .form-item {
+  display: inline;
+}
+.odd .form-radios, .even .form-radios {
+  display: inline;
+  width: 45%;
+}

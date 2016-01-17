@@ -1,0 +1,141 @@
+<?php
+
+/**
+* @file
+*/
+
+/**
+* Implementation of hook_install().
+*/
+function ms_gift_cards_install() {
+  // Create tables.
+  drupal_install_schema('ms_gift_cards');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function ms_gift_cards_uninstall() {
+  // Drop tables.
+  drupal_uninstall_schema('ms_gift_cards');
+
+  // Delete related variables all at once.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_gift_cards_%%'");
+}
+
+/**
+* Implementation of hook_schema().
+*/
+function ms_gift_cards_schema() {
+  $schema['ms_gift_cards'] = array(
+    'description' => 'Used to record all gift memberships',
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'description' => 'The unique ID (primary)',
+        'not null' => TRUE,
+        'disp-width' => '11'
+      ),
+      'code' => array(
+        'type' => 'varchar',
+        'description' => 'The code for this gift card',
+        'length' => '128',
+        'not null' => TRUE
+      ),
+      'activated' => array(
+        'type' => 'int',
+        'description' => 'The date the card was activated',
+        'not null' => TRUE,
+        'disp-width' => '11',
+        'default' => 0
+      ),
+      'redeemed' => array(
+        'type' => 'int',
+        'description' => 'The date the card was redeemed',
+        'not null' => TRUE,
+        'disp-width' => '11',
+        'default' => 0
+      ),
+      'created' => array(
+        'type' => 'int',
+        'description' => 'The date the card was created',
+        'not null' => TRUE,
+        'disp-width' => '11',
+        'default' => 0
+      ),
+      'status' => array(
+        'type' => 'varchar',
+        'description' => 'The status of the card',
+        'length' => '32',
+        'not null' => TRUE
+      ),
+      'amount' => array(
+        'type' => 'numeric',
+        'description' => 'The Price',
+        'precision' => '10',
+        'scale' => '2',
+        'not null' => TRUE
+      ),
+      'oid' => array(
+        'type' => 'int',
+        'description' => 'The unique order ID',
+        'not null' => TRUE,
+        'disp-width' => '11'
+      ),
+      'affiliate' => array(
+        'type' => 'int',
+        'description' => 'The affiliate ID',
+        'not null' => TRUE,
+        'disp-width' => '11'
+      ),
+      'activated_user' => array(
+        'type' => 'int',
+        'description' => 'The activated user ID',
+        'not null' => TRUE,
+        'disp-width' => '11'
+      ),
+      'redeemed_user' => array(
+        'type' => 'int',
+        'description' => 'The redeemed user ID',
+        'not null' => TRUE,
+        'disp-width' => '11'
+      ),
+      'product_id' => array(
+        'type' => 'varchar',
+        'description' => 'The id of the product',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'module' => array(
+        'type' => 'varchar',
+        'description' => 'The name of module',
+        'length' => '64',
+        'not null' => TRUE
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}
+
+// ======================================
+// Updates:
+// ======================================
+
+/**
+ * Change the product_id field to varchar in the ms_gift_cards table
+ */
+function ms_gift_cards_update_6101() {
+  $ret = array();
+  db_change_field($ret, 'ms_gift_cards', 'product_id', 'product_id', array(
+    'type' => 'varchar',
+    'description' => 'The id of the product',
+    'length' => '255',
+    'not null' => TRUE,
+    'default' => '',
+  ));
+  drupal_set_message(t('Successfully changed the product_id field in the ms_gift_cards table to varchar.'));
+  return $ret;
+}

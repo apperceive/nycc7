@@ -1,0 +1,2591 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Products API Helper
+ * Licensed under the GNU GPLv2 License
+ *
+ */
+
+/**
+ * Display help and module information
+ */
+function ms_products_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case "admin/help#ms_products":
+      $output = '<p>' . t("An API module which exposes calls that can help other modules.") . '</p>';
+      break;
+  }
+  return $output;
+}
+
+/**
+ * Implements hook_cron().
+ */
+function ms_products_cron() {
+  // Check for Products that are expiring soon and send the expiring soon email
+  $result = db_query("SELECT * FROM {ms_product_purchases} WHERE (status = '%s' OR status = '%s')", array('active', 'completed'));
+  while ($purchase = db_fetch_object($result)) {
+    if (!$purchase->expiration) { // Skip Purchases with no expiration
+      continue;
+    }
+    $product_plan = ms_products_load_product_plan($purchase->pid);
+    $temp_time = strtotime("+" . $product_plan->expiring_mail_days . " days");
+    if (($product_plan->expiring_mail_days) AND ($purchase->expiration < $temp_time)) {
+      $account = user_load($purchase->uid);
+
+      // Change the Purchase Status to 'Expiring Soon'
+      ms_products_change_purchase_status($purchase->id, 'expiring');
+
+      $payment_vars = array(
+        'purchase_id' => $purchase->id,
+      );
+
+      // Send Expiring Soon Email
+      ms_products_prepare_mail('ms_products', 'expiring', $account->mail, user_preferred_language($account), $payment_vars);
+    }
+  }
+
+  // Check for Expired Purchases and disable them
+  $result = db_query("SELECT * FROM {ms_product_purchases} WHERE status <> '%s' AND expiration <> %d AND expiration < %d",
+    array('expired', 0, time()));
+  while ($purchase = db_fetch_object($result)) {
+    if (!$purchase->expiration) {
+      continue;
+    }
+    $account = user_load($purchase->uid);
+    $product_plan = ms_products_load_product_plan($purchase->pid);
+    $product_type = ms_products_get_product_type($product_plan->module);
+
+    // Set the Purchase to Expired
+    ms_products_change_purchase_status($purchase->id, 'expired');
+
+    $payment_vars = array(
+      'id' => $purchase->id,
+    );
+
+    // Send Expiration Email
+    ms_products_prepare_mail('ms_products', 'eot', $account->mail, user_preferred_language($account), $payment_vars);
+
+    // Invoke hook_ms_products_expiring to let other modules act on a purchase expiring
+    module_invoke_all('ms_products_expiring', $account, $purchase, $product_plan);
+
+    ms_core_log('ms_products', 'Disabled Expired @purchase during cron run for user: %username.',
+        array('@purchase' => $product_type['purchase_name'], '%username' => $account->name));
+  }
+}
+
+/**
+ * Implements hook_perm().
+ */
+function ms_products_perm() {
+  $perms = array();
+
+  $products_info = module_invoke_all('ms_products_api_info');
+
+  foreach ($products_info as $product_type => $product) {
+    $perms[] = 'administer ' . $product_type .' plans';
+    $perms[] = 'administer ' . $product_type .' purchases';
+    $perms[] = 'purchase ' . $product_type .' products';
+  }
+
+  return $perms;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function ms_products_menu() {
+  $items = array();
+
+  $items['ms_product/purchase/%'] = array(
+    'page callback' => 'ms_products_purchase_product',
+    'page arguments' => array(2),
+    'access callback' => 'ms_core_view_page_access_test',
+    'type' => MENU_CALLBACK,
+  );
+
+  /**
+   * The hook_ms_products_api_info should return an array like so:
+   * array(
+   *   'product_type' => array(
+   *     'plan_name' => 'Computer Plan',
+   *     'purchase_name' => 'Service Contract',
+   *   ),
+   * );
+   */
+  $types = module_invoke_all('ms_products_api_info');
+
+  foreach ($types as $product_name => $product_type) {
+    $items['ms_products/' . $product_name . '/purchase'] = array(
+      'page callback' => 'ms_products_purchase_plan_page',
+      'page arguments' => array(1),
+      'access arguments' => array('purchase ' . $product_name . ' products'),
+      'type' => MENU_CALLBACK,
+    );
+    // Add the product plan pages
+    $items['admin/build/' . $product_name] = array(
+      'title' => $product_type['plan_name_plural'],
+      'description' => 'Add, Edit and Delete ' . $product_type['plan_name_plural'] .' and ' . $product_type['purchase_name_plural'],
+      'page callback' => 'ms_products_list_plans',
+      'page arguments' => array(2),
+      'access arguments' => array('administer ' . $product_name . ' plans'),
+      'type' => MENU_NORMAL_ITEM,
+    );
+    $items['admin/build/' . $product_name . '/list'] = array(
+      'title' => 'List ' . $product_type['plan_name_plural'],
+      'page callback' => 'ms_products_list_plans',
+      'page arguments' => array(2),
+      'access arguments' => array('administer ' . $product_type .' plans'),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+      'weight' => '0',
+    );
+    $items['admin/build/' . $product_name . '/add'] = array(
+      'title' => 'Add ' . $product_type['plan_name'],
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ms_products_plan_form', 2, 'add'),
+      'access arguments' => array('administer ' . $product_name . ' plans'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => '1',
+    );
+    $items['admin/build/' . $product_name . '/edit/%'] = array(
+      'title' => 'Edit ' . $product_type['plan_name'],
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ms_products_plan_form', 2, 'edit', 4),
+      'access arguments' => array('administer ' . $product_name . ' plans'),
+      'type' => MENU_CALLBACK,
+    );
+    $items['admin/build/' . $product_name . '/clone/%'] = array(
+      'title' => 'Clone ' . $product_type['plan_name'],
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ms_products_plan_form', 2, 'clone', 4),
+      'access arguments' => array('administer ' . $product_name . ' plans'),
+      'type' => MENU_CALLBACK,
+    );
+    $items['admin/build/' . $product_name . '/delete/%'] = array(
+      'title' => 'Delete ' . $product_type['plan_name'],
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ms_products_delete_product_plan_confirm', 2, 4),
+      'access arguments' => array('administer ' . $product_name . ' plans'),
+      'type' => MENU_CALLBACK,
+    );
+
+    // Add the purchases pages
+    $items['admin/build/' . $product_name . '/purchases/list'] = array(
+      'title' => 'List ' . $product_type['purchase_name_plural'],
+      'page callback' => 'ms_products_show_purchases',
+      'page arguments' => array(2),
+      'access arguments' => array('administer ' . $product_name . ' purchases'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => '2',
+    );
+    $items['admin/build/' . $product_name . '/purchases/add'] = array(
+      'title' => 'Add ' . $product_type['purchase_name'],
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ms_products_purchase_add_form', 2),
+      'access arguments' => array('administer ' . $product_name . ' purchases'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => '3',
+    );
+    $items['admin/build/' . $product_name . '/purchases/edit/%'] = array(
+      'title' => 'Edit ' . $product_type['purchase_name'],
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ms_products_purchase_edit_form', 2, 5),
+      'access arguments' => array('administer ' . $product_name . ' purchases'),
+      'type' => MENU_CALLBACK,
+    );
+    $items['admin/build/' . $product_name . '/purchases/delete/%'] = array(
+      'title' => 'Delete ' . $product_type['purchase_name'],
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ms_products_delete_purchase_confirm', 2, 5),
+      'access arguments' => array('administer ' . $product_name . ' purchases'),
+      'type' => MENU_CALLBACK,
+    );
+  }
+
+  return $items;
+}
+
+// ======================================
+// User Hooks
+// ======================================
+
+/**
+ * Implementation of hook_user().
+ */
+function ms_product_user($type, &$edit, &$account, $category = NULL) {
+  switch ($type) {
+    case 'delete':
+      $result = db_query("DELETE FROM {ms_product_purchases} WHERE uid=%d", $account->uid);
+      return $result;
+  }
+}
+
+// ======================================
+// Functions:
+// ======================================
+
+/**
+ * Return the text for a plan option form
+ */
+function ms_products_get_plan_option_text($product_plan) {
+  $display = array();
+
+  $display[] = "<span class='ms_products_plan_name'>" . ms_products_translate_plan($product_plan, 'name') . "</span>";
+
+  $display[] = "<span class='ms_products_plan_price'>"
+    . ms_core_get_recurring_string($product_plan, $product_plan->type == 'recurring')
+    . "</span>";
+  if ($product_plan->description) {
+    $display[] = "<span id='md" . $product_plan->pid . "' class='more_detailsDiv'>" . ms_products_translate_plan($product_plan, 'description') . "</span>";
+  }
+  return implode(' - ', $display);
+}
+
+/**
+ * Get the modification options for a plan
+ */
+function ms_products_get_modify_options($product_plan) {
+  $options = array();
+  $modify_options = array_filter($product_plan->modify_options);
+  foreach ($modify_options as $pid => $name) {
+    $plan = ms_products_load_product_plan($pid);
+    $options[$plan->pid] = $plan;
+  }
+
+  if (!empty($options)) {
+    return $options;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Return a list of modify options for a plan
+ */
+function ms_products_get_modify_options_plan_list($module, $pid = NULL) {
+  $plans = ms_products_get_module_plans($module);
+  $options = array();
+
+  if ($pid) {
+    unset($plans[$pid]);
+  }
+
+  foreach ($plans as $id => $name) {
+    $plan = ms_products_load_product_plan($id);
+    $options[$plan->pid] = $plan->name;
+  }
+  return $options;
+}
+
+/**
+ * Check if a product plan is free
+ */
+function ms_products_plan_is_free($product_plan) {
+  if ($product_plan->recurring_schedule['main_amount'] == 0 OR $product_plan->recurring_schedule['main_amount'] == 0.00) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Check if a user has a product
+ */
+function ms_products_user_has_product($uid, $pid, $renewing = FALSE) {
+  if ($uid) {
+    $result = db_query("SELECT * FROM {ms_product_purchases} WHERE uid = %d AND pid = %d", array($uid, $pid));
+
+    while ($row = db_fetch_object($result)) {
+      if ($renewing) {
+        switch ($row->status) {
+          case 'payment_received':
+          case 'delivered':
+          case 'completed':
+            return TRUE;
+            break;
+        }
+      }
+      else {
+        switch ($row->status) {
+          case 'completed':
+          case 'canceled':
+          case 'active':
+          case 'payment_received':
+          case 'delivered':
+          case 'expiring':
+            return TRUE;
+            break;
+        }
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Return the text for the purchase status
+ */
+function ms_products_get_purchase_status_text($status) {
+  switch ($status) {
+    case 'expired':
+      return t('Expired / Inactive');
+    case 'active':
+      return t('Active - Recurring');
+    case 'canceled':
+      return t('Cancelled');
+    case 'completed':
+      return t('Active - Payments Completed');
+    case 'payment_received':
+      return t('Payment Received');
+    case 'delivered':
+      return t('Delivered');
+    case 'expiring':
+      return t('Expiring Soon');
+  }
+}
+
+/**
+ * Return an array of statuses
+ */
+function ms_products_get_purchase_statuses() {
+  $statuses = array(
+    'expired' => t('Expired / Inactive'),
+    'active' => t('Active - Recurring'),
+    'canceled' => t('Cancelled'),
+    'completed' => t('Active - Payments Completed'),
+    'payment_received' => t('Payment Received'),
+    'delivered' => t('Delivered'),
+    'expiring' => t('Expiring Soon'),
+  );
+
+  return $statuses;
+}
+
+/**
+ * Change a purchase's status
+ */
+function ms_products_change_purchase_status($id, $status) {
+  $purchase = ms_products_load_purchase($id);
+  $product_plan = ms_products_load_product_plan($purchase->pid);
+  $product_type = ms_products_get_product_type($product_plan->module);
+  ms_core_log('ms_products', 'Changed the Status of @purchase_name !id to !status',
+      array('@purchase_name' => $product_type['purchase_name'],
+        '!id' => $id, '!status' => ms_products_get_purchase_status_text($status)));
+  return db_query("UPDATE {ms_product_purchases} SET status='%s' WHERE id=%d", $status, $id);
+}
+
+/**
+ * Change a purchase's order id
+ */
+function ms_products_change_purchase_oid($id, $oid) {
+  $purchase = ms_products_load_purchase($id);
+  $product_plan = ms_products_load_product_plan($purchase->pid);
+  $product_type = ms_products_get_product_type($product_plan->module);
+  ms_core_log('ms_products', 'Changed the Order ID of @purchase_name !id to !oid',
+      array('@purchase_name' => $product_type['purchase_name'], '!id' => $id, '!oid' => $oid));
+  db_query("UPDATE {ms_product_purchases} SET oid=%d WHERE id=%d", $oid, $id);
+}
+
+/**
+ * Change a purchase's expiration
+ */
+function ms_products_change_purchase_expiration($id, $expiration) {
+  $purchase = ms_products_load_purchase($id);
+  $product_plan = ms_products_load_product_plan($purchase->pid);
+  $product_type = ms_products_get_product_type($product_plan->module);
+  ms_core_log('ms_products', 'Changed the Expiration Date of @purchase_name !id to !expiration',
+      array('@purchase_name' => $product_type['purchase_name'],
+        '!id' => $id, '!expiration' => format_date($expiration, 'short')));
+  db_query("UPDATE {ms_product_purchases} SET expiration=%d WHERE id=%d", $expiration, $id);
+}
+
+/**
+ * Return a listing of Product Plans for a selected module
+ */
+function ms_products_get_module_plans($module) {
+  $result = db_query("SELECT pid, name FROM {ms_products_plans} WHERE module = '%s' ORDER BY weight ASC", array($module));
+  $plans = array();
+  while ($product_plan = db_fetch_object($result)) {
+    $plans[$product_plan->pid] = ms_products_translate_plan($product_plan, 'name');
+  }
+  return $plans;
+}
+
+/**
+ * Return a listing of Product Plans
+ */
+function ms_products_get_plans() {
+  $result = db_query("SELECT pid, name FROM {ms_products_plans} ORDER BY weight ASC");
+  $plans = array();
+  while ($product_plan = db_fetch_object($result)) {
+    $plans[$product_plan->pid] = ms_products_translate_plan($product_plan, 'name');
+  }
+  return $plans;
+}
+
+/**
+ * Load a Purchase
+ */
+function ms_products_load_purchase($id) {
+  $result = db_query("SELECT * FROM {ms_product_purchases} WHERE id = %d", array($id));
+  while ($purchase = db_fetch_object($result)) {
+    // Invoke hook_ms_products_purchase_load
+    $product_plan = ms_products_load_product_plan($purchase->pid);
+    $purchase->module = $product_plan->module;
+    module_invoke_all('ms_products_purchase_load', $purchase, $product_plan);
+    return $purchase;
+  }
+  return FALSE;
+}
+
+/**
+ * Returns an array of purchases for a user
+ */
+function ms_products_get_user_purchases($uid) {
+  $result = db_query("SELECT * FROM {ms_product_purchases} WHERE uid = %d", array($uid));
+  $purchases = array();
+  while ($purchase = db_fetch_object($result)) {
+    $purchases[] = ms_products_load_purchase($purchase->id);
+  }
+  return $purchases;
+}
+
+/**
+ * Gets a user purchase
+ */
+function ms_products_get_user_purchase($uid, $pid) {
+  $result = db_query("SELECT * FROM {ms_product_purchases} WHERE uid = %d AND pid = %d", array($uid, $pid));
+  while ($purchase = db_fetch_object($result)) {
+    return $purchase;
+  }
+  return FALSE;
+}
+
+/**
+ * Check if a user has a purchase. If so, return the purchase id
+ */
+function ms_products_user_has_purchase($uid, $pid) {
+  return ms_products_get_user_purchase($uid, $pid) ? TRUE : FALSE;
+}
+
+/**
+ * Load a Purchase by Order ID
+ */
+function ms_products_load_purchase_order_id($oid) {
+  $result = db_query("SELECT * FROM {ms_product_purchases} WHERE oid = %d", array($oid));
+  while ($purchase = db_fetch_object($result)) {
+    return $purchase;
+  }
+  return FALSE;
+}
+
+/**
+ * Insert a new purchase into the database
+ */
+function ms_products_insert_purchase($oid, $uid, $pid, $expiration = 0, $status = 'active', $start_date = 0, $current_payments = 0, $max_payments = 0) {
+  if (!$start_date) {
+    $start_date = time();
+  }
+  $result = db_query("INSERT INTO {ms_product_purchases} (oid, uid, pid, expiration, status, start_date, current_payments, max_payments)
+    VALUES (%d, %d, %d, %d, '%s', %d, %d, %d)",
+    $oid, $uid, $pid, $expiration, $status, $start_date, $current_payments, $max_payments);
+  $id = db_last_insert_id('ms_product_purchases', 'id');
+  // Call hook_ms_products_api_purchase_insert
+  $purchase = ms_products_load_purchase($id);
+  $product_plan = ms_products_load_product_plan($pid);
+  module_invoke_all('ms_products_api_purchase_insert', $purchase, $product_plan);
+  return $purchase;
+}
+
+/**
+ * Update the Payment Number
+ */
+function ms_products_increment_payment($oid, $num = 1) {
+  db_query("UPDATE {ms_product_purchases} SET current_payments=%d WHERE oid=%d", $num, $oid);
+
+  // Complete the Payment
+  $result = db_query("SELECT * FROM {ms_product_purchases} WHERE oid = %d", array($oid));
+  while ($purchase = db_fetch_object($result)) {
+    if ($purchase->max_payments AND ($purchase->current_payments == $purchase->max_payments)) {
+      db_query("UPDATE {ms_product_purchases} SET status='%s' WHERE oid=%d", 'completed', $oid);
+    }
+  }
+}
+
+/**
+ * Helper function to get a product type array
+ */
+function ms_products_get_product_type($type) {
+  $types = module_invoke_all('ms_products_api_info');
+  return isset($types[$type]) ? $types[$type] : FALSE;
+}
+
+/**
+ * Loads a product plan by SKU
+ *
+ * @param $sku
+ *   The sku
+ * @return bool
+ *   Returns the $product_plan if found, otherwise FALSE
+ */
+function ms_products_load_product_plan_by_sku($sku) {
+  $pid = db_result(db_query("SELECT pid FROM {ms_products_plans} WHERE sku = '%s'", array($sku)));
+  return ms_products_load_product_plan($pid);
+}
+
+/**
+ * Load a saved product plan from the database
+ */
+function ms_products_load_product_plan($pid) {
+  $pid = (int) $pid;
+  $result = db_query("SELECT * FROM {ms_products_plans} WHERE pid = %d", array($pid));
+  while ($product_plan = db_fetch_object($result)) {
+    // Unserialize the data
+    $product_plan->data = unserialize($product_plan->data);
+    $product_plan->modify_options = unserialize($product_plan->modify_options);
+    $product_plan->recurring_schedule = unserialize($product_plan->recurring_schedule);
+
+    // Decode the emails
+    $product_plan->signup_mail_subject = htmlspecialchars_decode($product_plan->signup_mail_subject);
+    $product_plan->signup_mail_body = htmlspecialchars_decode($product_plan->signup_mail_body);
+    $product_plan->cancel_mail_subject = htmlspecialchars_decode($product_plan->cancel_mail_subject);
+    $product_plan->cancel_mail_body = htmlspecialchars_decode($product_plan->cancel_mail_body);
+    $product_plan->expiring_mail_subject = htmlspecialchars_decode($product_plan->expiring_mail_subject);
+    $product_plan->expiring_mail_body = htmlspecialchars_decode($product_plan->expiring_mail_body);
+    $product_plan->modify_mail_subject = htmlspecialchars_decode($product_plan->modify_mail_subject);
+    $product_plan->modify_mail_body = htmlspecialchars_decode($product_plan->modify_mail_body);
+    $product_plan->eot_mail_subject = htmlspecialchars_decode($product_plan->eot_mail_subject);
+    $product_plan->eot_mail_body = htmlspecialchars_decode($product_plan->eot_mail_body);
+
+    if (!is_array($product_plan->data)) {
+      $product_plan->data = array();
+    }
+
+    // Give other modules a chance to add data to the product plan
+    // Invoke hook_ms_products_plan_load
+    module_invoke_all('ms_products_plan_load', $product_plan);
+
+    return $product_plan;
+  }
+  return FALSE;
+}
+
+/**
+ * Calculate the Expiration Date from the Product Plan
+ */
+function ms_products_get_expiration_date($pid, $start = 0) {
+  $product_plan = ms_products_load_product_plan($pid);
+  $date = 0;
+  $now = ($start) ? $start : time();
+
+  if ($product_plan->type == 'recurring') {
+    if ($product_plan->recurring_schedule['total_occurrences']) {
+      // If the plan has a set number of occurrences, then multiply the length by the occurrences to calculate expiration date
+      $date = strtotime(ms_core_get_string_time($product_plan->recurring_schedule['main_length'] * $product_plan->recurring_schedule['total_occurrences'], $product_plan->recurring_schedule['main_unit']), $now);
+
+      // Add Time for Trial Period 1
+      if ($product_plan->recurring_schedule['trial_length']) {
+        $date = strtotime(ms_core_get_string_time($product_plan->recurring_schedule['trial_length'], $product_plan->recurring_schedule['trial_unit']), $date);
+      }
+
+      return $date;
+    }
+    else {
+      // Otherwise, return 0 because the purchase shouldn't have an expiration date yet
+      return 0;
+    }
+  }
+  else {
+    if ($product_plan->recurring_schedule['main_length']) {
+      // For non recurring purchases,
+      $date = strtotime(ms_core_get_string_time($product_plan->recurring_schedule['main_length'], $product_plan->recurring_schedule['main_unit']), $now);
+
+      return $date;
+    }
+    else {
+      // If no expiration, return 0
+      return 0;
+    }
+  }
+}
+
+/**
+ * Create a Renewal Link
+ */
+function ms_products_get_renewal_link($pid, $id) {
+  return url('product/purchase/' . $pid . '/renew/' . $id, array('absolute' => TRUE));
+}
+
+// ======================================
+// Pages:
+// ======================================
+
+/**
+ * List the product plans in the admin area
+ */
+function ms_products_list_plans($module) {
+  return drupal_get_form('ms_products_list_plans_form', $module);
+}
+
+/**
+ * Show the Available Options for changing a purchase
+ */
+function ms_products_change_purchase_page($id) {
+  $purchase = ms_products_load_purchase($id);
+  $product_plan = ms_products_load_product_plan($purchase->pid);
+  $order = ms_core_order_load($purchase->oid);
+  // Get the modification options for a product plan
+  if ($modify_options = ms_products_get_modify_options($product_plan)) {
+    return drupal_get_form('ms_products_change_purchase_form', $modify_options, $order->oid, $purchase->id);
+  }
+  drupal_access_denied();
+}
+
+/**
+ * Show a form to upgrade a purchase
+ */
+function ms_products_change_purchase_form(&$form_state, $modify_options, $oid, $id) {
+  $product_plans = array();
+
+  foreach ($modify_options as $modify_option) {
+    $product_plans[$modify_option->pid] = ms_products_get_plan_option_text($modify_option);
+  }
+
+  $form = array();
+  if (!empty($product_plans)) {
+    $form['ms_products'] = array(
+      '#type' => 'fieldset',
+      '#attributes' => array('id' => 'ms_products_fieldset'),
+      '#title' => t('Product'),
+      '#weight' => 0,
+      '#collapsible' => FALSE,
+    );
+    $form['ms_products']['oid'] = array(
+      '#type' => 'value',
+      '#value' => $oid,
+    );
+    $form['ms_products']['id'] = array(
+      '#type' => 'value',
+      '#value' => $id,
+    );
+    $form['ms_products']['pid'] = array(
+      '#type' => 'radios',
+      '#title' => t('Choose your new Product'),
+      '#options' => $product_plans,
+      '#required' => TRUE,
+    );
+    $form['ms_products']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Submit'),
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * Submit Function for Change Purchase Form. Redirect to proper page
+ */
+function ms_products_change_purchase_form_submit($form, &$form_state) {
+  $v = $form_state['values'];
+
+  $order = ms_core_order_load($v['oid']);
+
+  $product_plan = ms_products_load_product_plan($v['pid']);
+  $purchase = ms_products_load_purchase($v['id']);
+
+  if ($order->order_type == 'recurring' AND $order->gateway) {
+    if (variable_get('ms_products_grant_credit', TRUE)) {
+      if ($credit = ms_core_calculate_credit($purchase->oid, $purchase->expiration)) {
+        $data['residual_credit'] = $credit;
+        $order = ms_core_add_data($order, $data);
+      }
+    }
+    drupal_goto(ms_core_get_modify_url($order, $product_plan->pid));
+  }
+  else {
+    // Add a product to the cart and go to checkout
+    if ($product_plan->pid) {
+      $product = ms_core_new_product(ms_products_translate_plan($product_plan, 'name'), 'ms_products', $product_plan->pid, $product_plan->recurring_schedule['main_amount'], $product_plan->type);
+
+      if ($product_plan->type == 'recurring') {
+        $product->type = 'recurring';
+        // Set the Recurring Schedule Settings
+        $product->recurring_schedule = $product_plan->recurring_schedule;
+      }
+
+      // Mark that this purchase is modifying another purchase
+      $product->data['modify_id'] = $purchase->id;
+
+      // Empty the cart first
+      ms_core_empty_cart();
+
+      $product = ms_core_add_cart_product($product, TRUE);
+
+      // Add the discount if applicable
+      if (variable_get('ms_products_grant_credit', TRUE)) {
+        if ($credit = ms_core_calculate_credit($purchase->oid, $purchase->expiration)) {
+          $old_plan = ms_products_load_product_plan($purchase->pid);
+          $adjustment = new MsAdjustment();
+          $adjustment->id = 'ms_products_credit_' . $purchase->id;
+          $adjustment->product_id = $product->cart_product_id;
+          $adjustment->display = t('Credit: !name', array('!name' => $old_plan->name));
+          $adjustment->type = 'fixed';
+          $adjustment->scope = 'initial';
+          $adjustment->value = -$credit;
+          $adjustment->weight = -1;
+
+          // Add the coupon to the order
+          ms_core_add_cart_adjustment($adjustment, TRUE);
+        }
+      }
+
+      ms_core_checkout();
+      exit;
+    }
+  }
+}
+
+/**
+ * Get the purchase url
+ */
+function ms_products_get_purchase_url($pid, $checkout = FALSE) {
+  if ($checkout) {
+    return url('ms_product/purchase/' . $pid . '/checkout');
+  }
+  else {
+    return url('ms_product/purchase/' . $pid);
+  }
+}
+
+/**
+ * Used for Purchasing Products
+ */
+function ms_products_purchase_product($pid, $checkout = FALSE, $data = array()) {
+  global $user;
+  $renewing = FALSE;
+  if (arg(3) == 'renew') {
+    $renewing = TRUE;
+    // If the user is not logged in, and they are renewing a purchase, redirect them to the login screen.
+    if (!$user->uid) {
+      drupal_set_message(t('Please login below before renewing your purchase.'));
+      drupal_goto('user/login', drupal_get_destination());
+    }
+  }
+  if (arg(3) == 'checkout') {
+    $checkout = TRUE;
+  }
+
+  $account = user_load($user->uid);
+
+  // If the user can upgrade to this plan, then do it
+  if ($account->uid AND isset($account->ms_product_purchases) AND is_array($account->ms_product_purchases)) {
+    foreach ($account->ms_product_purchases as $info) {
+      $purchase = ms_products_load_purchase($info['id']);
+      $product_plan = ms_products_load_product_plan($purchase->pid);
+      $order = ms_core_order_load($purchase->oid);
+
+      if ($modify_options = ms_products_get_modify_options($product_plan)) {
+        foreach ($modify_options as $u_plan) {
+          if ($u_plan->pid == $pid) {
+            if (variable_get('ms_products_grant_credit', TRUE)) {
+              if ($credit = ms_core_calculate_credit($purchase->oid, $purchase->expiration)) {
+                $data['residual_credit'] = $credit;
+                $order = ms_core_add_data($order, $data);
+              }
+            }
+            // There is an upgrade available, do it
+            drupal_goto(ms_core_get_modify_url($order, $pid));
+          }
+        }
+      }
+    }
+  }
+
+  $product_plan = ms_products_load_product_plan($pid);
+  $product_plan->data = array_merge($product_plan->data, $data);
+
+  $account = user_load($user->uid);
+
+  if ($product_plan->pid) {
+    // If amount is 0, don't go to payment gateway, just grant the product
+    if ($account->uid AND ms_products_plan_is_free($product_plan)) {
+      //Insert into Purchases database
+      $status = 'completed';
+      $expiration = ms_products_get_expiration_date($product_plan->pid);
+      $purchase = ms_products_insert_purchase(0, $account->uid, $product_plan->pid, $expiration, $status, 0, 1, 1);
+
+      // Invoke hook_ms_products_signup to let other modules act on a new purchase
+      module_invoke_all('ms_products_signup', $account, $purchase, $product_plan);
+
+      $payment_vars = array(
+        'id' => $purchase->id,
+      );
+
+      //send email
+      ms_products_prepare_mail('ms_products', 'signup', $account->mail, user_preferred_language($account), $payment_vars);
+
+      drupal_set_message(t('The !purchase product has been added to your account.', array('!purchase' => ms_products_translate_plan($product_plan, 'name'))));
+
+      // Redirect to Home Page
+      drupal_goto('');
+    }
+    else {
+      // Create a new product and add it to the order
+      $product = ms_core_new_product(ms_products_translate_plan($product_plan, 'name'), 'ms_products', $product_plan->pid, $product_plan->recurring_schedule['main_amount'], $product_plan->type);
+
+      // Set the Recurring Schedule Settings
+      $product->recurring_schedule = $product_plan->recurring_schedule;
+
+      // Store the Data
+      $product->data = $product_plan->data;
+
+      // Add the variable for renewals
+      if ($renewing AND $purchase = ms_products_load_purchase(arg(4))) {
+        // Store the Renew id data
+        $product->data['renew_id'] = $purchase->id;
+        $product->name .= ' - ' . t('Renewal');
+      }
+
+      ms_core_empty_cart();
+
+      ms_core_add_cart_product($product, TRUE);
+
+      // If option is set, go straight to checkout
+      if ($checkout) {
+        $redirect = 'ms/checkout';
+      }
+      else {
+        // Redirect to the page it came from
+        $redirect = (isset($_GET['destination'])) ? $_GET['destination'] : 'ms/cart';
+      }
+
+      drupal_goto($redirect);
+    }
+  }
+  else {
+    drupal_access_denied();
+  }
+}
+
+/**
+ * Form to List the Product Plans
+ */
+function ms_products_list_plans_form(&$form_state, $module) {
+  $form = array();
+  $result = db_query("SELECT * FROM {ms_products_plans} WHERE module = '%s' ORDER BY weight ASC",
+    array($module));
+
+  while ($row = db_fetch_object($result)) {
+    $product_plan = ms_products_load_product_plan($row->pid);
+    $actions = array(
+      l(t('Edit'), 'admin/build/' . $module . '/edit/' . $product_plan->pid),
+      l(t('Clone'), 'admin/build/' . $module . '/clone/' . $product_plan->pid),
+      l(t('Delete'), 'admin/build/' . $module . '/delete/' . $product_plan->pid),
+    );
+    $row = array(
+      array('data' => $product_plan->name, 'class' => 'ms_plan_name'),
+      array('data' => implode(' | ', $actions), 'class' => 'ms_plan_actions'),
+    );
+
+    $form['rows'][$product_plan->pid]['data'] = array(
+       '#type' => 'value',
+       '#value' => $row
+     );
+
+    $form['rows'][$product_plan->pid]['weight-' . $product_plan->pid] = array(
+      '#type' => 'textfield',
+      '#size' => 5,
+      '#default_value' => $product_plan->weight,
+      '#attributes' => array('class' => 'weight'),
+    );
+  }
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save changes'),
+  );
+
+  return $form;
+}
+
+/**
+ * Helper to save the weight of the product plans form
+ */
+function ms_products_list_plans_form_submit($form, &$form_state) {
+  foreach ($form_state['values'] as $key => $data) {
+    if (substr($key, 0, 6) == 'weight') {
+      $pid = str_replace('weight-', '', $key);
+      db_query("UPDATE {ms_products_plans} SET weight=%d WHERE pid=%d", $data, $pid);
+    }
+  }
+}
+
+/**
+ * Form to List the Product Plans
+ */
+function theme_ms_products_list_plans_form($form) {
+  $product_type = ms_products_get_product_type(arg(2));
+  $output = '';
+  $headers = array(
+    array('data' => $product_type['plan_name'], 'class' => 'ms_plans_name_header', 'sort' => 'desc'),
+    array('data' => t('Actions'), 'class' => 'ms_plans_edit_header', 'sort' => 'desc'),
+    array('data' => t('Order'), 'class' => 'ms_plans_order_header', 'sort' => 'desc'),
+  );
+  $rows = array();
+  $attr = array('id' => 'ms-products-plans-table');
+
+  if (isset($form['rows']) AND is_array($form['rows'])) {
+    foreach ($form['rows'] as $pid => $row) {
+      if (intval($pid)) {
+        $this_row = array();
+        $this_row = $row['data']['#value'];
+
+        $this_row[] = drupal_render($form['rows'][$pid]['weight-' . $pid]);
+
+        $rows[] = array('data' => $this_row, 'class' => 'draggable');
+      }
+    }
+
+    $output .= theme('table', $headers, $rows, $attr);
+    $output .= drupal_render($form);
+    drupal_add_tabledrag('ms-products-plans-table', 'order', 'sibling', 'weight');
+  }
+  else {
+    $output .= t("No @plans yet.", array('@plans' => $product_type['plan_name_plural']));
+  }
+
+  return $output;
+}
+
+/**
+ * Delete a Product Plan
+ */
+function ms_products_delete_product_plan_confirm(&$form_state, $module, $pid) {
+  if ($product_plan = ms_products_load_product_plan($pid)) {
+    $form['#ms_pid'] = $product_plan->pid;
+    $form['#ms_module'] = $module;
+    return confirm_form($form, t('Are you sure you want to delete %plan? This could adversely affect existing purchases!', array('%plan' => $product_plan->name)), 'admin/build/' . $module, t('This action cannot be undone.'), t('Delete'));
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
+/**
+ * Delete a Product Plan
+ */
+function ms_products_delete_product_plan_confirm_submit($form, &$form_state) {
+  $product_plan = ms_products_load_product_plan($form['#ms_pid']);
+  $product_type = ms_products_get_product_type($product_plan->module);
+
+  // Delete the product plan
+  $result = db_query("DELETE FROM {ms_products_plans} WHERE pid=%d", $product_plan->pid);
+  drupal_set_message(t('@plan_name %plan has been deleted',
+    array('@plan_name' => $product_type['plan_name'], '%plan' => $product_plan->name)));
+
+  // Call the hook to let other modules act on this deletion
+  module_invoke_all('ms_products_plan_deleted', $product_plan);
+  $form_state['redirect'] = 'admin/build/' . $form['#ms_module'];
+}
+
+// ======================================
+// THEME
+// ======================================
+/**
+ * Main Theme Function
+ */
+function ms_products_theme() {
+  return array(
+    'ms_products_list_plans_form' => array(
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+// ======================================
+// MAIL
+// ======================================
+
+/**
+ * Handle Mail functions
+ */
+function ms_products_prepare_mail($module, $id, $to, $language, $seed_vars, $send = TRUE) {
+  $message = array();
+  // Load the vars
+  $purchase = ms_products_load_purchase($seed_vars['id']);
+  $account = user_load($purchase->uid);
+  $order = ms_core_order_load($purchase->oid);
+
+  if (!$order) {
+    $order = new stdClass();
+    $order->first_name = $account->name;
+    $order->last_name = '';
+    $order->amount = 0;
+  }
+
+  $product_plan = ms_products_load_product_plan($purchase->pid);
+
+  $vars = new stdClass();
+  $vars->payment = ms_core_get_last_payment($order);
+  $vars->order = $order;
+  $vars->plan = $product_plan;
+  $vars->account = $account;
+  $vars->purchase = $purchase;
+
+  $subject = '';
+  $body = '';
+
+  switch ($id) {
+    case 'signup':
+      // Populate the amount field for the payment if it is not set
+      $vars->payment->amount = $order->amount;
+
+      $message['subject'] = ms_products_translate_plan($product_plan, 'signup_mail_subject');
+      $message['body'] = ms_products_translate_plan($product_plan, 'signup_mail_body');
+      break;
+    case 'cancel':
+      $message['subject'] = ms_products_translate_plan($product_plan, 'cancel_mail_subject');
+      $message['body'] = ms_products_translate_plan($product_plan, 'cancel_mail_body');
+      break;
+    case 'expiring':
+      $message['subject'] = ms_products_translate_plan($product_plan, 'expiring_mail_subject');
+      $message['body'] = ms_products_translate_plan($product_plan, 'expiring_mail_body');
+      break;
+    case 'extend':
+    case 'modify':
+      $message['subject'] = ms_products_translate_plan($product_plan, 'modify_mail_subject');
+      $message['body'] = ms_products_translate_plan($product_plan, 'modify_mail_body');
+      break;
+    case 'eot':
+      $message['subject'] = ms_products_translate_plan($product_plan, 'eot_mail_subject');
+      $message['body'] = ms_products_translate_plan($product_plan, 'eot_mail_body');
+      break;
+  }
+
+  // Replace the Purchase Tokens
+  $message['subject'] = token_replace($message['subject'], 'ms_product_purchase', $vars->purchase);
+  $message['body'] = token_replace($message['body'], 'ms_product_purchase', $vars->purchase);
+
+  // Replace the Plan Tokens
+  $message['subject'] = token_replace($message['subject'], 'ms_products_plan', $vars->plan);
+  $message['body'] = token_replace($message['body'], 'ms_products_plan', $vars->plan);
+
+  // Replace the Order Tokens
+  $message['subject'] = token_replace($message['subject'], 'ms_core_order', $vars->order);
+  $message['body'] = token_replace($message['body'], 'ms_core_order', $vars->order);
+
+  // Replace the Payment Tokens
+  $message['subject'] = token_replace($message['subject'], 'ms_core_payment', $vars->payment);
+  $message['body'] = token_replace($message['body'], 'ms_core_payment', $vars->payment);
+
+  // Replace the User Tokens
+  $message['subject'] = token_replace($message['subject'], 'user', $vars->account);
+  $message['body'] = token_replace($message['body'], 'user', $vars->account);
+
+  if (trim($message['body'])) {
+    drupal_mail($module, $id, $to, $language, $message, NULL, $send);
+  }
+}
+
+/**
+ * Handle Mail functions
+ */
+function ms_products_mail($key, &$message, $vars) {
+  $message['subject'] = $vars['subject'];
+  $message['body'] = $vars['body'];
+
+  ms_core_log('ms_products', 'Sending an Email to a User. Message: !message',
+      array('!message' => ms_core_print_r($message)));
+}
+
+// ======================================
+// TOKEN
+// ======================================
+
+/**
+ * Implementation of hook_token_list
+ */
+function ms_products_token_list($type = 'all') {
+  $tokens = array();
+  if ($type == 'ms_product_purchase' || $type == 'all') {
+    $tokens['MS Purchase']['currentPayments'] = t("The current payments made for the purchase");
+    $tokens['MS Purchase']['maxPayments'] = t("The max payments scheduled for the purchase");
+    $tokens['MS Purchase']['purchaseStatus'] = t("The status of the purchase");
+    $tokens['MS Purchase']['startDate'] = t("The start date of the purchase");
+    $tokens['MS Purchase']['expirationDate'] = t("The expiration date of the purchase");
+    $tokens['MS Purchase']['renewLink'] = t("The URL to renew the purchase");
+  }
+
+  if ($type == 'ms_products_plan' || $type == 'all') {
+    $tokens['MS Product']['planName'] = t("The label of the Product");
+    $tokens['MS Product']['planDescription'] = t("The description entered for the Product");
+    $tokens['MS Product']['recurringSchedule'] = t("The recurring schedule text");
+  }
+  return $tokens;
+}
+
+/**
+ * Implementation of hook_token_values
+ */
+function ms_products_token_values($type, $object = NULL, $options = array()) {
+  $tokens = array();
+  if ($type == 'ms_product_purchase') {
+    $tokens['currentPayments'] = $object->current_payments;
+    $tokens['maxPayments'] = $object->max_payments;
+    $tokens['purchaseStatus'] = ms_products_get_purchase_status_text($object->status);
+    $tokens['startDate'] = format_date($object->start_date, 'small');
+    $tokens['expirationDate'] = format_date($object->expiration, 'small');
+    $tokens['renewLink'] = ms_products_get_renewal_link($object->mpid, $object->mid);
+  }
+
+  if ($type == 'ms_products_plan') {
+    $tokens['planName'] = $object->name;
+    $tokens['planDescription'] = $object->description;
+    $tokens['recurringSchedule'] = ms_core_get_recurring_string($object, $object->recurring);
+  }
+
+  return $tokens;
+}
+
+// ======================================
+// MS Hooks
+// ======================================
+
+/**
+ * Implements hook_ms_products().
+ */
+function ms_products_ms_products() {
+  $products = array();
+  $plans = ms_products_get_plans();
+
+  foreach ($plans as $pid => $name) {
+    $product_plan = ms_products_load_product_plan($pid);
+
+    // Create a new product and add it to the order
+    $product = ms_core_new_product(ms_products_translate_plan($product_plan, 'name'), 'ms_products', $product_plan->pid, $product_plan->recurring_schedule['main_amount']);
+
+    // Add the product variables
+    $product->module_title = t('MS Products');
+    $product->type = $product_plan->type;
+    $product->data = $product_plan->data;
+
+    $products[] = $product;
+  }
+
+  return $products;
+}
+
+/**
+ * Implements hook_ms_order_payment().
+ */
+function ms_products_ms_order_payment($type, $product, $order, $payment) {
+  switch ($product->module) {
+    case 'ms_products':
+      $account = user_load($order->uid);
+
+      //Get Product Plan
+      $product_plan = ms_products_load_product_plan($product->id);
+      $product_type = ms_products_get_product_type($product_plan->module);
+
+      // Handle Refunds
+      if ($type == 'refund' OR $type == 'reversal') {
+        ms_core_log_error('ms_products', 'Refund Notice received for @purchase. Order: !order Payment: !payment',
+            array('@purchase' => $product_type['purchase_name'], '!order' => ms_core_print_r($order),
+            '!payment' => ms_core_print_r($payment)));
+        // Invoke hook_ms_products_refund
+        module_invoke_all('ms_products_refund', $account, $product_plan, $order, $payment);
+      }
+      else {
+        switch ($type) {
+          case "cart":
+            // Check if the user has purchased the product before
+            if (isset($product->data['renew_id']) AND $purchase = ms_products_load_purchase($product->data['renew_id'])) {
+              // If Active, increase the Expiration Date by the correct amount
+              if ($purchase->status != 'expired') {
+                $expiration = ms_products_get_expiration_date($product_plan->pid, $purchase->expiration);
+              }
+              else { // Otherwise, get the expiration date from now if it is already Inactive
+                $expiration = ms_products_get_expiration_date($product_plan->pid);
+              }
+
+              // Update the Purchase
+              ms_products_change_purchase_expiration($purchase->id, $expiration);
+              ms_products_change_purchase_status($purchase->id, 'completed');
+              ms_products_change_purchase_oid($purchase->id, $order->oid);
+
+              $payment_vars = array(
+                'id' => $purchase->id,
+              );
+
+              // Send the extend email
+              ms_products_prepare_mail('ms_products', 'extend', $account->mail, user_preferred_language($account), $payment_vars);
+
+              // Invoke hook_ms_products_renewal
+              module_invoke_all('ms_products_renewal', $account, $purchase, $product_plan);
+            }
+            // Check if this is a modification
+            elseif (isset($product->data['modify_id']) AND $old_purchase = ms_products_load_purchase($product->data['modify_id'])) {
+              // Handle the modification of the purchase
+              $purchase = ms_products_modify_purchase($order, $old_purchase, $product_plan);
+            }
+            else {
+              //Insert into Purchases database
+              $status = 'completed';
+              $expiration = ms_products_get_expiration_date($product_plan->pid);
+              $purchase = ms_products_insert_purchase($order->oid, $account->uid, $product_plan->pid, $expiration, $status, 0, 1, 1);
+
+              $payment_vars = array(
+                'id' => $purchase->id,
+              );
+
+              //send email
+              ms_products_prepare_mail('ms_products', 'signup', $account->mail, user_preferred_language($account), $payment_vars);
+
+              // Invoke hook_ms_products_signup to let other modules act on a new purchase
+              module_invoke_all('ms_products_signup', $account, $purchase, $product_plan);
+              // Invoke hook_ms_products_payment
+              module_invoke_all('ms_products_payment', $account, $purchase, $product_plan);
+            }
+            break;
+
+          case "rec_signup":
+            // Check if the user has purchased the product before
+            if (isset($product->data['renew_id']) AND $purchase = ms_products_load_purchase($product->data['renew_id'])) {
+              // If Active, increase the Expiration Date by the correct amount
+              if ($purchase->status != 'expired') {
+                $expiration = ms_products_get_expiration_date($product_plan->pid, $purchase->expiration);
+              }
+              else { // Otherwise, get the expiration date from now if it is already Inactive
+                $expiration = ms_products_get_expiration_date($product_plan->pid);
+              }
+
+              // Update the Purchase
+              ms_products_change_purchase_expiration($purchase->id, $expiration);
+              ms_products_change_purchase_status($purchase->id, 'active');
+              ms_products_change_purchase_oid($purchase->id, $order->oid);
+            }
+            // Check if this is a modification
+            elseif (isset($product->data['modify_id']) AND $old_purchase = ms_products_load_purchase($product->data['modify_id'])) {
+              // Handle the modification of the purchase
+              $purchase = ms_products_modify_purchase($order, $old_purchase, $product_plan);
+            }
+            else {
+              //Insert into Purchases database
+              $status = 'active';
+              $expiration = ms_products_get_expiration_date($product_plan->pid);
+              $purchase = ms_products_insert_purchase($order->oid, $account->uid, $product_plan->pid, $expiration, $status, 0, 0, $product_plan->recurring_schedule['total_occurrences']);
+              $payment_vars = array(
+                'id' => $purchase->id,
+              );
+
+              // Send Email to User
+              ms_products_prepare_mail('ms_products', 'signup', $account->mail, user_preferred_language($account), $payment_vars);
+            }
+
+            // Invoke hook_ms_products_signup to let other modules act on a new purchase
+            module_invoke_all('ms_products_signup', $account, $purchase, $product_plan);
+            break;
+
+          case "rec_payment":
+            // Increment Payments
+            for ($counter = 1; $counter <= 10; $counter += 1) {
+              if ($result = db_query("SELECT * FROM {ms_product_purchases} WHERE oid = %d AND pid = %d",
+                array($order->oid, $product_plan->pid))) {
+                while ($purchase = db_fetch_object($result)) {
+                  ms_products_increment_payment($order->oid);
+                  if ($purchase->status == 'canceled' OR $purchase->status == 'expired') {
+                    // Change the purchase status to active again
+                    ms_products_change_purchase_status($purchase->id, 'active');
+                    // If Active, increase the Expiration Date by the correct amount
+                    if ($purchase->status != 'expired') {
+                      $expiration = ms_products_get_expiration_date($product_plan->pid, $purchase->expiration);
+                    }
+                    else { // Otherwise, get the expiration date from now if it is already Inactive
+                      $expiration = ms_products_get_expiration_date($product_plan->pid);
+                    }
+
+                    // Update the Purchase
+                    ms_products_change_purchase_expiration($purchase->id, $expiration);
+
+                    // Invoke hook_ms_products_renewal
+                    module_invoke_all('ms_products_renewal', $account, $purchase, $product_plan);
+                  }
+                  // Invoke hook_ms_products_payment to let other modules act on a cancelled purchase
+                  module_invoke_all('ms_products_payment', $account, $purchase, $product_plan);
+                  break;
+                }
+              }
+              else {
+                sleep(5);
+              }
+            }
+            break;
+
+          case "rec_modify":
+            $old_purchase = ms_products_load_purchase_order_id($order->oid);
+            ms_products_modify_purchase($order, $old_purchase, $product_plan);
+            break;
+
+          case "rec_cancel":
+          case "failed":
+            // Change the Status of the Purchase to Canceled
+            $purchase = ms_products_load_purchase_order_id($order->oid);
+            ms_products_change_purchase_status($purchase->id, 'canceled');
+
+            // Calculate the Expiration Date
+            $now = time();
+
+            // Calculate Time for Trial Period 1
+            if ($product_plan->type == 'recurring' AND $product_plan->recurring_schedule['trial_unit']) {
+              $trial1 = strtotime(ms_core_get_string_time($product_plan->recurring_schedule['trial_length'], $product_plan->recurring_schedule['trial_unit']), $purchase->start_date);
+            }
+            else {
+              $trial1 = $now;
+            }
+
+            // Calculate time based on number of payments multiplied by period length and unit
+            if ($purchase->current_payments) {
+              $regular_time = strtotime(ms_core_get_string_time($product_plan->recurring_schedule['main_length'] * $purchase->current_payments, $product_plan->recurring_schedule['main_unit']), $trial1);
+            }
+            else {
+              $regular_time = strtotime(ms_core_get_string_time($product_plan->recurring_schedule['main_length'], $product_plan->recurring_schedule['main_unit']), $trial1);
+            }
+
+            if ($trial1 > $now) {
+              $expiration = $trial1;
+            }
+            elseif ($regular_time > $now) {
+              $expiration = $regular_time;
+            }
+            else {
+              $expiration = $now;
+            }
+
+            // Set the Expiration Date
+            ms_products_change_purchase_expiration($purchase->id, $expiration);
+
+            // Invoke hook_ms_products_cancel to let other modules act on a cancelled purchase
+            module_invoke_all('ms_products_cancel', $account, $purchase, $product_plan);
+
+            $payment_vars = array(
+              'id' => $purchase->id,
+            );
+
+            //Set Message and send email
+            drupal_set_message(t('Your purchase for the !product product has been cancelled.', array('!product' => ms_products_translate_plan($product_plan, 'name'))));
+            ms_products_prepare_mail('ms_products', 'cancel', $account->mail, user_preferred_language($account), $payment_vars);
+            break;
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Helper that modifies a purchase into a different product
+ *
+ * @param $order
+ * @param $old_purchase
+ * @param $product_plan
+ */
+function ms_products_modify_purchase($order, $old_purchase, $product_plan) {
+  //Get the user account
+  $account = user_load($order->uid);
+
+  // Load the old product plan from the old_purchase
+  $old_plan = ms_products_load_product_plan($old_purchase->pid);
+  $product_type = ms_products_get_product_type($product_plan->module);
+
+  // Update the purchase info to the new product plan
+  $expiration = ms_products_get_expiration_date($product_plan->pid);
+
+  db_query("UPDATE {ms_product_purchases} SET status='%s', pid=%d, oid = %d, current_payments=%d, max_payments=%d, start_date=%d, expiration=%d WHERE id=%d",
+    'active', $product_plan->pid, $order->oid, 0, $product_plan->recurring_schedule['total_occurrences'], time(), $expiration, $old_purchase->id);
+
+  ms_core_log('ms_products', 'Modified @purchase for user %user from %old_mem to %new_mem',
+    array('@purchase' => $product_type['purchase_name'], '%user' => $account->name,
+    '%old_mem' => ms_products_translate_plan($old_plan, 'name'),
+    '%new_mem' => ms_products_translate_plan($product_plan, 'name')));
+
+  $purchase = ms_products_load_purchase_order_id($order->oid);
+
+  $payment_vars = array(
+    'id' => $purchase->id,
+  );
+
+  //Set Message
+  drupal_set_message(t('Your @purchase_name has been changed to !purchase.',
+    array('@purchase_name' => $product_type['purchase_name'], '!purchase' => ms_products_translate_plan($product_plan, 'name'))));
+
+  //Send Mail
+  ms_products_prepare_mail('ms_products', 'modify', $account->mail, user_preferred_language($account), $payment_vars);
+
+  // Invoke hook_ms_products_modification
+  module_invoke_all('ms_products_modification', $account, $purchase, $product_plan, $old_plan);
+
+  return $purchase;
+}
+
+/**
+ * Implements hook_ms_product_load().
+ */
+function ms_products_ms_product_load($module, $id) {
+  if ($module == 'ms_products') {
+    $product_plan = ms_products_load_product_plan($id);
+
+    if ($product_plan->pid) {
+      $product = ms_core_new_product(ms_products_translate_plan($product_plan, 'name'), 'ms_products', $product_plan->pid, 'cart');
+      if ($product_plan->type == 'recurring') {
+        $product->type = 'recurring';
+
+        // Set the Recurring Schedule Settings
+        $product->recurring_schedule = $product_plan->recurring_schedule;
+      }
+
+      // Store the Data Overrides
+      $product->data = $product_plan->data;
+
+      // Add the product variables
+      $product->amount = $product_plan->recurring_schedule['main_amount'];
+
+      return $product;
+    }
+  }
+}
+
+// ======================================
+// FORMS
+// ======================================
+
+/**
+ * Build a form to add or edit a product
+ *
+ * @param $form_state
+ * @param $action
+ *   The action to perform. Can be 'add' or 'edit'
+ * @param $pid
+ *   The product plan id, only applicable if $action is 'edit'
+ */
+function ms_products_plan_form(&$form_state, $module, $action, $pid = NULL) {
+  $form = array();
+  drupal_add_js(drupal_get_path('module', 'ms_products') . '/js/ms_products_form.js');
+  $product_type = ms_products_get_product_type($module);
+  $is_edit = FALSE;
+  global $user;
+  $account = $user;
+  $product_plan = FALSE;
+
+  // -----------------------------
+  // Product Info Settings
+  // -----------------------------
+  $form['product'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('@plan_name Info', array('@plan_name' => $product_type['plan_name'])),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  // Store the Module name
+  $form['product']['module'] = array(
+    '#type' => 'value',
+    '#value' => $module,
+  );
+
+  if ($action == 'edit') {
+    $is_edit = TRUE;
+    $product_plan = ms_products_load_product_plan($pid);
+    $account = user_load($product_plan->uid);
+    // Store the Product Plan ID
+    $form['product']['pid'] = array(
+      '#type' => 'value',
+      '#value' => $product_plan->pid,
+    );
+  }
+  if ($action == 'clone') {
+    $is_edit = TRUE;
+    $product_plan = ms_products_load_product_plan($pid);
+    $account = user_load($product_plan->uid);
+    //Unset some fields
+    $product_plan->name = '';
+    $product_plan->sku = '';
+  }
+
+  $form['product']['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Label'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#description' => t("The Label for this @plan_name", array('@plan_name' => $product_type['plan_name'])),
+    '#default_value' => ($is_edit) ? $product_plan->name : '',
+    '#required' => TRUE,
+  );
+  $form['product']['sku'] = array(
+    '#type' => 'textfield',
+    '#title' => t('SKU'),
+    '#size' => 32,
+    '#description' => t("Enter a unique identifier. It must only contain lowercase letters, numbers and hyphens."),
+    '#default_value' => ($is_edit) ? $product_plan->sku : '',
+    '#required' => TRUE,
+  );
+  $form['product']['username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Owner'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#description' => t("The owner of this @plan_name. Used for tracking purposes.",
+      array('@plan_name' => $product_type['plan_name'])),
+    '#autocomplete_path' => 'admin/build/ms_core/autocomplete',
+    '#required' => TRUE,
+    '#default_value' => ($is_edit) ? $account->name : $user->name,
+  );
+  $form['product']['description'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Description'),
+    '#description' => t("Enter a short (less than 512 characters) description of the @plan_name.
+    Leave this blank for a description to be generated based on the price and recurring settings.
+    If you do add a description, be sure to include the price.",
+      array('@plan_name' => $product_type['plan_name'])),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->description : '',
+  );
+  $form['product']['main_amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Main Amount'),
+    '#size' => 8,
+    '#maxlength' => 10,
+    '#description' => t("How much the user must pay for the @purchase_name each time.
+    Ex: '15.99', '27.95' etc", array('@purchase_name' => $product_type['purchase_name'])),
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['main_amount'] : '',
+    '#required' => TRUE,
+  );
+
+  // -----------------------------
+  // Period Settings
+  // -----------------------------
+  $form['period_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Period Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  $form['period_settings']['recurring'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Recurring Subscription?'),
+    '#return_value' => 1,
+    '#default_value' => ($is_edit) ? $product_plan->type == 'recurring' : 0,
+    '#description' => t("Make the @purchase_name a Subscription with more than 1 Payment?",
+      array('@purchase_name' => $product_type['purchase_name'])),
+  );
+
+  // -----------------------------
+  // Expiration Settings
+  // -----------------------------
+  $form['period_settings']['expiration_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Expiration Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#attributes' => array('id' => 'ms_expiration'),
+  );
+  $el_options = range(0, 90);
+  $el_options[0] = 'Never Expire';
+  $form['period_settings']['expiration_settings']['expire_length'] = array(
+    '#type' => 'select',
+    '#title' => t('Length'),
+    '#options' => $el_options,
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['main_length'] : 0,
+    '#description' => t("How many units (below) before expiration.
+      If set to never expire, the user will pay 1 time for a lifetime @purchase_name.",
+        array('@purchase_name' => $product_type['purchase_name'])),
+    '#required' => FALSE,
+  );
+  $form['period_settings']['expiration_settings']['expire_unit'] = array(
+    '#type' => 'select',
+    '#title' => t('Unit'),
+    '#options' => array(
+      'D' => t('Days'),
+      'W' => t('Weeks'),
+      'M' => t('Months'),
+      'Y' => t('Years'),
+    ),
+    '#description' => t("What unit to use for the @purchase_name length",
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['main_unit'] : 'M',
+    '#required' => FALSE,
+  );
+
+  // -----------------------------
+  // Recurring Settings
+  // -----------------------------
+  $form['period_settings']['recurring_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Recurring Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#attributes' => array('id' => 'ms_recurring'),
+  );
+  $tc_options = range(0, 90);
+  $tc_options[0] = 'Recur Until Canceled';
+  unset($tc_options[1]);
+  $form['period_settings']['recurring_settings']['total_occurrences'] = array(
+    '#type' => 'select',
+    '#title' => t('Number of Periods Until Expiration'),
+    '#description' => t("How many times to bill the user when using Recurring Subscriptions."),
+    '#required' => FALSE,
+    '#options' => $tc_options,
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['total_occurrences'] : 0,
+  );
+  $ml_options = range(0, 90);
+  unset($ml_options[0]);
+  $form['period_settings']['recurring_settings']['main_length'] = array(
+    '#type' => 'select',
+    '#title' => t('Period Length'),
+    '#options' => $ml_options,
+    '#description' => t("How many units (below) for each period."),
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['main_length'] : 0,
+    '#required' => FALSE,
+  );
+  $form['period_settings']['recurring_settings']['main_unit'] = array(
+    '#type' => 'select',
+    '#title' => t('Period Unit'),
+    '#options' => array(
+      'D' => t('Days'),
+      'W' => t('Weeks'),
+      'M' => t('Months'),
+      'Y' => t('Years'),
+    ),
+    '#description' => t("What unit to use for the periods"),
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['main_unit'] : 'M',
+    '#required' => FALSE,
+  );
+
+  // -----------------------------
+  // Trial Period Settings
+  // -----------------------------
+  $form['period_settings']['recurring_settings']['trial'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Trial Period Settings (Optional)'),
+    '#collapsible' => TRUE,
+    '#weight' => 50,
+    '#collapsed' => ($is_edit AND $product_plan->recurring_schedule['trial_length']) ? FALSE : TRUE,
+    '#attributes' => array('id' => 'ms_trial'),
+  );
+  $tl_options = range(0, 90);
+  $tl_options[0] = 'No Trial Period';
+  $form['period_settings']['recurring_settings']['trial']['trial_length'] = array(
+    '#type' => 'select',
+    '#title' => t('Trial Period Length'),
+    '#options' => $tl_options,
+    '#description' => t("The number of units for the Trial Period.
+      If No Trial Period is set, the Trial Period will not be used."),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['trial_length'] : 0,
+  );
+  $form['period_settings']['recurring_settings']['trial']['trial_unit'] = array(
+    '#type' => 'select',
+    '#title' => t('Trial Period Unit'),
+    '#options' => array(
+      'D' => t('Days'),
+      'W' => t('Weeks'),
+      'M' => t('Months'),
+      'Y' => t('Years'),
+    ),
+    '#description' => t("The unit for the Trial Period."),
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['trial_unit'] : 'D',
+    '#required' => FALSE,
+  );
+  $form['period_settings']['recurring_settings']['trial']['trial_amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Trial Amount'),
+    '#size' => 8,
+    '#maxlength' => 10,
+    '#description' => t("The Amount Charged for the Trial Period. Ex: '5.99', '7.95' etc. Put 0 for a free trial."),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->recurring_schedule['trial_amount'] : '',
+  );
+
+  // -----------------------------
+  // Modify Settings
+  // -----------------------------
+  $form['modify'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Modification Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['modify']['modify_options'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Modify Options'),
+    '#description' => t("Select which @plan_plural will be offered as a modification option from this @plan.",
+      array('@plan_plural' => $product_type['plan_name_plural'], '@plan' => $product_type['plan_name'])),
+    '#default_value' => ($is_edit) ? $product_plan->modify_options : array(),
+    '#options' => ms_products_get_modify_options_plan_list($module, $pid),
+  );
+
+  // Call the alter function to let other modules add elements to the form
+  $context = array('action' => $action, 'product_plan' => $product_plan);
+  drupal_alter('ms_products_api_plan_form', $form, $module, $context);
+
+  // -----------------------------
+  // Advanced Settings
+  // -----------------------------
+  $form['advanced'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Advanced Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  // -----------------------------
+  // Email Settings
+  // -----------------------------
+  $form['email'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Email Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['email']['signup_mail_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Signup Email Subject'),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->signup_mail_subject : t("Thank you for Signing Up!"),
+  );
+  $form['email']['signup_mail_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Signup Email Body'),
+    '#description' => t("Leave blank to not send an email."),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->signup_mail_body : t("Dear [customerName],
+You have purchased the [planName] @plan_name for [paymentAmountPlain] on [site-date],
+and your account access has been upgraded. Thank you!
+
+Sincerely,
+[site-name]
+[site-url]", array('@plan_name' => $product_type['plan_name'])),
+  );
+  $form['email']['ms_products_signup_mail_token_help'] = array(
+    '#title' => t('Replacement patterns'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['email']['ms_products_signup_mail_token_help']['help'] = array(
+    '#value' => theme('token_help', array('ms_product_purchase', 'ms_products_plan', 'ms_core_order', 'ms_core_payment', 'user')),
+  );
+  $form['email']['expiring_mail_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Expiring Soon Email Subject'),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->expiring_mail_subject : t("Your @purchase_name is Expiring Soon!", array('@purchase_name' => $product_type['purchase_name'])),
+  );
+  $form['email']['expiring_mail_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Expiring Soon Email Body'),
+    '#description' => t("Leave blank to not send an email."),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->expiring_mail_body : t("Dear [customerName],
+Your [planName] @purchase_name will expire on [expirationDate]. To renew your @purchase_name,
+click the following link: [renewLink]
+
+Sincerely,
+[site-name]
+[site-url]", array('@purchase_name' => $product_type['purchase_name'])),
+  );
+  $days_array = range(0, 90);
+  $form['email']['expiring_mail_days'] = array(
+    '#type' => 'select',
+    '#title' => t('When to Send Expiring Soon Email?'),
+    '#description' => t("How many days before the @purchase_name expires should the Expiring Soon
+    email be sent? Setting this to 0 will disable it.", array('@purchase_name' => $product_type['purchase_name'])),
+    '#options' => $days_array,
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->expiring_mail_days : 0,
+  );
+  $form['email']['ms_products_expiring_mail_token_help'] = array(
+    '#title' => t('Replacement patterns'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['email']['ms_products_expiring_mail_token_help']['help'] = array(
+    '#value' => theme('token_help', array('ms_product_purchase', 'ms_products_plan', 'ms_core_order', 'ms_core_payment', 'user')),
+  );
+  $form['email']['eot_mail_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Expiration Email Subject'),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->eot_mail_subject : t("Your @purchase_name has expired",
+      array('@purchase_name' => $product_type['purchase_name'])),
+  );
+  $form['email']['eot_mail_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Expiration Email Body'),
+    '#description' => t("Leave blank to not send an email."),
+    '#required' => FALSE,
+    '#default_value' => ($is_edit) ? $product_plan->eot_mail_body : t("Dear [customerName],
+Your [planName] @purchase_name has expired or been cancelled.
+
+To renew your @purchase_name, please click the following link: [renewLink]
+
+Sincerely,
+[site-name]
+[site-url]", array('@purchase_name' => $product_type['purchase_name'])),
+  );
+  $form['email']['ms_products_eot_mail_token_help'] = array(
+    '#title' => t('Replacement patterns'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['email']['ms_products_eot_mail_token_help']['help'] = array(
+    '#value' => theme('token_help', array('ms_product_purchase', 'ms_products_plan', 'ms_core_order', 'ms_core_payment', 'user')),
+  );
+  $form['email']['cancel_mail_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('@purchase_name Cancellation Email Subject',
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#default_value' => ($is_edit) ? $product_plan->cancel_mail_subject : t('@purchase_name Cancelled',
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#required' => FALSE,
+  );
+  $form['email']['cancel_mail_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('@purchase_name Cancellation Email Body',
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#default_value' => ($is_edit) ? $product_plan->cancel_mail_body : t("Dear [customerName],
+Your [planName] @purchase_name has been cancelled and will not automatically renew anymore.
+Access will be removed at the end of the term.
+
+Sincerely,
+[site-name]
+[site-url]", array('@purchase_name' => $product_type['purchase_name'])),
+    '#description' => t("Leave blank to not send an email."),
+    '#required' => FALSE,
+  );
+  $form['email']['ms_products_cancel_mail_token_help'] = array(
+    '#title' => t('Replacement patterns'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['email']['ms_products_cancel_mail_token_help']['help'] = array(
+    '#value' => theme('token_help', array('ms_product_purchase', 'ms_products_plan', 'ms_core_order', 'ms_core_payment', 'user')),
+  );
+  $form['email']['modify_mail_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('@purchase_name Extension/Modification Email Subject',
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#default_value' => ($is_edit) ? $product_plan->modify_mail_subject : t("Thank You!"),
+    '#required' => FALSE,
+  );
+  $form['email']['modify_mail_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('@purchase_name Extension/Modification Email Body',
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#default_value' => ($is_edit) ? $product_plan->modify_mail_body : t("Dear [customerName],
+Your @purchase_name has been successfully extended.
+
+Sincerely,
+[site-name]
+[site-url]", array('@purchase_name' => $product_type['purchase_name'])),
+    '#description' => t("This email will be sent when a user extends or modifies their @purchase_name.
+    Recurring @purchase_plural can only be modified, and Non-Recurring @purchase_plural can only be extended.
+    Leave blank to not send an email.",
+    array('@purchase_plural' => $product_type['purchase_name_plural'],
+    '@purchase_name' => $product_type['purchase_name'])),
+    '#required' => FALSE,
+  );
+  $form['email']['ms_products_modify_mail_token_help'] = array(
+    '#title' => t('Replacement patterns'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['email']['ms_products_modify_mail_token_help']['help'] = array(
+    '#value' => theme('token_help', array('ms_product_purchase', 'ms_products_plan', 'ms_core_order', 'ms_core_payment', 'user')),
+  );
+
+  // Add the override settings
+  ms_core_get_override_settings_form_elements($form, ($is_edit) ? $product_plan : NULL);
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  $form['#redirect'] = 'admin/build/' . $module;
+
+  return $form;
+}
+
+/**
+ * Validate the Product Plan Form
+ */
+function ms_products_plan_form_validate($form, &$form_state) {
+  $v = $form_state['values'];
+  //Validate Trial Fee
+  if ($v['trial_amount'] && !is_numeric($v['trial_amount'])) {
+    form_set_error('trial_amount', t('You must use a number for the Trial Amount.'));
+  }
+  elseif ($v['trial_amount'] && $v['trial_amount'] < 0) {
+    form_set_error('trial_amount', t('The Trial Amount must be positive.'));
+  }
+  //Validate Regular Fee
+  if ($v['main_amount'] && !is_numeric($v['main_amount'])) {
+    form_set_error('main_amount', t('You must use a number for the Main Amount.'));
+  }
+  elseif ($v['main_amount'] && $v['main_amount'] < 0) {
+    form_set_error('main_amount', t('The Main Amount must be positive.'));
+  }
+  if (($v['main_amount'] == 0 OR $v['main_amount'] == 0.00) AND $v['recurring']) {
+    form_set_error('recurring', t('Free Products cannot be recurring'));
+  }
+  // Validate that the SKU is unique and valid
+  if (!preg_match("/^[a-zA-Z0-9\-]{3,255}$/", $v['sku'])) {
+    form_set_error('sku', t('The SKU is not in a valid format.
+      Please use only letters, number and underscores, and make sure it is at least 3 characters long.'));
+  }
+  if ($product_plan = ms_products_load_product_plan_by_sku($v['sku'])) {
+    if (!isset($v['pid']) OR $product_plan->pid != $v['pid']) {
+      form_set_error('sku', t('The SKU is already being used by a different product.
+        Please try a different SKU.'));
+    }
+  }
+
+  // Let modules add their own validation
+  module_invoke_all('ms_products_api_plan_form_validate', $form_state, $form_state['values']['module']);
+}
+
+/**
+ * Submit Function for the Add Product Form
+ */
+function ms_products_plan_form_submit($form, &$form_state) {
+  $form_values = (object) $form_state['values'];
+
+  if (isset($form_values->pid) AND $form_values->pid) {
+    $product_plan = ms_products_load_product_plan($form_values->pid);
+  }
+  else {
+    $product_plan = new stdClass();
+  }
+
+  $account = user_load(array('name' => $form_values->username));
+
+  // Set the values
+  $product_plan->name = $form_values->name;
+  $product_plan->module = $form_values->module;
+  $product_plan->uid = ($account) ? $account->uid : 0;
+  $product_plan->sku = $form_values->sku;
+  $product_plan->description = $form_values->description;
+
+  $product_plan->recurring_schedule = array(
+    'total_occurrences' => ($form_values->recurring) ? $form_values->total_occurrences : 1,
+    'main_amount' => ($form_values->main_amount) ? $form_values->main_amount : 0,
+    'main_length' => ($form_values->recurring) ? $form_values->main_length : $form_values->expire_length,
+    'main_unit' => ($form_values->recurring) ? $form_values->main_unit : $form_values->expire_unit,
+    'has_trial' => ($form_values->trial_length) ? TRUE : FALSE,
+    'trial_amount' => ($form_values->trial_amount) ? $form_values->trial_amount : 0,
+    'trial_length' => $form_values->trial_length,
+    'trial_unit' => $form_values->trial_unit,
+  );
+
+  $product_plan->type = ($form_values->recurring) ? 'recurring' : 'cart';
+  $product_plan->expiring_mail_days = $form_values->expiring_mail_days;
+  if (!isset($product_plan->weight)) {
+    $product_plan->weight = 0;
+  }
+
+  $product_plan->modify_options = $form_values->modify_options;
+
+  // Encode the Emails
+  $product_plan->signup_mail_subject = htmlspecialchars($form_values->signup_mail_subject);
+  $product_plan->signup_mail_body = htmlspecialchars($form_values->signup_mail_body);
+  $product_plan->expiring_mail_subject = htmlspecialchars($form_values->expiring_mail_subject);
+  $product_plan->expiring_mail_body = htmlspecialchars($form_values->expiring_mail_body);
+  $product_plan->eot_mail_subject = htmlspecialchars($form_values->eot_mail_subject);
+  $product_plan->eot_mail_body = htmlspecialchars($form_values->eot_mail_body);
+  $product_plan->cancel_mail_subject = htmlspecialchars($form_values->cancel_mail_subject);
+  $product_plan->cancel_mail_body = htmlspecialchars($form_values->cancel_mail_body);
+  $product_plan->modify_mail_subject = htmlspecialchars($form_values->modify_mail_subject);
+  $product_plan->modify_mail_body = htmlspecialchars($form_values->modify_mail_body);
+
+  $product_plan->data['override_settings'] = ms_core_get_overridden_settings($form_values->override_settings);
+
+  if (isset($form_values->pid) AND $form_values->pid) {
+    $product_plan->pid = $form_values->pid;
+
+    // Call a hook to let other modules save data or add data
+    drupal_alter('ms_products_plan_update', $product_plan, $form_state, $product_plan->module);
+
+    drupal_write_record('ms_products_plans', $product_plan, 'pid');
+  }
+  else {
+    // Call a hook to let other modules save data or add data
+    drupal_alter('ms_products_plan_create', $product_plan, $form_state, $product_plan->module);
+
+    drupal_write_record('ms_products_plans', $product_plan);
+  }
+
+  // Add i18n string support for emails and plan names
+  if (function_exists('i18nstrings_update')) {
+    drupal_set_message(t('Remember to update the translations for this plan !link if you changed the emails or plan name.',
+      array('!link' => l(t('here'), 'admin/build/translate/search'))));
+    // Reload the plan so that the emails and strings are in the proper format
+    $temp_plan = ms_products_load_product_plan($product_plan->pid);
+    ms_products_i18n_refresh_plan_strings($temp_plan);
+  }
+  $product_type = ms_products_get_product_type($product_plan->module);
+  drupal_set_message(t('@plan_name Saved: %sname.',
+    array('@plan_name' => $product_type['plan_name'], '%sname' => $product_plan->name)));
+}
+
+// ======================================
+// Purchases
+// ======================================
+
+/**
+ * Form to add a new purchase
+ */
+function ms_products_purchase_add_form(&$form_state, $module) {
+  $form = array();
+  $form['module'] = array(
+    '#type' => 'value',
+    '#value' => $module,
+  );
+  $product_type = ms_products_get_product_type($module);
+  $form['purchase'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('New @purchase_name', array('@purchase_name' => $product_type['purchase_name'])),
+    '#weight' => -49,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['purchase']['username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#description' => t("The Name of the User"),
+    '#autocomplete_path' => 'admin/build/ms_core/autocomplete',
+    '#required' => TRUE,
+  );
+  $plans = ms_products_get_module_plans($module);
+  $form['purchase']['pid'] = array(
+    '#type' => 'select',
+    '#title' => 'Product Plans',
+    '#options' => $plans,
+    '#description' => t("The @plan_name to use as a template",
+      array('@plan_name' => $product_type['plan_name'])),
+    '#required' => TRUE,
+  );
+
+  drupal_alter('ms_products_api_purchase_add_form', $form, $module);
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  $form['#redirect'] = 'admin/build/' . $module .'/purchases/list';
+
+  return $form;
+}
+
+/**
+ * Validate Function for the Add Purchase Form
+ */
+function ms_products_purchase_add_form_validate($form, &$form_state) {
+  $v = $form_state['values'];
+  if (!$account = user_load(array('name' => $v['username']))) {
+    form_set_error('username', t('You must enter a valid user'));
+  }
+  module_invoke_all('ms_products_api_purchase_add_form_validate', $form_state, $form_state['values']['module']);
+}
+
+/**
+ * Submit Function for the Add Purchase Form
+ */
+function ms_products_purchase_add_form_submit($form, &$form_state) {
+  $v = $form_state['values'];
+  $account = user_load(array('name' => $v['username']));
+  $product_plan = ms_products_load_product_plan($v['pid']);
+  $purchase = ms_products_insert_new_purchase($product_plan, $account);
+}
+
+/**
+ * Submit Function for the Add Purchase Form
+ */
+function ms_products_insert_new_purchase() {
+  $product_type = ms_products_get_product_type($product_plan->module);
+
+  // Insert into Purchases database
+  $status = 'completed';
+  $expiration = ms_products_get_expiration_date($product_plan->pid);
+  $purchase = ms_products_insert_purchase(0, $account->uid, $product_plan->pid, $expiration, $status, 0, 1, 1);
+
+  $payment_vars = array(
+    'id' => $purchase->id,
+  );
+
+  // Invoke hook_ms_products_signup to let other modules act on a new purchase
+  module_invoke_all('ms_products_signup', $account, $purchase, $product_plan);
+
+  //send email
+  ms_products_prepare_mail('ms_products', 'signup', $account->mail, user_preferred_language($account), $payment_vars);
+
+  drupal_set_message(t('@purchase_name Added for user: %name.',
+    array('@purchase_name' => $product_type['purchase_name'], '%name' => $account->name)));
+
+  ms_core_log('ms_products', '@plan_name %product manually added for user %username',
+    array('@plan_name' => $product_type['plan_name'], '%product' => $product_plan->name,
+    '%username' => $account->name));
+}
+
+/**
+ * Form to edit a purchase
+ */
+function ms_products_purchase_edit_form(&$form_state, $module, $id) {
+  $form = array();
+  $form['module'] = array(
+    '#type' => 'value',
+    '#value' => $module,
+  );
+  drupal_add_js(drupal_get_path('module', 'ms_products') . '/js/ms_products_edit_form.js');
+  $purchase = ms_products_load_purchase($id);
+  $product_plan = ms_products_load_product_plan($purchase->pid);
+  $product_type = ms_products_get_product_type($product_plan->module);
+  $form['purchase'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Purchase Settings'),
+    '#weight' => -50,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['purchase']['id'] = array(
+    '#type' => 'value',
+    '#value' => $purchase->id,
+  );
+  $account = user_load($purchase->uid);
+  $form['purchase']['username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('User'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#description' => t("The User Name"),
+    '#disabled' => TRUE,
+    '#value' => $account->name,
+  );
+  $form['purchase']['current_payments'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Payments'),
+    '#size' => 8,
+    '#maxlength' => 10,
+    '#description' => t("How many payments have been made?"),
+    '#required' => FALSE,
+    '#default_value' => $purchase->current_payments,
+  );
+  $form['purchase']['max_payments'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Max Payments'),
+    '#size' => 8,
+    '#maxlength' => 10,
+    '#description' => t("How many payments are expected?"),
+    '#required' => FALSE,
+    '#default_value' => $purchase->max_payments,
+  );
+  $form['purchase']['start_date'] = array(
+    '#type' => 'date',
+    '#title' => t('Start Date'),
+    '#description' => t("When was this @purchase_name created?",
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#required' => TRUE,
+    '#default_value' => array(
+      'year' => date('Y', $purchase->start_date),
+      'month' => date('n', $purchase->start_date),
+      'day' => date('j', $purchase->start_date),
+      ),
+  );
+  $form['purchase']['should_expire'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Expiration?'),
+    '#description' => t("Check this to set an expiration date for the @purchase_name.
+    Leaving this unchecked will cause the purchase to never expire.",
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#required' => FALSE,
+    '#default_value' => ($purchase->expiration ? TRUE : FALSE),
+  );
+  $form['purchase']['expiration'] = array(
+    '#type' => 'date',
+    '#title' => t('Expiration Date'),
+    '#description' => t("When does this @purchase_name Expire?",
+      array('@purchase_name' => $product_type['purchase_name'])),
+    '#default_value' => array(
+      'year' => (($purchase->expiration) ? date('Y', $purchase->expiration) : date('Y', time())),
+      'month' => (($purchase->expiration) ? date('n', $purchase->expiration) : date('n', time())),
+      'day' => (($purchase->expiration) ? date('j', $purchase->expiration) : date('j', time())),
+      ),
+  );
+  $form['purchase']['status'] = array(
+    '#type' => 'select',
+    '#title' => t('Status'),
+    '#options' => ms_products_get_purchase_statuses(),
+    '#description' => t("What is the Status of the @purchase_name?",
+    array('@purchase_name' => $product_type['purchase_name'])),
+    '#required' => FALSE,
+    '#default_value' => $purchase->status,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+  $form['#redirect'] = 'admin/build/' . $module .'/purchases/list';
+
+  // Call the alter function to let other modules add elements to the form
+  $context = array('purchase' => $purchase, 'product_plan' => $product_plan);
+  drupal_alter('ms_products_api_purchase_edit_form', $form, $module, $context);
+
+  return $form;
+}
+
+/**
+ * Validate Function for the Edit Purchase Form
+ */
+function ms_products_purchase_edit_form_validate($form, &$form_state) {
+  $v = $form_state['values'];
+  module_invoke_all('ms_products_api_purchase_edit_form_validate', $form_state, $form_state['values']['module']);
+}
+
+/**
+ * Submit Function for the Edit Purchase Form
+ */
+function ms_products_purchase_edit_form_submit($form, &$form_state) {
+  $v = $form_state['values'];
+  $purchase = ms_products_load_purchase($v['id']);
+  $product_plan = ms_products_load_product_plan($purchase->pid);
+
+  // Pass the values off to presave
+  module_invoke_all('ms_products_api_purchase_presave', $v, $purchase, $product_plan);
+
+  $purchase->current_payments = $v['current_payments'];
+  $purchase->max_payments = $v['max_payments'];
+  $purchase->status = $v['status'];
+  $purchase->start_date = strtotime($v['start_date']['year'] . '-' . $v['start_date']['month'] . '-' . $v['start_date']['day']);
+  if (!$v['should_expire']) {
+    $purchase->expiration = 0;
+  }
+  else {
+    $purchase->expiration = strtotime($v['expiration']['year'] . '-' . $v['expiration']['month'] . '-' . $v['expiration']['day']);
+  }
+  drupal_write_record('ms_product_purchases', $purchase, 'id');
+  drupal_set_message(t('Purchase Saved.'));
+
+  // Call hook_ms_products_expiring if it is expired
+  if ($purchase->status == 'expired') {
+    $product_plan = ms_products_load_product_plan($purchase->pid);
+    module_invoke_all('ms_products_expiring', $account, $purchase, $product_plan);
+  }
+}
+
+/**
+ * Delete a Purchase
+ */
+function ms_products_delete_purchase_confirm(&$form_state, $module, $id) {
+  if ($purchase = ms_products_load_purchase($id)) {
+    $form['#ms_id'] = $purchase->id;
+    $form['#ms_module'] = $module;
+    $product_type = ms_products_get_product_type($module);
+    return confirm_form($form, t('Are you sure you want to delete this @purchase_name?',
+      array('@purchase_name' => $product_type['purchase_name'])),
+      'admin/build/' . $module .'/purchases/list',
+      t('This action cannot be undone.'), t('Delete'));
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
+/**
+ * Delete a Purchase
+ */
+function ms_products_delete_purchase_confirm_submit($form, &$form_state) {
+  $purchase = ms_products_load_purchase($form['#ms_id']);
+  $account = user_load($purchase->uid);
+  $product_plan = ms_products_load_product_plan($purchase->pid);
+  $product_type = ms_products_get_product_type($product_plan->module);
+
+  // Call hook_ms_products_api_purchase_delete
+  module_invoke_all('ms_products_api_purchase_delete', $purchase, $product_plan);
+
+  // Delete the purchase
+  $result = db_query("DELETE FROM {ms_product_purchases} WHERE id=%d", $purchase->id);
+
+  drupal_set_message(t('@purchase_name %product for user %name Deleted',
+    array('@purchase_name' => $product_type['purchase_name'], '%name' => $account->name,
+    '%product' => $product_plan->name)));
+  $form_state['redirect'] = 'admin/build/' . $form['#ms_module'] .'/purchases/list';
+}
+
+/**
+ * Show a listing of all purchases
+ */
+function ms_products_show_purchases($module) {
+  global $user;
+  $name = '';
+
+  $headers = array(
+    array('data' => t('Start Date'), 'class' => 'ms_products_purchase_start_date_header', 'field' => 'd.start_date', 'sort' => 'desc'),
+    array('data' => t('Expiration'), 'class' => 'ms_products_purchase_expiration_header', 'field' => 'd.expiration'),
+    array('data' => t('User'), 'class' => 'ms_products_purchase_user_header', 'field' => 'u.name'),
+    array('data' => t('Product'), 'class' => 'ms_products_purchase_name_header', 'field' => 'p.name'),
+    array('data' => t('Status'), 'class' => 'ms_products_purchase_status_header', 'field' => 'd.status'),
+    array('data' => t('Payments'), 'class' => 'ms_products_purchase_current_payments_header', 'field' => 'd.current_payments'),
+    array('data' => t('Actions'), 'class' => 'ms_products_purchase_actions_header'),
+  );
+
+  $sql = "SELECT d.current_payments, d.max_payments, d.expiration, d.start_date, d.id, d.pid, d.uid, d.status,
+    p.name as product_name, u.name
+    FROM {ms_product_purchases} as d
+    LEFT JOIN {ms_products_plans} as p ON d.pid = p.pid
+    LEFT JOIN {users} as u ON d.uid = u.uid";
+  $args = array();
+
+  $name = '';
+  if (isset($_GET['name'])) {
+    $name = $_GET['name'];
+    $sql .= " WHERE u.name LIKE '%s'";
+    $args[] = '%'. $name .'%';
+  }
+
+  $sql .= tablesort_sql($headers);
+
+  $pager_amount = 20;
+  if (!isset($_GET['pager_amount']) OR $pager_amount = $_GET['pager_amount']) {
+    $result = pager_query($sql, $pager_amount, 0, NULL, $args);
+  }
+
+  $content = '';
+
+  $rows = array();
+  $attr = array('id' => 'ms-purchases-table');
+  while ($purchase = db_fetch_object($result)) {
+    $actions = array(
+      l(t('Edit'), 'admin/build/' . $module .'/purchases/edit/' . $purchase->id),
+      l(t('Delete'), 'admin/build/' . $module .'/purchases/delete/' . $purchase->id, array('attributes' => array('class' => 'txn_del')))
+    );
+    $rows[] = array(
+      array('data' => format_date($purchase->start_date, 'small'), 'class' => 'ms_products_purchase_start_date'),
+      array('data' => ($purchase->expiration ? format_date($purchase->expiration, 'small') : 'None'), 'class' => 'ms_products_purchase_expiration'),
+      array('data' => l($purchase->name, 'user/' . $purchase->uid), 'class' => 'ms_products_purchase_user'),
+      array('data' => $purchase->product_name, 'class' => 'ms_products_product_name'),
+      array('data' => ms_products_get_purchase_status_text($purchase->status), 'class' => 'ms_products_purchase_status'),
+      array('data' => $purchase->current_payments . '/' . ($purchase->max_payments ? $purchase->max_payments : 'Unlimited'), 'class' => 'ms_products_purchase_current_payments'),
+      array('data' => implode($actions, ' | '), 'class' => 'ms_products_purchase_actions')
+    );
+  }
+
+  // Add the name filter
+  $filters = drupal_get_form('ms_core_get_filter_form', array('name' => $name));
+  $content .= $filters;
+
+  $content .= theme('table', $headers, $rows, $attr);
+  $content .= theme('pager', NULL, $pager_amount, 0);
+
+  return $content;
+}
+
+// ======================================
+// i18n Integration
+// ======================================
+
+/**
+ * Implements hook_locale().
+ */
+function ms_products_locale($op = 'groups', $group = NULL) {
+  switch ($op) {
+    case 'groups': // This is the standard hook_locale() as defined by Drupal core, to define 'text groups'
+      return array('ms_products_plan' => t('Product Plans'));
+
+    case 'info': // This is i18n extension, optional, to define some more properties
+      // Optional refresh callback to update this module's strings at once
+      $info['ms_products_plan']['refresh callback'] = 'ms_products_i18n_locale_refresh';
+      // This tells 'i18nstrings' that this module's strings have no input format applied
+      $info['ms_products_plan']['format'] = FALSE;
+      return $info;
+  }
+}
+
+/**
+ * Refreshes the i18n strings
+ */
+function ms_products_i18n_locale_refresh() {
+  // Update the strings for each product plan
+  foreach (ms_products_get_plans() as $pid => $name) {
+    $product_plan = ms_products_load_product_plan($pid);
+    ms_products_i18n_refresh_plan_strings($product_plan);
+  }
+  return TRUE;
+}
+
+/**
+ * Helper function that refreshes the i18n strings for a plan
+ * @param $product_plan
+ * @return unknown_type
+ */
+function ms_products_i18n_refresh_plan_strings($product_plan) {
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'name', $product_plan->name);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'description', $product_plan->description);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'signup_mail_subject', $product_plan->signup_mail_subject);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'signup_mail_body', $product_plan->signup_mail_body);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'expiring_mail_subject', $product_plan->expiring_mail_subject);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'expiring_mail_body', $product_plan->expiring_mail_body);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'eot_mail_subject', $product_plan->eot_mail_subject);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'eot_mail_body', $product_plan->eot_mail_body);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'cancel_mail_subject', $product_plan->cancel_mail_subject);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'cancel_mail_body', $product_plan->cancel_mail_body);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'modify_mail_subject', $product_plan->modify_mail_subject);
+  i18nstrings_update('ms_products_plan:plan:' . $product_plan->pid . ':' . 'modify_mail_body', $product_plan->modify_mail_body);
+}
+
+/**
+ * Helper function for translating plan variables
+ *
+ * @param $product_plan
+ *   The $product_plan object
+ * @param $name
+ *   The name of the plan
+ * @return
+ *   The translated string
+ */
+function ms_products_translate_plan($product_plan, $name) {
+  return ms_core_translate('plan:' . $product_plan->pid . ':' . $name, $product_plan->$name, 'ms_products_plan');
+}
+
+/**
+ * Shows a form letting the user choose which product plan they want to purchase
+ */
+function ms_products_purchase_plan_page($product_type) {
+  $plans = ms_products_get_module_plans($product_type);
+  if (!empty($plans)) {
+    return drupal_get_form('ms_products_select_plan_form', $product_type, arg(3));
+  }
+  else {
+    return t('There are no plans available.');
+  }
+}
+
+/**
+ * Builds a form to let the user add a product plan to their cart
+ */
+function ms_products_select_plan_form($form_state, $module, $default = NULL) {
+  $form = array();
+  $plans = ms_products_get_module_plans($module);
+  $product_info = ms_products_get_product_type($module);
+
+  $form['product_type'] = array(
+    '#type' => 'value',
+    '#value' => $module,
+  );
+
+  $form['pid'] = array(
+    '#type' => 'radios',
+    '#title' => t('Choose your @plan_name', array('@plan_name' => $product_info['plan_name'])),
+    '#options' => $plans,
+    '#required' => TRUE,
+    '#default_value' => is_null($default) ? key($plans) : $default,
+  );
+
+  // Call the hook to add any additonal fields that are needed
+  drupal_alter('ms_products_add_to_cart_form', $form, $module);
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Checkout'),
+  );
+  return $form;
+}
+
+/**
+ * Validate function for the select plan form
+ */
+function ms_products_select_plan_form_validate($form, &$form_state) {
+  // Call the hook to validate the purchase fields
+  module_invoke_all('ms_products_add_to_cart_form_validate', $form_state, $form_state['values']['product_type']);
+}
+
+/**
+ * Submit function for the select plan form
+ */
+function ms_products_select_plan_form_submit($form, &$form_state) {
+  ms_products_purchase_product($form_state['values']['pid'], TRUE, $form_state['values']);
+}
+
+// ======================================
+// RULES
+// ======================================
+
+/**
+ * Implementation of hook_ms_products_signup().
+ */
+function ms_products_ms_products_signup($account, $purchase, $plan) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_products_event_purchase_signup', $account, $purchase, $plan);
+  }
+}
+
+/**
+ * Implements hook_ms_products_renewal().
+ */
+function ms_products_ms_products_renewal($account, $purchase, $plan) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_products_event_purchase_renewal', $account, $purchase, $plan);
+  }
+}
+
+/**
+ * Implements hook_ms_products_modification().
+ */
+function ms_products_ms_products_modification($account, $purchase, $new_plan, $old_plan) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_products_event_purchase_modification', $account, $purchase, $new_plan, $old_plan);
+  }
+}
+
+/**
+ * Implementation of hook_ms_products_expiring_soon().
+ */
+function ms_products_ms_products_expiring_soon($account, $purchase, $plan) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_products_event_purchase_expiring_soon', $account, $purchase, $plan);
+  }
+}
+
+/**
+ * Implementation of hook_ms_products_expiring().
+ */
+function ms_products_ms_products_expiring($account, $purchase, $plan) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_products_event_purchase_expiring', $account, $purchase, $plan);
+  }
+}
+
+/**
+ * Implementation of hook_ms_products_cancel().
+ */
+function ms_products_ms_products_cancel($account, $purchase, $plan) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_products_event_purchase_cancel', $account, $purchase, $plan);
+  }
+}
+
+/**
+ * Implementation of hook_ms_products_payment().
+ */
+function ms_products_ms_products_payment($account, $purchase, $plan) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_products_event_purchase_payment', $account, $purchase, $plan);
+  }
+}

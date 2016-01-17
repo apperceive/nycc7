@@ -1,0 +1,7 @@
+; $Id: $ 
+name = Reports 2.0
+description = View Reports and Flash Charts of your MoneyScripts Modules Stats using new charts API
+package = MoneyScripts
+version = "6.x-1.50"
+core = 6.x
+dependencies[] = ms_core

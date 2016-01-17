@@ -1,0 +1,1653 @@
+<?php
+
+/**
+* @file
+* Module that allows users to use gift card
+* Made by Leighton Whiting
+* Copyright 2011 Leighton Whiting
+*/
+
+/**
+* Display help and module information
+*/
+function ms_gift_cards_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case "admin/help#ms_gift_cards":
+      $output = '<p>'.  t("Interface to Generate, Activate, and Redeem Gift Codes (can be used on Gift Cards).") .'</p>';
+      break;
+  }
+  return $output;
+}
+
+/**
+* Implementation of hook_cron().
+*/
+function ms_gift_cards_cron() {
+
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function ms_gift_cards_perm() {
+  return array(
+    'activate gift card',
+    'redeem gift card',
+    'block redeem gift card',
+  );
+}
+
+/**
+ * Implementation of hook_menu
+ */
+function ms_gift_cards_menu() {
+  $items = array();
+  $items['activate'] = array(
+    'title' => 'Activate Gift Card',
+    'page callback' => 'ms_gift_cards_activate_card',
+    'access arguments' => array('activate gift card'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['giftcard'] = array(
+    'title' => 'Redeem Gift Card',
+    'page callback' => 'ms_gift_cards_redeem_card',
+    'access arguments' => array('redeem gift card'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/moneyscripts/ms_gift_cards'] = array(
+    'title' => 'MS Gift Cards',
+    'description' => 'Set the various Gift Card Settings here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ms_gift_cards_admin'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/moneyscripts/ms_gift_cards/settings'] = array(
+    'title' => 'Gift Card Settings',
+    'description' => 'Set the various Gift Card Settings here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ms_gift_cards_admin'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/moneyscripts/ms_gift_cards/overview'] = array(
+    'title' => 'View/Edit Gift Cards',
+    'description' => 'View and Edit Gift Cards',
+    'page callback' => 'ms_gift_cards_overview_page',
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/moneyscripts/ms_gift_cards/export'] = array(
+    'title' => 'Export CSV',
+    'description' => 'Export to CSV',
+    'page callback' => 'ms_gift_cards_csv_page',
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/moneyscripts/ms_gift_cards/add'] = array(
+    'title' => 'Generate Gift Cards',
+    'page callback' => 'ms_gift_cards_generate_cards_page',
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/moneyscripts/ms_gift_cards/change/%/%'] = array(
+    'title' => 'Change Gift Card Status',
+    'page callback' => 'ms_gift_cards_change_status_page',
+    'page arguments' => array(4, 5),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/moneyscripts/ms_gift_cards/edit/%'] = array(
+    'title' => 'Edit Gift Card',
+    'page callback' => 'ms_gift_cards_edit_card_page',
+    'page arguments' => array(4),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/moneyscripts/ms_gift_cards/delete/%'] = array(
+    'title' => 'Delete Gift Card',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ms_gift_cards_delete_card_confirm', 4),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+function ms_gift_cards_store_csv($headers, $rows) {
+  $csv_output = '';
+  $csv_row = array();
+  foreach ($headers as $index => $row) {
+    if ($row['class'] !='ms_gift_cards_actions_header') {
+      $csv_row[$index] = '"'. str_replace('"', '""', strip_tags($row['data'])) .'"';
+    }
+  }
+  $csv_output .= implode(',', $csv_row) ."\n\n";
+  foreach ($rows as $row) {
+    $csv_row = array();
+    foreach ($row['data'] as $index => $column) {
+      if ($column['class'] !='ms_gift_cards_actions') {
+        $csv_row[$index] = '"'. str_replace('"', '""', strip_tags($column['data'])) .'"';
+      }
+    }
+    $csv_output .= implode(',', $csv_row) ."\n";
+  }
+  cache_set('ms_gift_cards_csv', $csv_output, 'cache', time() + 86400);
+}
+
+function ms_gift_cards_csv_page() {
+  $csv_data = cache_get('ms_gift_cards_csv', 'cache');
+
+  if (!$csv_data) {
+    drupal_set_message(t("The CSV data could not be retreived. It's possible the data might have expired. Refresh the report page and try to retrieve the CSV file again."), 'error');
+    drupal_not_found();
+    exit();
+  }
+  else {
+    ob_end_clean();
+    $http_headers = array(
+      'Pragma: no-cache',
+      'Expires: 0',
+      'Cache-Control: no-cache, must-revalidate',
+      'Cache-Control: private',
+      'Content-Transfer-Encoding: binary',
+      'Content-Length:'. strlen($csv_data->data),
+      'Content-Disposition: attachment; filename="'. 'gift_cards-'. time() .'.csv"',
+      'Content-Type: text/csv'
+    );
+    foreach ($http_headers as $header) {
+      $header = preg_replace('/\r?\n(?!\t| )/', '', $header);
+      drupal_set_header($header);
+    }
+
+    print $csv_data->data;
+    exit();
+  }
+}
+
+// ======================================
+// Administration Page:
+// ======================================
+
+/**
+ * Admin Settings Form
+ */
+function ms_gift_cards_admin() {
+  $form['main'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Main Settings'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#description' => t("The URL to redeem a giftcard is !redeem . The url to activate a giftcard is !activate",
+      array('!redeem' => url('giftcard'), '!activate' => url('activate'))),
+  );
+  $form['email'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Email Settings'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['main']['ms_gift_cards_code_length'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Code Length'),
+    '#default_value' => variable_get('ms_gift_cards_code_length', 10),
+    '#description' => t('Set the default length for gift card codes. This can be overridden when generating codes.'),
+    '#required' => TRUE,
+  );
+  $form['main']['ms_gift_cards_code_allowed_characters'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Code Characters'),
+    '#default_value' => variable_get('ms_gift_cards_code_allowed_characters', array('letters', 'numbers')),
+    '#options' => array(
+      'letters' => t('Letters (A-Z)'),
+      'numbers' => t('Numbers (0-9)'),
+    ),
+    '#description' => t('Which characters can be used for gift card codes. This can be overridden when generating codes.'),
+    '#required' => TRUE,
+  );
+  $form['main']['ms_gift_cards_amount_to_show'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Records Per Page?'),
+    '#default_value' => variable_get('ms_gift_cards_amount_to_show', 100),
+    '#description' => t('Set how many records to show per page on the overview page.'),
+    '#required' => TRUE,
+  );
+
+  $form['email']['ms_gift_cards_gift_activated_mail_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Gift Card Activated Email Subject'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('ms_gift_cards_gift_activated_mail_subject', t("Gift Card Activated")),
+  );
+  $form['email']['ms_gift_cards_gift_activated_mail_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Gift Card Activated Email Body'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('ms_gift_cards_gift_activated_mail_body', t("Your gift card has been activated.
+
+      Gift: [productName]
+      Code: [giftCode]
+      Link: [redeemUrl]
+      ")),
+  );
+  $form['email']['ms_gift_cards_gift_activated_mail_token_help'] = array(
+    '#title' => t('Replacement patterns'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $form['email']['ms_gift_cards_gift_activated_mail_token_help']['help'] = array(
+    '#value' => theme('token_help', array('ms_gift_cards', 'ms_core_product', 'ms_core_order', 'ms_core_payment', 'user')),
+  );
+
+  return system_settings_form($form);
+}//function admin settings
+
+// ======================================
+// Pages:
+// ======================================
+
+/**
+ * Show all of the Gift Cards, with filters
+ */
+function ms_gift_cards_overview_page() {
+  $output = '';
+
+  // Add the CSS
+  drupal_add_css(drupal_get_path('module', 'ms_gift_cards') .'/ms_gift_cards.css');
+
+  // Add JS
+  drupal_add_js(drupal_get_path('module', 'ms_gift_cards') .'/ms_gift_cards.js', 'module');
+
+  $headers = array();
+
+  if (module_exists('ms_affiliates')) {
+    $headers[] = array('data' => t('Affiliate'), 'class' => 'ms_gift_cards_affiliate_header', 'field' => 'u.name');
+  }
+
+  $headers[] = array('data' => t('Created'), 'class' => 'ms_gift_cards_created_header', 'field' => 'd.created', 'sort' => 'desc');
+  $headers[] = array('data' => t('Activated'), 'class' => 'ms_gift_cards_activated_header', 'field' => 'd.activated');
+  $headers[] = array('data' => t('Redeemed'), 'class' => 'ms_gift_cards_redeemed_header', 'field' => 'd.redeemed');
+  $headers[] = array('data' => t('Product'), 'class' => 'ms_gift_cards_product_header', 'field' => 'd.product_id');
+  $headers[] = array('data' => t('Status'), 'class' => 'ms_gift_cards_status_header', 'field' => 'd.status');
+  $headers[] = array('data' => t('Code'), 'class' => 'ms_gift_cards_code_header', 'field' => 'd.code');
+  $headers[] = array('data' => t('Amount'), 'class' => 'ms_gift_cards_amount_header', 'field' => 'd.amount');
+  $headers[] = array('data' => t('Actions'), 'class' => 'ms_gift_cards_actions_header');
+
+  $sql = "SELECT d.id, d.created, d.activated, d.redeemed, d.product_id, d.status, d.code, d.module,
+    d.activated_user, d.redeemed_user, d.amount, d.affiliate, d.oid, u.name
+    FROM {ms_gift_cards} as d
+    LEFT JOIN {users} as u ON d.affiliate = u.uid";
+  $args = array();
+  $where_clauses = array();
+
+  if (isset($_GET['name']) AND $_GET['name']) {
+    $name = $_GET['name'];
+    $where_clauses[] = "u.name LIKE '%s'";
+    $args[] = '%'. $name .'%';
+  }
+
+  if (isset($_GET['status']) AND $_GET['status'] != 'any') {
+    $status = $_GET['status'];
+    $where_clauses[] = "d.status LIKE '%s'";
+    $args[] = '%'. $status .'%';
+  }
+
+  if (!empty($where_clauses)) {
+    $sql .= " WHERE ";
+    $sql .= implode(' AND ', $where_clauses);
+  }
+
+  $sql .= tablesort_sql($headers);
+  $result = pager_query($sql, variable_get('ms_gift_cards_amount_to_show', 100), 0, NULL, $args);
+  $rows = array();
+  $attr = array('id' => 'ms-gift-cards-table');
+  while ($gift_card = db_fetch_object($result)) {
+    $actions = array(
+      l('Edit', 'admin/moneyscripts/ms_gift_cards/edit/'. $gift_card->id),
+      l('Delete', 'admin/moneyscripts/ms_gift_cards/delete/'. $gift_card->id, array('attributes' => array('class' => 'txn_del')))
+    );
+
+    // Load some variables
+    $activated_user = user_load($gift_card->activated_user);
+    $redeemed_user = user_load($gift_card->redeemed_user);
+    if ($order = ms_core_order_load($gift_card->oid)) {
+      $actions[] = l(t('Order @num', array('@num' => $order->oid)), 'admin/moneyscripts/orders/view/'. $order->oid);
+    }
+    $product = ms_core_load_module_product($gift_card->module, $gift_card->product_id);
+
+    $t_rows = array();
+
+    if ($affiliate = user_load($gift_card->affiliate)) {
+      $t_rows[] = array('data' => l($affiliate->name, 'user/'. $affiliate->uid), 'class' => 'ms_gift_cards_affiliate');
+    }
+
+    $t_rows[] = array('data' => format_date($gift_card->created, 'small'), 'class' => 'ms_gift_cards_created');
+
+    $t_rows[] = array('data' => $gift_card->activated ? l($activated_user->name, 'user/'. $activated_user->uid) .' <br />'. format_date($gift_card->activated, 'small') : '-', 'class' => 'ms_gift_cards_activated');
+    $t_rows[] = array('data' => $gift_card->redeemed ? l($redeemed_user->name, 'user/'. $redeemed_user->uid) .' <br />'. format_date($gift_card->redeemed, 'small') : '-', 'class' => 'ms_gift_cards_redeemed');
+
+    $t_rows[] = array('data' => $product->name, 'class' => 'ms_gift_cards_product');
+    $t_rows[] = array('data' => ms_gift_cards_get_gift_card_status_text($gift_card->status), 'class' => 'ms_gift_cards_status');
+    $t_rows[] = array('data' => $gift_card->code, 'class' => 'ms_gift_cards_code');
+    $t_rows[] = array('data' => ms_core_format_money($gift_card->amount), 'class' => 'ms_gift_cards_amount');
+
+    $t_rows[] = array('data' => implode(' | ', $actions), 'class' => 'ms_gift_cards_actions');
+
+    $rows[] = array('data' => $t_rows, 'class' => 'gift_row_'. $gift_card->status, 'rel' => $gift_card->id);
+  }
+
+  // Set the CSV Cache
+  ms_gift_cards_store_csv($headers, $rows);
+
+  // Add the name filter
+  $output .= drupal_get_form('ms_gift_cards_status_filter_form', $name, $status);
+
+  $output .= theme('table', $headers, $rows, $attr);
+  $output .= theme('pager', NULL, 20, 0);
+
+  // Add the image
+  $output .= "<div id='ms_gift_cards_ajax_loader' style='display:none;'><div><img src='/". drupal_get_path('module', 'ms_core') .'/images/ajax-loader.gif' ."' /></div></div>";
+  return $output;
+}
+
+function ms_gift_cards_status_filter_form(&$form_state, $name = NULL, $status = NULL) {
+  $form = array();
+  $form['#method'] = 'get';
+  $form['#action'] = request_uri();
+  $form['search'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Search'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['search']['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#description' => t("All or part of the username."),
+    '#default_value' => ($name) ? $name : '',
+    '#required' => FALSE,
+  );
+
+  $statuses = ms_gift_cards_get_gift_card_statuses();
+  $statuses['any'] = t('Any');
+
+  $form['search']['status'] = array(
+    '#type' => 'select',
+    '#title' => t('Status'),
+    '#options' => $statuses,
+    '#description' => t("Status of the Gift Card"),
+    '#default_value' => ($status) ? $status : 'any',
+    '#required' => FALSE,
+  );
+
+  $form['search']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+  return $form;
+}
+
+/**
+ * Allow for generating Gift Cards
+ */
+function ms_gift_cards_generate_cards_page() {
+  return drupal_get_form('ms_gift_cards_generate_cards_form');
+}
+
+  // Let the user specify how many cards will be generated
+
+/**
+ * Show form for editing a Gift Card
+ */
+function ms_gift_cards_generate_cards_form($form_state) {
+  $form['gift_card'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Gift Card Generation Settings'),
+    '#weight' => -50,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['gift_card']['product'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Product'),
+    '#description' => t('Enter a product below.'),
+    '#required' => TRUE,
+    '#autocomplete_path' => 'ms_core/autocomplete/product',
+  );
+  $form['gift_card']['amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Amount'),
+    '#description' => t('Enter the amount to sell the gift cards for.'),
+    '#required' => FALSE,
+  );
+  $form['gift_card']['status'] = array(
+    '#type' => 'select',
+    '#title' => t('Status'),
+    '#options' => ms_gift_cards_get_gift_card_statuses(),
+    '#description' => t("What is the Default Status of the Cards?"),
+    '#required' => TRUE,
+  );
+
+  $form['gift_card']['number'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Number of Cards'),
+    '#description' => t('How many cards to generate.'),
+    '#required' => TRUE,
+  );
+  $form['gift_card']['code_length'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Code Length'),
+    '#default_value' => variable_get('ms_gift_cards_code_length', 10),
+    '#description' => t('Set the length for the gift card codes.'),
+    '#required' => TRUE,
+  );
+  $form['gift_card']['code_allowed_characters'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Code Characters'),
+    '#default_value' => variable_get('ms_gift_cards_code_allowed_characters', array('letters', 'numbers')),
+    '#options' => array(
+      'letters' => t('Letters (A-Z)'),
+      'numbers' => t('Numbers (0-9)'),
+    ),
+    '#description' => t('Which characters can be used for the gift card codes.'),
+    '#required' => TRUE,
+  );
+
+  $form['gift_card']['created'] = array(
+    '#type' => 'date',
+    '#title' => t('Created Date'),
+    '#description' => t("When were these cards created?"),
+    '#required' => TRUE,
+    '#default_value' => array(
+      'year' => date('Y'),
+      'month' => date('n'),
+      'day' => date('j'),
+      ),
+  );
+
+  if (module_exists('ms_affiliates')) {
+    $form['gift_card']['affiliate'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Affiliate'),
+      '#size' => 32,
+      '#maxlength' => 64,
+      '#description' => t("The Affiliate for these Gift Cards"),
+      '#autocomplete_path' => 'admin/build/ms_core/autocomplete',
+      '#required' => FALSE,
+    );
+  }
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+  $form['#redirect'] = 'admin/moneyscripts/ms_gift_cards/overview';
+  return $form;
+}
+
+/**
+ * Validate Function for the Generate Cards Form
+ */
+function ms_gift_cards_generate_cards_form_validate($form, &$form_state) {
+  $v = $form_state['values'];
+
+  // Check the product is valid
+  $p = explode('-', $v['product']);
+  if (!$product = ms_core_load_module_product($p[0], $p[1])) {
+    form_set_error('product', t('You must enter a valid product'));
+  }
+
+  // Check the affiliate is valid
+  if (module_exists('ms_affiliates')) {
+    if ($v['affiliate']) {
+      $affiliate = user_load(array('name' => $v['affiliate']));
+      if (!$affiliate->uid) {
+        form_set_error('affiliate', t('You must enter a valid user'));
+      }
+    }
+  }
+}
+
+/**
+ * Submit Function for the Generate Cards Form
+ */
+function ms_gift_cards_generate_cards_form_submit($form, &$form_state) {
+  $v = $form_state['values'];
+
+  if ($v['affiliate']) {
+    $affiliate = user_load(array('name' => $v['affiliate']));
+  }
+
+  $p = explode('-', $v['product']);
+  $product = ms_core_load_module_product($p[0], $p[1]);
+
+  $count = 0;
+
+  // Run the loop to generate the cards
+  for ($i = 0; $i < $v['number']; $i += 1) {
+    $gift_card = new stdClass();
+
+    $gift_card->status = $v['status'];
+    $gift_card->amount = $v['amount'];
+
+    $gift_card->module = $product->module;
+    $gift_card->product_id = $product->id;
+
+    if ($v['affiliate']) {
+      $gift_card->affiliate = $affiliate->uid;
+    }
+    else {
+      $gift_card->affiliate = 0;
+    }
+
+    $gift_card->created = strtotime($v['created']['year'] .'-'. $v['created']['month'] .'-'. $v['created']['day']);
+
+    $gift_card->oid = 0;
+    $gift_card->activated_user = 0;
+    $gift_card->activated = 0;
+    $gift_card->redeemed_user = 0;
+    $gift_card->redeemed = 0;
+
+    // Generate the code according to the constraints
+    $gift_card->code = ms_gift_cards_generate_code($v['code_length'], $v['code_allowed_characters']);
+
+    // Write the card to the database
+    drupal_write_record('ms_gift_cards', $gift_card);
+    $count += 1;
+  }
+
+  drupal_set_message(t('Successfully Generated %count codes.', array('%count' => $count)));
+}
+
+
+/**
+ * Show form for editing a Gift Card
+ */
+function ms_gift_cards_edit_card_page($id) {
+  return drupal_get_form('ms_gift_cards_edit_card_form', $id);
+}
+
+/**
+ * Show form for editing a Gift Card
+ */
+function ms_gift_cards_edit_card_form($form_state, $id) {
+  $gift_card = ms_gift_cards_load_gift_card($id);
+  $affiliate = user_load($gift_card->affiliate);
+  $redeemed_user = user_load($gift_card->redeemed_user);
+  $acivated_user = user_load($gift_card->acivated_user);
+  $form['gift_card'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Gift Card Settings'),
+    '#weight' => -50,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['gift_card']['id'] = array(
+    '#type' => 'value',
+    '#value' => $gift_card->id,
+  );
+
+  $form['gift_card']['status'] = array(
+    '#type' => 'select',
+    '#title' => t('Status'),
+    '#options' => ms_gift_cards_get_gift_card_statuses(),
+    '#description' => t("What is the Status of the Card?"),
+    '#required' => TRUE,
+    '#default_value' => $gift_card->status,
+  );
+  $form['gift_card']['product'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Product'),
+    '#description' => t('Enter a product below.'),
+    '#required' => TRUE,
+    '#default_value' => $gift_card->module .'-'. $gift_card->product_id,
+    '#autocomplete_path' => 'ms_core/autocomplete/product',
+  );
+  $form['gift_card']['amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Amount'),
+    '#description' => t('Enter the amount to sell the gift card for.'),
+    '#required' => FALSE,
+    '#default_value' => $gift_card->amount,
+  );
+  $form['gift_card']['code'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Code'),
+    '#size' => 8,
+    '#maxlength' => 10,
+    '#description' => t("The code for this gift card"),
+    '#required' => TRUE,
+    '#default_value' => $gift_card->code,
+  );
+
+
+  $form['gift_card']['created'] = array(
+    '#type' => 'date',
+    '#title' => t('Created Date'),
+    '#description' => t("When was this card created?"),
+    '#required' => TRUE,
+    '#default_value' => array(
+      'year' => date('Y', $gift_card->created),
+      'month' => date('n', $gift_card->created),
+      'day' => date('j', $gift_card->created),
+      ),
+  );
+
+  if (module_exists('ms_affiliates')) {
+    $form['gift_card']['affiliate'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Affiliate'),
+      '#size' => 32,
+      '#maxlength' => 64,
+      '#description' => t("The Affiliate for this Gift Card"),
+      '#autocomplete_path' => 'admin/build/ms_core/autocomplete',
+      '#required' => FALSE,
+      '#default_value' => $affiliate->name,
+    );
+  }
+
+  $form['gift_card']['activation'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Activation'),
+    '#weight' => -50,
+    '#collapsible' => TRUE,
+    '#collapsed' => ($gift_card->activated) ? FALSE : TRUE,
+  );
+  $form['gift_card']['activation']['is_activated'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Activated?'),
+    '#description' => t("Check this to set the activation details for this card."),
+    '#required' => FALSE,
+    '#default_value' => ($gift_card->activated ? TRUE : FALSE),
+  );
+  $form['gift_card']['activation']['activated'] = array(
+    '#type' => 'date',
+    '#title' => t('Activated Date'),
+    '#description' => t("When was this card activated?"),
+    '#required' => FALSE,
+    '#default_value' => array(
+      'year' => date('Y', $gift_card->activated),
+      'month' => date('n', $gift_card->activated),
+      'day' => date('j', $gift_card->activated),
+      ),
+  );
+  $form['gift_card']['activation']['oid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Order ID'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#description' => t("The order id associated with the activation of this card. Don't change unless you have good reason to."),
+    '#required' => FALSE,
+    '#default_value' => $gift_card->oid,
+  );
+  $form['gift_card']['activation']['activated_user'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Activation User'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#description' => t("The user who activated this Gift Card"),
+    '#autocomplete_path' => 'admin/build/ms_core/autocomplete',
+    '#required' => FALSE,
+    '#default_value' => $activated_user->name,
+  );
+
+
+  $form['gift_card']['redemption'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Redemption'),
+    '#weight' => -50,
+    '#collapsible' => TRUE,
+    '#collapsed' => ($gift_card->redeemed) ? FALSE : TRUE,
+  );
+  $form['gift_card']['redemption']['is_redeemed'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Redeemed?'),
+    '#description' => t("Check this to set the redemption details for this card."),
+    '#required' => FALSE,
+    '#default_value' => ($gift_card->redeemed ? TRUE : FALSE),
+  );
+  $form['gift_card']['redemption']['redeemed'] = array(
+    '#type' => 'date',
+    '#title' => t('Redeemed Date'),
+    '#description' => t("When was this card redeemed?"),
+    '#required' => FALSE,
+    '#default_value' => array(
+      'year' => date('Y', $gift_card->redeemed),
+      'month' => date('n', $gift_card->redeemed),
+      'day' => date('j', $gift_card->redeemed),
+      ),
+  );
+  $form['gift_card']['redemption']['redeemed_user'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Redemption User'),
+    '#size' => 32,
+    '#maxlength' => 64,
+    '#description' => t("The user who redeemed this Gift Card"),
+    '#autocomplete_path' => 'admin/build/ms_core/autocomplete',
+    '#required' => FALSE,
+    '#default_value' => $redeemed_user->name,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+  $form['#redirect'] = 'admin/moneyscripts/ms_gift_cards/overview';
+  return $form;
+}
+
+/**
+ * Validate Function for the Edit Card Form
+ */
+function ms_gift_cards_edit_card_form_validate($form, &$form_state) {
+  $v = $form_state['values'];
+
+  // Check the product is valid
+  $p = explode('-', $v['product']);
+  if (!$product = ms_core_load_module_product($p[0], $p[1])) {
+    form_set_error('product', t('You must enter a valid product'));
+  }
+
+  // Check the affiliate is valid
+  if (module_exists('ms_affiliates')) {
+    if ($v['affiliate']) {
+      $affiliate = user_load(array('name' => $v['affiliate']));
+      if (!$affiliate->uid) {
+        form_set_error('affiliate', t('You must enter a valid user'));
+      }
+    }
+  }
+
+  // Check the activated_user is valid
+  if ($v['activated_user']) {
+    $activated_user = user_load(array('name' => $v['activated_user']));
+    if (!$activated_user->uid) {
+      form_set_error('activated_user', t('You must enter a valid user'));
+    }
+  }
+
+  // Check the redeemed_user is valid
+  if ($v['redeemed_user']) {
+    $redeemed_user = user_load(array('name' => $v['redeemed_user']));
+    if (!$redeemed_user->uid) {
+      form_set_error('redeemed_user', t('You must enter a valid user'));
+    }
+  }
+}
+
+/**
+ * Submit Function for the Edit Card Form
+ */
+function ms_gift_cards_edit_card_form_submit($form, &$form_state) {
+  $v = $form_state['values'];
+  $gift_card = ms_gift_cards_load_gift_card($v['id']);
+
+  $gift_card->code = $v['code'];
+  $gift_card->status = $v['status'];
+  $gift_card->amount = $v['amount'];
+
+  $product = explode('-', $v['product']);
+
+  $gift_card->module = $product[0];
+  $gift_card->product_id = $product[1];
+
+  if (module_exists('ms_affiliates')) {
+    $affiliate = user_load(array('name' => $v['affiliate']));
+    $gift_card->affiliate = $affiliate->uid;
+  }
+  else {
+    $gift_card->affiliate = 0;
+  }
+
+  $gift_card->created = strtotime($v['created']['year'] .'-'. $v['created']['month'] .'-'. $v['created']['day']);
+
+  if (!$v['is_activated']) {
+    $gift_card->oid = 0;
+    $gift_card->activated_user = 0;
+    $gift_card->activated = 0;
+  }
+  else {
+    $gift_card->oid = $v['oid'];
+    $activated_user = user_load(array('name' => $v['activated_user']));
+    $gift_card->activated_user = $activated_user->uid;
+    $gift_card->activated = strtotime($v['activated']['year'] .'-'. $v['activated']['month'] .'-'. $v['activated']['day']);
+  }
+
+  if (!$v['is_redeemed']) {
+    $gift_card->redeemed_user = 0;
+    $gift_card->redeemed = 0;
+  }
+  else {
+    $redeemed_user = user_load(array('name' => $v['redeemed_user']));
+    $gift_card->redeemed_user = $redeemed_user->uid;
+    $gift_card->redeemed = strtotime($v['redeemed']['year'] .'-'. $v['redeemed']['month'] .'-'. $v['redeemed']['day']);
+  }
+
+  drupal_write_record('ms_gift_cards', $gift_card, 'id');
+  drupal_set_message(t('Gift Card Saved.'));
+}
+
+/**
+ * Delete a Gift Card
+ */
+function ms_gift_cards_delete_card_confirm(&$form_state, $id) {
+  $gift_card = ms_gift_cards_load_gift_card($id);
+  if ($gift_card->id) {
+    $form['#ms_id'] = $gift_card->id;
+    return confirm_form($form, t('Are you sure you want to delete this Gift Card?'), 'admin/moneyscripts/ms_gift_cards/overview', t('This action cannot be undone.'), t('Delete'));
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
+/**
+ * Delete a Gift Card
+ */
+function ms_gift_cards_delete_card_confirm_submit($form, &$form_state) {
+  $gift_card = ms_gift_cards_load_gift_card($form['#ms_id']);
+
+  // Delete the membership
+  db_query('DELETE FROM {ms_gift_cards} WHERE id = %d', $gift_card->id);
+
+  drupal_set_message(t('Gift Card %code Deleted', array('%code' => $gift_card->code)));
+  $form_state['redirect'] = 'admin/moneyscripts/ms_gift_cards/overview';
+}
+
+// ======================================
+// Functions:
+// ======================================
+
+/**
+ * Return a new unique string based on the length and the chars
+ */
+function ms_gift_cards_generate_code($length, $allowed) {
+  $characters = '';
+
+  if ($allowed['letters']) {
+    $characters .= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  }
+  if ($allowed['numbers']) {
+    $characters .= '0123456789';
+  }
+
+  while (TRUE) {
+    $code = '';
+    for ($i = 0; $i < $length; $i++) {
+      $code .= $characters[mt_rand(0, strlen($characters) - 1)];
+    }
+
+    // Make sure the code is unique before stopping
+    if (!ms_gift_cards_load_gift_card_by_code($code)) {
+      break;
+    }
+  }
+
+  return $code;
+}
+
+/**
+ * Return the text for the card status
+ */
+function ms_gift_cards_get_gift_card_status_text($status) {
+  switch ($status) {
+    case 'dormant': return t('Dormant');
+    case 'printed': return t('Printed');
+    case 'activated': return t('Activated');
+    case 'redeemed': return t('Redeemed');
+  }
+}
+
+/**
+ * Return the card statuses
+ */
+function ms_gift_cards_get_gift_card_statuses() {
+  return array(
+    'dormant' => t('Dormant'),
+    'printed' => t('Printed'),
+    'activated' => t('Activated'),
+    'redeemed' => t('Redeemed'),
+  );
+}
+
+/*
+ * Page Callback to change a card's status
+ */
+function ms_gift_cards_change_status_page($id, $status) {
+  print ms_gift_cards_change_gift_card_status($id, $status) ? 'Success' : 'Failure';
+  exit;
+}
+
+/*
+ * Change a card's status
+ */
+function ms_gift_cards_change_gift_card_status($id, $status) {
+  return db_query("UPDATE {ms_gift_cards} SET status='%s' WHERE id=%d", $status, $id);
+}
+
+/*
+ * Change a card's activated date
+ */
+function ms_gift_cards_change_activated_date($id, $time = NULL) {
+  $time = ($time) ? $time : time();
+  return db_query("UPDATE {ms_gift_cards} SET activated=%d WHERE id=%d", $time, $id);
+}
+
+/*
+ * Change a card's activated user
+ */
+function ms_gift_cards_change_activated_user($id, $uid) {
+  return db_query("UPDATE {ms_gift_cards} SET activated_user=%d WHERE id=%d", $uid, $id);
+}
+
+/*
+ * Change a card's redeemed date
+ */
+function ms_gift_cards_change_redeemed_date($id, $time = NULL) {
+  $time = ($time) ? $time : time();
+  return db_query("UPDATE {ms_gift_cards} SET redeemed=%d WHERE id=%d", $time, $id);
+}
+
+/*
+ * Change a card's redeemed user
+ */
+function ms_gift_cards_change_redeemed_user($id, $uid) {
+  return db_query("UPDATE {ms_gift_cards} SET redeemed_user=%d WHERE id=%d", $uid, $id);
+}
+
+/**
+ * Load a Gift Card Record
+ */
+function ms_gift_cards_load_gift_card($id) {
+  $result = db_query("SELECT * FROM {ms_gift_cards} WHERE id=%d", $id);
+  if ($result) {
+    $gift_card = db_fetch_object($result);
+    return $gift_card;
+  }
+  return FALSE;
+}
+
+/**
+ * Load a Gift Card by Order ID
+ */
+function ms_gift_cards_load_gift_card_order_id($oid) {
+  $result = db_query("SELECT * FROM {ms_gift_cards} WHERE oid=%d", $oid);
+  if (!empty($result)) {
+    return db_fetch_object($result);
+  }
+  return FALSE;
+}
+
+/**
+ * Load a Gift Card by Code
+ */
+function ms_gift_cards_load_gift_card_by_code($code) {
+  $result = db_query("SELECT * FROM {ms_gift_cards} WHERE code='%s'", strtoupper($code));
+  if (!empty($result)) {
+    return db_fetch_object($result);
+  }
+  return FALSE;
+}
+
+// ======================================
+// User Pages:
+// ======================================
+
+/*
+ * Redeem a Gift Card
+ */
+function ms_gift_cards_redeem_card() {
+  $code = arg(1);
+  // Load the gift card by the code
+  if ($gift_card = ms_gift_cards_load_gift_card_by_code($code)) {
+    // Check that the status is set to Activated (able to be redeemed)
+    if ($gift_card->status == 'activated') {
+      global $user;
+      $html = '';
+
+      // Check if the user is logged in
+      if ($user->uid) {
+        // Check if the user is not allowed to redeem gift card based on role
+        if (user_access('block redeem gift card')) {
+          // Inform the user that they are unable to redeem the gift with the current account. Give option to logout.
+          $html .= t("You are currently logged in as @name.
+            You currently are not able to redeem this gift.
+            You have the option to get credited for the amount of the gift or credit back the giver.  Please !contact if you wish to receive a refund.
+            If this is not the account you wish to use to claim the gift, you can !logout to logout.",
+            array(
+              '@name' => $user->name,
+              '!logout' => l(t('click here'), 'logout', array('query' => drupal_get_destination())),
+              '!contact' => l(t('contact us'), 'contact'),
+              ));
+        }
+        else {
+          // Ask the user if they want to use the account to apply the gift to. Give option to logout.
+          $html .= t("You are currently logged in as @name. If this is the account you wish to claim the gift for, click the Claim Gift button below. If this is not the account you wish to use to claim the gift, you can !logout to logout.",
+            array(
+              '@name' => $user->name,
+              '!logout' => l('click here', 'logout', array('query' => drupal_get_destination())),
+              ));
+          $html .= drupal_get_form('ms_gift_cards_redeem_card_form', $gift_card);
+        }
+      }
+      else {
+        // Show a form for the user to enter their username, email, and password
+        $html .= drupal_get_form('ms_gift_cards_redeem_card_register_form', $gift_card);
+      }
+      return $html;
+    }
+    else {
+      // Show a message and go to the redeem page
+      drupal_set_message(t('That gift card code is not yet activated.'));
+      drupal_goto('giftcard');
+    }
+  }
+  else {
+    return drupal_get_form('ms_gift_cards_enter_code_form');
+  }
+}
+
+/**
+ * Build Function for the Redeem Gift Card Form
+ */
+function ms_gift_cards_redeem_card_register_form($form_state, $gift_card) {
+  // Load the gift product
+  $gift = ms_core_load_module_product($gift_card->module, $gift_card->product_id);
+
+  $form['gift_card'] = array(
+    '#type' => 'value',
+    '#value' => $gift_card,
+  );
+
+  // Show the details of the gift card here
+  $form['gift']['gift_code'] = array(
+    '#title' => t('Code'),
+    '#type' => 'item',
+    '#value' => $gift_card->code,
+  );
+  $form['gift']['gift_name'] = array(
+    '#title' => t('Gift'),
+    '#type' => 'item',
+    '#value' => $gift->name,
+  );
+
+  $form['information'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Customer Information'),
+    '#description' => t('Create a new account for your gift or !click to login with an existing account to claim the gift.', array('!click' => l('click here', 'user/login', array('query' => drupal_get_destination())))),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['information']['gift_card'] = array(
+    '#type' => 'value',
+    '#value' => $gift_card,
+  );
+  $form['information']['email1'] = array(
+    '#type' => 'textfield',
+    '#title' => t('E-mail Address'),
+    '#size' => 32,
+    '#required' => TRUE,
+  );
+  $form['information']['email2'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Confirm E-mail Address'),
+    '#size' => 32,
+    '#required' => TRUE,
+  );
+  $form['information']['username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#size' => 32,
+    '#required' => TRUE,
+  );
+  $form['information']['password1'] = array(
+    '#type' => 'password',
+    '#title' => t('Password'),
+    '#size' => 32,
+    '#required' => TRUE,
+  );
+  $form['information']['password2'] = array(
+    '#type' => 'password',
+    '#title' => t('Confirm Password'),
+    '#size' => 32,
+    '#description' => t('Passwords must match to proceed'),
+    '#required' => TRUE,
+  );
+
+  /*
+  // Show the Profile Fields and other fields
+  if (variable_get('ms_core_show_profile_fields', FALSE)) {
+    $null = NULL;
+    $extra = _user_forms($null, NULL, NULL, 'register');
+    if ($extra) {
+      $form = array_merge($form, $extra);
+    }
+  }
+  */
+
+  if (variable_get('ms_core_mimic_register_form', FALSE)) {
+    $form_state = NULL;
+    drupal_prepare_form('user_register', $form, $form_state);
+  }
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create Account'),
+    '#validate' => array('ms_gift_cards_redeem_card_register_form_validate'),
+    '#submit' => array('ms_gift_cards_redeem_card_register_form_submit'),
+    '#weight' => 999,
+  );
+
+  $form['#redirect'] = 'user';
+  return $form;
+}
+
+/**
+ * Validate Function for the Redeem Gift Card Form
+ */
+function ms_gift_cards_redeem_card_register_form_validate($form, &$form_state) {
+  $v = $form_state['values'];
+  // Verify Email Address is real
+  if (!valid_email_address($v['email1'])) {
+    form_set_error('email1', t('Please enter a valid email address'));
+  }
+  // Verify Email Addresses Match
+  if ($v['email1'] != $v['email2']) {
+    form_set_error('email2', t('The email addresses do not match'));
+  }
+  // Verify Email Address is not being used
+  $email_account = user_load(array('mail' => $v['email1']));
+  if ($email_account->uid) {
+    form_set_error('email1', t('The email address you entered is already being used by an account on this site.
+    Please !login to the account associated with this email address before proceeding.',
+    array('!login' => l('log in', 'user/login', array('query' => drupal_get_destination())))
+    ));
+  }
+  // Verify Username is not being used
+  $name_account = user_load(array('name' => $v['username']));
+  if ($name_account->uid) {
+    form_set_error('username', t('The username you specified is already in use. Please choose a different username before proceeding.'));
+  }
+  // Verify Passwords Match
+  if ($v['password1'] != $v['password2']) {
+    form_set_error('password2', t('The passwords do not match'));
+  }
+}
+
+/**
+ * Submit Function for the Redeem Gift Form
+ */
+function ms_gift_cards_redeem_card_register_form_submit($form, &$form_state) {
+  $v = $form_state['values'];
+
+  // Create the user account
+  $pass = ($v['password1']) ? $v['password1'] : user_password();
+  $name = ($v['username']) ? $v['username'] : ms_core_create_username($v['email1']);
+  $roles = array();
+
+  $account = user_save('', array(
+    'name' => $name,
+    'mail' => $v['email1'],
+    'init' => $v['email1'],
+    'pass' => $pass,
+    'roles' => $roles,
+    'status' => 1
+    ));
+
+  $account->password = $pass;
+
+  //Send the Default Email
+  _user_mail_notify('register_no_approval_required', $account);
+
+  global $user;
+
+  $user = $account;
+
+  $gift_card = $v['gift_card'];
+
+  // Redeem the gift
+  ms_gift_cards_redeem_gift($account, $gift_card);
+
+  $form_state['account'] = $account;
+
+  // Notify the user
+  drupal_set_message(t('Your gift has been redeemed, and you have been automatically logged in.'));
+}
+
+/**
+ * Build Function for the Redeem Gift Card Form
+ */
+function ms_gift_cards_redeem_card_form($form_state, $gift_card) {
+  // Load the gift product
+  $gift = ms_core_load_module_product($gift_card->module, $gift_card->product_id);
+
+  $form['gift_card'] = array(
+    '#type' => 'value',
+    '#value' => $gift_card,
+  );
+
+  // Show the details of the gift card here
+  $form['gift']['gift_code'] = array(
+    '#title' => t('Code'),
+    '#type' => 'item',
+    '#value' => $gift_card->code,
+  );
+  $form['gift']['gift_name'] = array(
+    '#title' => t('Gift'),
+    '#type' => 'item',
+    '#value' => $gift->name,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Claim Gift'),
+  );
+  $form['#redirect'] = '';
+  return $form;
+}
+
+/**
+ * Submit Function for the Redeem Gift Form
+ */
+function ms_gift_cards_redeem_card_form_submit($form, &$form_state) {
+  global $user;
+
+  $gift_card = $form_state['values']['gift_card'];
+
+  // Redeem the gift
+  ms_gift_cards_redeem_gift($user, $gift_card);
+
+  // Notify the user
+  drupal_set_message(t('Your gift has been redeemed.'));
+}
+
+/**
+ * Helper Function to redeem a gift for an account
+ */
+function ms_gift_cards_redeem_gift($account, $gift_card) {
+  // Load the appropriate product
+  $product = ms_core_load_module_product($gift_card->module, $gift_card->product_id);
+
+  // Create a new order, add the product to it, and insert a payment to process it
+  $order = ms_core_order_new('cart', $account->uid);
+
+  ms_core_order_save($order);
+
+  // Set the product to be cart because recurring products don't work
+  $product->type = 'cart';
+  $product->amount = 0;
+
+  // Add the product to the order
+  ms_core_add_order_product($order, $product);
+
+  // Enter the payment for the order
+  $payment = ms_core_new_payment($order->oid, 'ms_core', 'cart');
+  // Generate a Unique Transaction ID
+  $payment->transaction = drupal_get_token(serialize($order));
+  $payment->currency = $order->currency;
+
+  // Enter a payment for 0
+  ms_core_enter_payment($payment, FALSE);
+
+  // Change the Gift Card Status to 'Redeemed'
+  ms_gift_cards_change_gift_card_status($gift_card->id, 'redeemed');
+  ms_gift_cards_change_redeemed_date($gift_card->id);
+  ms_gift_cards_change_redeemed_user($gift_card->id, $account->uid);
+
+  // Invoke hook_ms_gift_cards_redemption
+  module_invoke_all('ms_gift_cards_redemption', $account, $gift_card, $order, $product);
+}
+
+/*
+ * Used for Activating Gift Cards
+ */
+function ms_gift_cards_activate_card() {
+  $code = arg(1);
+  if ($gift_card = ms_gift_cards_load_gift_card_by_code($code)) {
+    return drupal_get_form('ms_gift_cards_activate_card_form', $gift_card);
+  }
+  else {
+    return drupal_get_form('ms_gift_cards_enter_code_form');
+  }
+}
+
+/**
+ * Build Function for the Enter Code Form
+ */
+function ms_gift_cards_enter_code_form($form_state) {
+  $form['gift'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Gift Card Code'),
+    '#weight' => -49,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['gift']['code'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Code'),
+    '#size' => 32,
+    '#required' => TRUE,
+    '#description' => t('Enter the code found on your card'),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Enter'),
+  );
+
+  return $form;
+}
+
+/**
+ * Validate Function for the Redeem Gift Card Form
+ */
+function ms_gift_cards_enter_code_form_validate($form, &$form_state) {
+  // Attempt to load the gift card object
+  if (!$gift_card = ms_gift_cards_load_gift_card_by_code($form_state['values']['code'])) {
+    form_set_error('code', t('The code you entered is not valid. Please try again.'));
+  }
+
+  // If the card is redeemed, show error
+  if ($gift_card->status == 'redeemed') {
+    form_set_error('code', t('The code you entered has already been redeemed. Please try again.'));
+  }
+}
+
+/**
+ * Submit Function for the Enter Code Form
+ */
+function ms_gift_cards_enter_code_form_submit($form, &$form_state) {
+  // Load the gift card object
+  $gift_card = ms_gift_cards_load_gift_card_by_code($form_state['values']['code']);
+
+  switch($gift_card->status) {
+    case 'activated':
+      // Redirect to the redeem page if the gift card has already been activated
+      drupal_goto('giftcard/'. $gift_card->code);
+    break;
+
+    case 'redeemed':
+      // Show a message if the code has already been used
+      drupal_set_message(t('This gift card has already been redeemed.'));
+      return;
+    break;
+
+    case 'dormant':
+    case 'printed':
+      // Redirect to the activate page if the card is dormant
+      drupal_goto('activate/'. $gift_card->code);
+    break;
+  }
+}
+
+/**
+ * Build Function for the Gift Card Form
+ */
+function ms_gift_cards_activate_card_form($form_state, $gift_card) {
+  // Load the gift product
+  $gift = ms_core_load_module_product($gift_card->module, $gift_card->product_id);
+
+  $form['gift'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Activate Gift Card'),
+    '#weight' => -49,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['gift_card'] = array(
+    '#type' => 'value',
+    '#value' => $gift_card,
+  );
+
+  // Show the details of the gift card here
+  $form['gift']['gift_code'] = array(
+    '#title' => t('Code'),
+    '#type' => 'item',
+    '#value' => $gift_card->code,
+  );
+  $form['gift']['gift_name'] = array(
+    '#title' => t('Gift'),
+    '#type' => 'item',
+    '#value' => $gift->name,
+  );
+  $form['gift']['gift_amount'] = array(
+    '#title' => t('Amount'),
+    '#type' => 'item',
+    '#value' => ms_core_format_money($gift_card->amount),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Pay'),
+  );
+  $form['#redirect'] = 'ms/checkout';
+  return $form;
+}
+
+/**
+ * Submit Function for the Gift Card Form
+ */
+function ms_gift_cards_activate_card_form_submit($form, &$form_state) {
+  // Load the Gift Card
+  $gift_card = $form_state['values']['gift_card'];
+
+  if ($gift_card->id) {
+    // Set the affiliate
+    if (module_exists('ms_affiliates')) {
+      if ($affiliate = user_load($gift_card->affiliate)) {
+        $_SESSION['affiliate'] = $affiliate->uid;
+
+        //Set the cookie
+        ms_affiliates_set_cookie($_SESSION['affiliate']);
+
+        // Record the click
+        ms_affiliates_clicked($affiliate, 'activate');
+      }
+    }
+
+    // Load the gift product
+    $gift = ms_core_load_module_product($gift_card->module, $gift_card->product_id);
+
+    // Create the new product for the card
+    // Create a new product and add it to the order
+    $product = ms_core_new_product(t('Gift Card: @product', array('@product' => $gift->name)), 'ms_gift_cards', $gift_card->id, $gift_card->amount);
+
+    // Store the Data
+    $product->data = array(
+      'gift_card_code' => $gift_card->code,
+    );
+
+    ms_core_add_cart_product($product);
+
+    ms_core_checkout();
+  }
+  else {
+    drupal_set_message(t('There was an error loading the gift card.'));
+  }
+}
+
+// ======================================
+// MAIL
+// ======================================
+
+/**
+ * Handle Mail functions
+ */
+function ms_gift_cards_mail($key, &$message, $gift_card) {
+  $headers = array(
+    'Content-Type' => 'text/plain; charset=UTF-8;',
+    'From' => variable_get('site_name', '') ." <". variable_get('site_mail', '') .">",
+    'Reply-To' => variable_get('site_mail', ''),
+  );
+
+  // Load some variables
+  $order = ms_core_order_load($gift_card->oid);
+  $payment = ms_core_get_last_payment($order);
+  $product = ms_core_load_module_product($gift_card->module, $gift_card->product_id);
+  $account = user_load($order->uid);
+
+  switch ($key) {
+    case 'activated_email':
+      $message['subject'] = variable_get('ms_gift_cards_gift_activated_mail_subject', '');
+      $message['body'] = variable_get('ms_gift_cards_gift_activated_mail_body', '');
+    break;
+  }
+
+  // Replace the Gift Card Tokens
+  $message['subject'] = token_replace($message['subject'], 'ms_gift_cards', $gift_card);
+  $message['body'] = token_replace($message['body'], 'ms_gift_cards', $gift_card);
+
+  // Replace the product tokens
+  $message['subject'] = token_replace($message['subject'], 'ms_core_product', $product);
+  $message['body'] = token_replace($message['body'], 'ms_core_product', $product);
+
+  // Replace the Order Tokens
+  $message['subject'] = token_replace($message['subject'], 'ms_core_order', $order);
+  $message['body'] = token_replace($message['body'], 'ms_core_order', $order);
+
+  // Replace the Payment Tokens
+  $message['subject'] = token_replace($message['subject'], 'ms_core_payment', $payment);
+  $message['body'] = token_replace($message['body'], 'ms_core_payment', $payment);
+
+  // Replace the User Tokens
+  $message['subject'] = token_replace($message['subject'], 'user', $account);
+  $message['body'] = token_replace($message['body'], 'user', $account);
+}
+
+// ======================================
+// TOKEN
+// ======================================
+
+/**
+ * Implementation of hook_token_list
+ */
+function ms_gift_cards_token_list($type = 'all') {
+  if ($type == 'ms_gift_cards' || $type == 'all') {
+    $tokens['Gift Cards']['activatedDate'] = t("The date the card was activated");
+    $tokens['Gift Cards']['redeemedDate'] = t("The date the card was redeemed");
+    $tokens['Gift Cards']['createdDate'] = t("The date the card was created");
+    $tokens['Gift Cards']['affiliateName'] = t("The name of the affiliate");
+    $tokens['Gift Cards']['giftCode'] = t("The gift card code");
+    $tokens['Gift Cards']['activateUrl'] = t("The message entered for the gift card");
+    $tokens['Gift Cards']['redeemUrl'] = t("The URL to redeem the gift card");
+  }
+
+  return $tokens;
+}
+
+/**
+ * Implementation of hook_token_values
+ */
+function ms_gift_cards_token_values($type, $object = NULL, $options = array()) {
+  if ($type == 'ms_gift_cards') {
+    $affiliate = user_load($object->affiliate);
+    $tokens['activatedDate'] = ($object->activated) ? format_date($object->activated, 'small') : t('Not yet Activated');
+    $tokens['redeemedDate'] = ($object->redeemed) ? format_date($object->redeemed, 'small') : t('Not yet Redeemed');
+    $tokens['createdDate'] = format_date($object->created, 'small');
+    $tokens['affiliateName'] = $affiliate->name;
+    $tokens['giftCode'] = $object->code;
+    $tokens['activateUrl'] = url('activate', array('absolute' => TRUE));
+    $tokens['redeemUrl'] = url('giftcard', array('absolute' => TRUE));
+  }
+
+  return $tokens;
+}
+
+// ======================================
+// MS Hooks
+// ======================================
+
+/**
+ * Implementation of hook_ms_order_payment
+ */
+function ms_gift_cards_ms_order_payment($type, $product, $order, $payment) {
+  if ($product->module == 'ms_gift_cards') {
+
+    ms_core_log('ms_gift_cards', 'Acting on a Gift Card Payment. Here are the details: !product',
+        array('!product' => ms_core_print_r($product)));
+
+    // Load the user account
+    $account = user_load($order->uid);
+
+    // Load the Gift Card object
+    $gift_card = ms_gift_cards_load_gift_card_by_code($product->data['gift_card_code']);
+
+    // Handle Refunds
+    if ($type == 'refund' OR $type == 'reversal') {
+      ms_core_log('ms_gift_cards', 'Refund Notice received for MS Gift Cards, deactivating gift card with code %code',
+          array('%code' => $gift_card->code));
+
+      // Set the gift card status back to dormant
+      // db_query("DELETE FROM {ms_gift_cards} WHERE oid = %d", $order->oid);
+      ms_gift_cards_change_gift_card_status($gift_card->id, 'dorman');
+    }
+    else {
+      // Change the Gift Card Status to 'Activated'
+      ms_gift_cards_change_gift_card_status($gift_card->id, 'activated');
+      ms_gift_cards_change_activated_date($gift_card->id);
+      ms_gift_cards_change_activated_user($gift_card->id, $account->uid);
+
+      // Invoke hook_ms_gift_cards_activation
+      module_invoke_all('ms_gift_cards_activation', $account, $gift_card, $order, $product, $payment);
+
+      // Send Activation Email
+      drupal_mail('ms_gift_cards', 'activated_email', $account->mail, user_preferred_language($account), $gift_card);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_ms_product_load
+ */
+function ms_gift_cards_ms_product_load($module, $id) {
+  if ($module == 'ms_gift_cards') {
+    $gift_card = ms_gift_cards_load_gift_card($id);
+    $gift = ms_core_load_module_product($gift_card->module, $gift_card->product_id);
+
+    if ($gift_card->id) {
+      $product->type = 'cart';
+
+      // Store the Data Overrides
+      $product->data = $gift_card;
+
+      // Add the product variables
+      $product->name = t('Gift Card: @product', array('@product' => $gift->name));
+      $product->module = 'ms_gift_cards';
+      $product->amount = $gift_card->amount;
+      $product->id = $gift_card->id;
+
+      return $product;
+    }
+  }
+}
+
+// ======================================
+// RULES
+// ======================================
+
+/**
+ * Implementation of hook_ms_gift_cards_activation().
+ */
+function ms_gift_cards_ms_gift_cards_activation($account, $gift_card, $order, $product, $payment) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_gift_cards_event_activation', $account, $gift_card, $order, $product, $payment);
+  }
+}
+
+/**
+ * Implementation of hook_ms_gift_cards_redemption().
+ */
+function ms_gift_cards_ms_gift_cards_redemption($account, $gift_card, $order, $product) {
+  if (module_exists('rules')) {
+    rules_invoke_event('ms_gift_cards_event_redemption', $account, $gift_card, $order, $product);
+  }
+}

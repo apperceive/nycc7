@@ -1,0 +1,64 @@
+<?php
+
+/**
+* @file
+* MoneyScripts Pay to Unpublish
+* Copyright 2010 MoneyScripts.net
+* http://www.moneyscripts.net
+*/
+
+/**
+* Implementation of hook_install().
+*/
+function ms_unpublish_install() {
+  // Create tables.
+  drupal_install_schema('ms_unpublish');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function ms_unpublish_uninstall() {
+  // Drop tables.
+  drupal_uninstall_schema('ms_unpublish');
+
+  // Delete related variables all at once.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_unpublish_%%'");
+}
+
+/**
+* Implementation of hook_schema().
+*/
+function ms_unpublish_schema() {
+  $schema['ms_unpublish_price'] = array(
+    'description' => t('MoneyScripts Unpublish Prices'),
+    'fields' => array(
+      'vid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'VID',
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Node ID',
+      ),
+      'price' => array(
+        'type' => 'numeric',
+        'description' => 'The Price',
+        'precision' => '10',
+        'scale' => '2',
+        'not null' => TRUE
+      ),
+    ),
+    'primary key' => array('vid'),
+  );
+  return $schema;
+}
+
+// ======================================
+// Updates:
+// ======================================

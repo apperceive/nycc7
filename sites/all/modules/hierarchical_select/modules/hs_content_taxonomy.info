@@ -1,0 +1,14 @@
+name = Hierarchical Select Content Taxonomy
+description = Use Hierarchical Select as the widget for Content Taxonomy CCK fields.
+dependencies[] = hierarchical_select 
+dependencies[] = content_taxonomy
+dependencies[] = hs_taxonomy
+package = Form Elements
+core = 6.x
+
+; Information added by Drupal.org packaging script on 2014-12-02
+version = "6.x-3.9"
+core = "6.x"
+project = "hierarchical_select"
+datestamp = "1417552682"
+

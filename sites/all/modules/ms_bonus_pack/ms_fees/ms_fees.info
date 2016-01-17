@@ -1,0 +1,7 @@
+;$Id$
+name = Extra Product Fees
+description = Add Fees to Products
+version = "6.x-1.11"
+core = 6.x
+package = MoneyScripts
+dependencies[] = ms_core

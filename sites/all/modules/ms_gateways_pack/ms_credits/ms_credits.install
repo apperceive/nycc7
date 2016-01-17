@@ -1,0 +1,87 @@
+<?php
+
+/**
+ * @file
+ * MS Credits Install File
+ */
+
+ /**
+ * Implements hook_install().
+ */
+function ms_credits_install() {
+  drupal_install_schema('ms_credits');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function ms_credits_uninstall() {
+  drupal_uninstall_schema('ms_credits');
+  // Delete related variables all at once.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_credits_%%'");
+}
+
+/**
+ * Implements hook_schema().
+ */
+function ms_credits_schema() {
+  $schema['ms_credit_transactions'] = array(
+    'description' => 'Used to hold credit transactions',
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'description' => 'The unique ID (primary)',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'uid' => array(
+        'description' => t('The user id'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => t('The timestamp for this transaction'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'expiration' => array(
+        'description' => t('The expiration timestamp for this transaction'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'credits' => array(
+        'description' => t('The number of credits added or subtracted'),
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'note' => array(
+        'type' => 'varchar',
+        'description' => 'A note for the transaction',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'oid' => array(
+        'description' => t('The order id, if applicable'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}
+
+// ======================================
+// Updates:
+// ======================================

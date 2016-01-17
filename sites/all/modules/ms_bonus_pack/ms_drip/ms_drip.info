@@ -1,0 +1,7 @@
+; $Id $
+name = Drip Content
+description = Adds the ability to Drip Content to users through sets of items and Rules
+core = 6.x 
+version = "6.x-1.11"
+package = MoneyScripts - Bonus Pack
+dependencies[] = rules

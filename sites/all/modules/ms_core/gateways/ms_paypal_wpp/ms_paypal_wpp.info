@@ -1,0 +1,8 @@
+; $Id: $
+name = PayPal Web Payments Pro
+description = Integrates the Direct Payment and Express Checkout payment methods
+dependencies[] = ms_core
+package = MoneyScripts - Gateways
+core = 6.x
+php = 5.0
+version = "6.x-1.50"

@@ -1,0 +1,5 @@
+name = NYCC Profile Module 
+description = Handle displaying and updating member profiles each year
+package = NYCC
+core = 6.x
+dependencies[] = nycc

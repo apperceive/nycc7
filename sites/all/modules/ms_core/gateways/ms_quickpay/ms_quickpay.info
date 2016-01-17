@@ -1,0 +1,7 @@
+;$Id$
+name = QuickPay
+description = Gateway to use QuickPay
+version = "6.x-1.50"
+core = 6.x
+package = MoneyScripts - Gateways
+dependencies[] = ms_core

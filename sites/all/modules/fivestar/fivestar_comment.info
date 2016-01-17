@@ -1,0 +1,12 @@
+name = Fivestar Comments
+description = Rate nodes by leaving comments.
+package = Voting
+core = 6.x
+dependencies[] = votingapi
+dependencies[] = fivestar
+; Information added by Drupal.org packaging script on 2014-03-06
+version = "6.x-1.21"
+core = "6.x"
+project = "fivestar"
+datestamp = "1394144006"
+

@@ -1,0 +1,4 @@
+name = NYCC Ride Coordinator Module 
+description = Handle emails from Ride Coordinators
+package = NYCC
+core = 6.x

@@ -1,0 +1,7 @@
+; $Id: $
+name = Gift Memberships
+description = Allow users to purchase and send gift memberships
+package = MoneyScripts - Bonus Pack
+dependencies[] = ms_membership
+version = "6.x-1.11"
+core = "6.x"

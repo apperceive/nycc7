@@ -1,0 +1,230 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function shadow_install() {
+  drupal_install_schema('shadow');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function shadow_uninstall() {
+  drupal_uninstall_schema('shadow');
+}
+
+/**
+ * Implements hook_schema().
+ */
+function shadow_schema() {
+  $schema = array();
+
+  $schema['shadow_table'] = array(
+    'fields' => array(
+      'tid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'db_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'base_table' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'ready' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('tid'),
+    'unique keys' => array(
+      'db_name' => array('db_name'),
+    )
+  );
+
+  $schema['shadow_column'] = array(
+    'fields' => array(
+      'tid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'db_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'definition' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'invert_base' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('tid', 'db_name'),
+  );
+
+  $schema['shadow_filter'] = array(
+    'fields' => array(
+      'fid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'tid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'definition' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('fid'),
+  );
+
+  $schema['shadow_index'] = array(
+    'fields' => array(
+      'iid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'tid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'definition' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('iid'),
+  );
+
+  $schema['shadow_query'] = array(
+    'fields' => array(
+      'qid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'guid' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+      'description' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'query' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'query_changed' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'last_use' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'tid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('qid'),
+    'unique keys' => array(
+      'guid' => array('guid'),
+    ),
+  );
+
+  $schema['shadow_index_queue'] = array(
+    'fields' => array(
+      'iqid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'op' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'base_table' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'pkey' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('iqid'),
+  );
+
+  $table = drupal_get_schema_unprocessed('system', 'cache');
+  $table['description'] = 'Cache table for the shadow module.';
+  $schema['cache_shadow'] = $table;
+  
+  if (!db_table_exists('shadow_query')) {
+    // Currently installing this module, do not try to receive the rest of the tables, as they will produce errors.
+    return $schema;
+  }
+
+  drupal_load('module', 'shadow');
+  module_load_include('inc', 'shadow', 'shadow.schema');
+  
+  $sql = 'SELECT * FROM {shadow_table}';
+  $res = db_query($sql);
+  while ($table = db_fetch_object($res)) {
+    $sql = 'SELECT tid, db_name, base_table FROM {shadow_table} WHERE tid = %d';
+    $res2 = db_query($sql, $table->tid);
+    if (!$table = db_fetch_object($res2)) {
+      continue;
+    }
+
+    $columns = array();
+    $sql = 'SELECT * FROM {shadow_column} WHERE tid = %d ORDER BY weight ASC';
+    $res2 = db_query($sql, $table->tid);
+    while ($column = db_fetch_object($res2)) {
+      $columns[] = $column;
+    }
+
+    $indexes = array();
+    $sql = 'SELECT * FROM {shadow_index} WHERE tid = %d';
+    $res2 = db_query($sql, $table->tid);
+    while ($index = db_fetch_object($res2)) {
+      $indexes[] = $index;
+    }
+    
+    if ($definition = shadow_schema_build_table($table, $columns, array(), $indexes)) {
+      $schema[$table->db_name] = $definition;
+    }
+  }
+
+  return $schema;
+}

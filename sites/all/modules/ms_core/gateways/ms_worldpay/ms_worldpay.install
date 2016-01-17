@@ -1,0 +1,10 @@
+<?php
+// $Id: $
+
+/**
+ * @file
+ */
+
+function ms_worldpay_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_worldpay%'");
+}

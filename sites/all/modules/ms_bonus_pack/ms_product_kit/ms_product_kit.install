@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * @file
+ * MS Product Kit Install File
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function ms_product_kit_uninstall() {
+  // Delete related variables all at once.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_product_kit_%%'");
+
+  drupal_load('module', 'content');
+  content_notify('uninstall', 'ms_product_kit');
+}
+
+/**
+ * @file
+ * Implementation of hook_install().
+ */
+function ms_product_kit_install() {
+  drupal_load('module', 'content');
+  content_notify('install', 'ms_product_kit');
+}
+
+/**
+ * Implementation of hook_enable().
+ *
+ * Notify content module when this module is enabled.
+ */
+function ms_product_kit_enable() {
+  drupal_load('module', 'content');
+  content_notify('enable', 'ms_product_kit');
+}
+
+/**
+ * Implementation of hook_disable().
+ *
+ * Notify content module when this module is disabled.
+ */
+function ms_product_kit_disable() {
+  drupal_load('module', 'content');
+  content_notify('disable', 'ms_product_kit');
+}
+
+// ======================================
+// Updates:
+// ======================================

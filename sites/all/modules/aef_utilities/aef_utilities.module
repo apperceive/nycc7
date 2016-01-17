@@ -1,0 +1,516 @@
+<?php
+// $Id: aef_utilities.module,v 1.3 2010/02/19 14:02:26 ndeschildre Exp $
+
+/**
+ * @file
+ * aef_utilities module file.
+ */
+
+
+function aef_utilities_init() {
+  drupal_add_js(drupal_get_path('module', 'aef_utilities') .'/aef_utilities.js');
+  drupal_add_js(drupal_get_path('module', 'aef_utilities') .'/aef_utilities_views_base_override.js', 'module', 'footer');
+}
+
+/**
+ * Implementation of hook_menu()
+ */
+function aef_utilities_menu() {
+  $items = array();
+
+  //Add a path where one can preview a node with a given nodereference formatter
+  $items['node/%node/formatter/%'] = array(
+    'title' => 'Show as ' . $formatter_info['label'],
+    'type' => MENU_CALLBACK,
+    'page callback' => 'aef_utilities_preview_formatter',
+    'page arguments' => array(1,3),
+    'access callback' => 'node_access',
+    'access arguments' => array('view', 1),
+  );
+
+  $items['node/%node/formatter_notheme/%'] = array(
+    'title' => 'Show as ' . $formatter_info['label'],
+    'type' => MENU_CALLBACK,
+    'page callback' => 'aef_utilities_preview_formatter',
+    'page arguments' => array(1,3),
+    'access callback' => 'node_access',
+    'access arguments' => array('view', 1),
+  );
+
+  $items['admin/aef/utilities'] = array(
+    'title' => t('Specific Settings'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('aef_utilities_settings_form'),
+    'access callback' => 'user_access',
+    'access arguments' => array("administrer le paramètrage spécifique"),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_theme_registry_alter.
+ */
+function aef_utilities_theme_registry_alter(&$theme_registry) {
+  $modulethemepath = drupal_get_path('module', 'aef_utilities') ."/theme";
+
+	//Add this theme to the list of path to look for page templates
+	$originalpath = array_shift($theme_registry['page']['theme paths']);
+	array_unshift($theme_registry['page']['theme paths'], $originalpath, $modulethemepath);
+}
+
+
+/**
+ * Show a node using a given formatter name.
+ */
+function aef_utilities_preview_formatter($node, $formatter_name)
+{
+  $html = "";
+
+  if ($formatter_name != "" && $formatter = _content_get_formatter($formatter_name, 'nodereference'))
+  {
+    $args = array('#item' => array('nid' => $node->nid), '#formatter' => $formatter_name);
+    $html = theme($formatter['module'] . '_formatter_' . $formatter_name, $args);
+  }
+
+  return $html;
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+function aef_utilities_theme()
+{
+  return array(
+    'aef_utilities_image' => array(
+      'arguments' => array(
+        'field' => NULL,
+        'imagecache_preset' => NULL,
+        'alt' => NULL,
+        'title' => NULL,
+        'attrs' => array(),
+    )),
+    'aef_utilities_image_and_infos' => array(
+      'arguments' => array(
+        'field' => NULL,
+        'imagecache_preset' => NULL,
+        'alt' => NULL,
+        'title' => NULL,
+        'attrs' => array(),
+    )),
+  );
+}
+
+/**
+ * For a given field(imagefield, but can be others), return an imagecache'd image.
+ * E.g. theme('aef_utilities_image', $item, 'aef_ct_article_thumbnail', $item['alt'], $item['title']);
+ */
+function theme_aef_utilities_image($field_value, $imagecache_preset, $alt = '', $title = '', $attrs = array())
+{
+  $output = "";
+
+  if(isset($field_value['filepath']) && $field_value['filepath'] != "")
+  {
+    $alt == (($alt)?$alt:$item['alt']);
+    $title == (($title)?$title:$item['title']);
+
+    $output .= theme('imagecache', $imagecache_preset, $field_value['filepath'], $alt, $title, $attrs);
+  }
+
+  return $output;
+}
+
+/**
+ * For a given field(imagefield, but can be others), return an imagecache'd image.
+ * E.g. theme('aef_utilities_image', $item, 'aef_ct_article_thumbnail', $item['alt'], $item['title']);
+ * Some others modules here could add more infos to the image, such as a title, a legend, a copyright, ...
+ */
+function theme_aef_utilities_image_and_infos($field_value, $imagecache_preset, $alt = '', $title = '', $attrs = array())
+{
+  $output = "";
+
+  if(isset($field_value['filepath']) && $field_value['filepath'] != "")
+  {
+    $alt == (($alt)?$alt:$item['alt']);
+    $title == (($title)?$title:$item['title']);
+
+    $output .= theme('imagecache', $imagecache_preset, $field_value['filepath'], $alt, $title, $attrs);
+  }
+
+  return $output;
+}
+
+
+/**
+ * Enables a module's dependencies.
+ * Module dependencies core feature is a little bit messy: dependencies
+ * are not necessarily enabled before the module we want to install.
+ * This function installs all dependencies of a module.
+ * It should be called from hook_install, if needed.
+ *
+ * @param $module
+ *   (optional) the name of module for which to install dependencies
+ */
+function aef_utilities_install_dependencies($module = '') {
+  $exit_message = t('The installation of !module dependencies had a problem, please use back button then refresh the page.', array('!module' => $module));
+
+  include_once('includes/install.inc');
+  $files = module_rebuild_cache();
+
+  if (!$module) {
+    $backtrace = debug_backtrace();
+    $file = preg_replace('/\\\\/', '/', $backtrace[0]['file']);
+    preg_match('/.*\\/([^\\/]+)\\..*/', $file, $matches);
+    $module = $matches[1];
+  }
+
+  if (!$files[$module]) {
+    drupal_set_message(t('The module !module does not exist.', array('!module' => $module)));
+    exit($exit_message);
+  }
+
+  $dependencies = $files[$module]->info['dependencies'];
+  foreach ($dependencies as $key => $dependency) {
+    if (!$files[$dependency]) {
+      drupal_set_message(t('The module !module could not be installed, because the module !missing is missing. Following modules need to be installed: !modules.', array('!module' => $module, '!missing' => $dependency, '!modules' => implode(', ', $dependencies))), 'error');
+      exit($exit_message);
+    }
+    else if ($files[$dependency]->status) {
+      unset($dependencies[$key]);
+    }
+  }
+  foreach ($dependencies as $key => $dependency) {
+    drupal_install_modules(array($key => $dependency));
+    module_invoke($dependency, 'init');
+  }
+  module_invoke('locale', 'system_update', $dependencies);
+}
+
+/**
+ * Taken from: http://drupal.org/node/66183#comment-412255
+ * To be moved to a parent module when necessary
+ *
+ * inserts values from $arr2 after (or before) $key in $arr1
+ * if $key is not found, values from $arr2 are appended to the end of $arr1
+ *
+ * This function uses array_merge() so be aware that values from conflicting keys
+ * will overwrite each other
+ *
+ * @param $arr1
+ *   array to insert into
+ * @param $key
+ *   key of $arr1 to insert after (or before)
+ * @param $arr2
+ *   array whose values should be inserted
+ * @param $before
+ *   boolean. insert before the given key. defaults to inserting after
+ * @return
+ *   merged array
+ */
+function drupal_array_insert($arr1, $key, $arr2, $before = FALSE) {
+  $index = array_search($key, array_keys($arr1));
+  if ($index === FALSE) {
+    $index = count($arr1); // insert @ end of array if $key not found
+  }
+  else {
+    if (!$before) {
+      $index++;
+    }
+  }
+  $end = array_splice($arr1, $index);
+  return array_merge($arr1, $arr2, $end);
+}
+
+/**
+ * For some reason, the CCK dump is incorrectly dumping the CCK settings array.
+ * This function make sure the settings are returned correctly, whenever the input
+ * is ok or not.
+ */
+function aef_utilities_check_cck_settings_array($array)
+{
+  $result = array();
+
+  if(is_array($array) == false)
+    return $result;
+
+  foreach($array as $key => $value)
+  {
+    if($value)
+      $result[$key] = $key;
+  }
+
+  return $result;
+}
+
+
+/*
+ * this function is a replacement for taxonomy_node_get_terms_by_vocabulary
+ * we cannot use taxonomy_node_get_terms_by_vocabulary when the node is not save
+ * so we use the array node with this function
+ * DO NOT USE THIS FUNCTION IN A PREPROCESS BECAUSE THE TAXO ARE NOT SAVE IN THE SAME FORM
+ * USE taxonomy_node_get_terms_by_vocabulary
+ */
+function aef_utilities_get_term_by_vocabulary($node, $vid, $free_taging = false)
+{
+  $result = 0;
+  $taxonomy = $free_taging ? $node->taxonomy['tags'] : $node->taxonomy;
+  if(is_array($taxonomy))
+  {
+    foreach ($taxonomy as $term_vid => $term_tid) {
+      if (!is_array($term_tid) and $term_vid == $vid) {
+        $result = $term_tid;
+      }
+    }
+  }
+  return $result;
+}
+
+/**
+ * Copy of format_date to add the c and P formats
+ */
+function aef_utilities_format_date($timestamp, $type = 'medium', $format = '', $timezone = NULL, $langcode = NULL) {
+  if (!isset($timezone)) {
+    global $user;
+    if (variable_get('configurable_timezones', 1) && $user->uid && strlen($user->timezone)) {
+      $timezone = $user->timezone;
+    }
+    else {
+      $timezone = variable_get('date_default_timezone', 0);
+    }
+  }
+
+  $timestamp += $timezone;
+
+  switch ($type) {
+    case 'small':
+      $format = variable_get('date_format_short', 'm/d/Y - H:i');
+      break;
+    case 'large':
+      $format = variable_get('date_format_long', 'l, F j, Y - H:i');
+      break;
+    case 'custom':
+      // No change to format.
+      break;
+    case 'medium':
+    default:
+      $format = variable_get('date_format_medium', 'D, m/d/Y - H:i');
+  }
+
+  $max = strlen($format);
+  $date = '';
+  for ($i = 0; $i < $max; $i++) {
+    $c = $format[$i];
+    if (strpos('AaDlM', $c) !== FALSE) {
+      $date .= t(gmdate($c, $timestamp), array(), $langcode);
+    }
+    else if ($c == 'F') {
+      // Special treatment for long month names: May is both an abbreviation
+      // and a full month name in English, but other languages have
+      // different abbreviations.
+      $date .= trim(t('!long-month-name '. gmdate($c, $timestamp), array('!long-month-name' => ''), $langcode));
+    }
+    else if (strpos('BdgGhHiIjLmnsStTUwWYyz', $c) !== FALSE) {
+      $date .= gmdate($c, $timestamp);
+    }
+    else if ($c == 'r') {
+      $date .= aef_utilities_format_date($timestamp - $timezone, 'custom', 'D, d M Y H:i:s O', $timezone, $langcode);
+    }
+    else if ($c == 'c') {
+      $date .= aef_utilities_format_date($timestamp - $timezone, 'custom', 'Y-m-d\\TH:i:sP', $timezone, $langcode);
+    }
+    else if ($c == 'O') {
+      $date .= sprintf('%s%02d%02d', ($timezone < 0 ? '-' : '+'), abs($timezone / 3600), abs($timezone % 3600) / 60);
+    }
+    else if ($c == 'P') {
+      $date .= sprintf('%s%02d:%02d', ($timezone < 0 ? '-' : '+'), abs($timezone / 3600), abs($timezone % 3600) / 60);
+    }
+    else if ($c == 'Z') {
+      $date .= $timezone;
+    }
+    else if ($c == '\\') {
+      $date .= $format[++$i];
+    }
+    else {
+      $date .= $c;
+    }
+  }
+
+  return $date;
+}
+
+function aef_utilities_get_frontoffice_base_url() {
+  global $base_url;
+  $result = variable_get('frontoffice_url', $base_url);
+  return $result;
+}
+
+function aef_utilities_get_backoffice_base_url() {
+  global $base_url;
+  $result = variable_get('backoffice_url', $base_url);
+  return $result;
+}
+
+/**
+ * Implementation of hook_token_list().
+ */
+function aef_utilities_token_list($type = 'all') {
+  $tokens = array();
+  $tokens['global']['frontoffice-url'] = t('The frontoffice (the public website) URL.');
+  $tokens['global']['backoffice-url'] = t('The backoffice (the administrative interface) URL.');
+  return $tokens;
+}
+
+/**
+ * Implementation of hook_token_values().
+ */
+function aef_utilities_token_values($type, $object = NULL, $options = array()) {
+  $tokens = array();
+  switch ($type) {
+    case 'global': {
+      $tokens['frontoffice-url'] = aef_utilities_get_frontoffice_base_url();
+      $tokens['backoffice-url'] = aef_utilities_get_backoffice_base_url();
+      break;
+    }
+    default: 
+      break;
+  }
+  return $tokens;
+}
+
+
+/**
+ * Given a file containing a CCK export string, import them into the given content_type
+ */
+function aef_utilities_import_cck($filename, $content_type = '<create>') {
+  // Get the files content
+  $content = implode('', file($filename));
+
+  // Build form state
+  $form_state = array(
+    'values' => array(
+      'type_name' => $content_type,
+      'macro' => $content,
+    ),
+  );
+
+  // Put it in there
+  drupal_execute("content_copy_import_form", $form_state);
+}
+
+/**
+ * Given a file containing a CCK export string, remove them from the given content_type
+ */
+function aef_utilities_remove_cck($filename, $content_type) {
+  module_load_include('inc', 'content', 'includes/content.crud');
+
+  // Get the files content
+  $cck_export = implode('', file($filename));
+
+  $content = eval($cck_export .' return $content;');
+  //Delete fields && fieldgroups
+  if (is_array($content['fields'])) {
+    foreach ($content['fields'] as $field) {
+      content_field_instance_delete($field['field_name'], $content_type);
+    }
+  }
+  if (is_array($content['groups'])) {
+    foreach ($content['groups'] as $group) {
+      fieldgroup_delete($content_type, $group['group_name']);
+    }
+  }
+}
+
+
+/**
+ * Filter out array entries with empty values
+ */
+function aef_utilities_filter_out_empty_values($array)
+{
+  $result = array();
+
+  foreach($array as $key => $value)
+  {
+    if($value)
+      $result[$key] = $value;
+  }
+  return $result;
+}
+
+/*
+ * The same than the url() function, except that it contains a hook
+ * allowing modules to modify the url or options
+ */
+function aef_utilities_url($path, $options = array()) {
+  $path_arguments = split ('/', $path);
+ 	
+  $data = array(
+    'path' => $path,
+    'options' => $options
+  );
+
+ 	if($path_arguments[0] == 'node' && $node = node_load($path_arguments[1])) 
+  {
+    $data['node'] = $node;
+ 	}
+
+  drupal_alter('node_link', $data); 
+ 	return url($data['path'], $data['options']) ;
+}
+
+/*
+ * The same than the l() function, except that it contains a hook
+ * allowing modules to modify the url, path or options
+ */
+function aef_utilities_l($text, $path, $options = array()) {
+  $path_arguments = split ('/', $path);
+ 	
+  $data = array(
+    'path' => $path,
+    'options' => $options
+  );
+
+ 	if($path_arguments[0] == 'node' && $node = node_load($path_arguments[1])) 
+  {
+    $data['node'] = $node;
+ 	}
+
+
+  drupal_alter('node_link', $data); 
+  return l($text, $data['path'], $data['options']);		
+}
+
+
+/**
+ * Like debug_backtrace(), but without the args 
+ */
+function aef_utilities_debug_backtrace()
+{
+  $bt = debug_backtrace();
+
+  foreach($bt as &$bti)
+    unset($bti['args']);
+
+  return $bt;
+}
+
+/**
+ * Implementation of hook_settings_form().
+ */
+function aef_utilities_settings_form(&$form_state) {
+  $form['frontoffice_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Frontoffice URL'),
+    '#size' => 30,
+    '#default_value' => variable_get('frontoffice_url',""),
+  );
+
+  $form['backoffice_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Backoffice URL'),
+    '#size' => 30,
+    '#default_value' => variable_get('backoffice_url',""),
+  );
+
+  return system_settings_form($form);
+}

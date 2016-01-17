@@ -1,0 +1,94 @@
+<?php
+
+/**
+ * @file
+ * Provides integration with Google Analytics to add e-commerce tracking
+ */
+
+/**
+ * Implements hook_help().
+ */
+function ms_googleanalytics_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#ms_googleanalytics':
+      return '<p>' . t("You must setup your Google Analytics account to enable
+        E-Commerce tracking. Follow the instructions <a href='@url'>here</a>.",
+        array('@url' => url('http://support.google.com/analytics/bin/answer.py?hl=en&answer=1009612'))) . '</p>';
+  }
+}
+
+/**
+ * Implements hook_enable().
+ */
+function ms_googleanalytics_enable() {
+  // Get the weight of the Google Analytics module.
+  $weight = db_result(db_query("SELECT weight FROM {system} WHERE name = '%s'", array('googleanalytics')));
+
+  // Update the weight of the MS Google Analytics module so its hooks get called
+  // after the actual Google Analytics module.
+  db_query("UPDATE {system} SET weight=%d WHERE name='%s'", max(1000, $weight + 1), 'ms_googleanalytics');
+}
+
+/**
+ * Implements hook_ms_thankyou().
+ */
+function ms_googleanalytics_ms_thankyou($order) {
+  $_SESSION['ms_googleanalytics_script'] = ms_googleanalytics_ecommerce_js($order);
+}
+
+function ms_googleanalytics_footer($main = 0) {
+  if (!empty($_SESSION['ms_googleanalytics_script'])) {
+    drupal_add_js($_SESSION['ms_googleanalytics_script'], 'inline', 'footer', FALSE, FALSE, FALSE);
+    ms_core_debug("Adding ecommerce script");
+    unset($_SESSION['ms_googleanalytics_script']);
+  }
+}
+
+/**
+ * Build the e-commerce JS passed to Google Analytics for order tracking.
+ *
+ * @param $order
+ *   The fully loaded order object to convert into GA JS.
+ *
+ * @return
+ *   The JS that should be added to the page footer.
+ */
+function ms_googleanalytics_ecommerce_js($order) {
+  $script = '';
+
+  // Put the arguments into an array that is safe to implode directly.
+  $args = array(
+    '"' . $order->order_number . '"',
+    drupal_to_js(variable_get('site_name', '')),
+    '"' . $order->amount . '"',
+    '"' . 0 . '"',
+    '"' . 0 . '"',
+    drupal_to_js($order->billing_address['city']),
+    drupal_to_js($order->billing_address['state']),
+    drupal_to_js($order->billing_address['country']),
+  );
+
+  // Add the transaction line to the JS.
+  $script .= '_gaq.push(["_addTrans", ' . implode(', ', $args) . ']);';
+
+  // Loop through the products on the order.
+  foreach ($order->products as $product) {
+    // Put the arguments into an array that is safe to implode directly.
+    $args = array(
+      '"' . $order->order_number . '"',
+      drupal_to_js($product->id),
+      drupal_to_js($product->name),
+      drupal_to_js($product->module),
+      '"' . $product->amount . '"',
+      '"' . $product->qty . '"',
+    );
+
+    // Add the item line to the JS.
+    $script .= '_gaq.push(["_addItem", ' . implode(', ', $args) . ']);';
+  }
+
+  // Add the function to submit the transaction to GA.
+  $script .= '_gaq.push(["_trackTrans"]);';
+
+  return $script;
+}

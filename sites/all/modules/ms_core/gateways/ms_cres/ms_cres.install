@@ -1,0 +1,181 @@
+<?php
+// $Id: $
+
+/**
+ * @file
+ */
+
+/**
+ * Implementation of hook_requirements().
+ */
+function ms_cres_requirements($phase) {
+  $t = get_t();
+  $requirements = array();
+  $has_curl = function_exists('curl_init');
+
+  if (!$has_curl) {
+    $requirements['ms_cres_curl'] = array(
+      'title' => $t('cURL'),
+      'value' => $has_curl ? $t('Enabled') : $t('Not found'),
+    );
+    $requirements['ms_cres_curl']['severity'] = REQUIREMENT_ERROR;
+    $requirements['ms_cres_curl']['description'] = $t("CRE Secure requires the PHP <a href='!curl_url'>cURL</a> library.", array('!curl_url' => 'http://php.net/manual/en/curl.setup.php'));
+  }
+
+  return $requirements;
+}
+
+/**
+* Implementation of hook_install().
+*/
+function ms_cres_install() {
+  // Create tables.
+  drupal_install_schema('ms_cres');
+}
+
+function ms_cres_uninstall() {
+  // Drop tables.
+  drupal_uninstall_schema('ms_cres');
+
+  // Delete related variables all at once.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'ms_cres_%%'");
+}
+
+/**
+* Implementation of hook_schema().
+*/
+function ms_cres_schema() {
+  $schema['ms_cres_payment_profiles'] = array(
+    'description' => t('Used to hold Customer Payment Profiles'),
+    'fields' => array(
+      'id' => array(
+        'description' => t('The unique ID.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => t('The user ID'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'token' => array(
+        'type' => 'varchar',
+        'description' => t('The Token on CRE Secure'),
+        'length' => '128',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'is_default' => array(
+        'description' => t('Whether or not this profile is the default'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'first_name' => array(
+        'description' => t('First Name'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'last_name' => array(
+        'description' => t('Last Name'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'street' => array(
+        'description' => t('Billing Address'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'city' => array(
+        'description' => t('Billing City'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'state' => array(
+        'description' => t('Billing State ISO2'),
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'zip' => array(
+        'description' => t('Billing Zip'),
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'country' => array(
+        'description' => t('Billing Country ISO2'),
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'phone' => array(
+        'description' => t('Billing Phone'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'fax' => array(
+        'description' => t('Billing Fax'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'card_number' => array(
+        'description' => t('Masked Card Number'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'card_type' => array(
+        'description' => t('Card Type'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'month' => array(
+        'description' => t('Expiration Month of the Card'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'year' => array(
+        'description' => t('Expiration Year of the Card'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'uid' => array('uid'),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}
+
+// ======================================
+// Updates:
+// ======================================

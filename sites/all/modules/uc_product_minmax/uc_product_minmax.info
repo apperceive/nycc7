@@ -1,0 +1,11 @@
+name = Product Minimum & Maximum
+description = Set a minimum and maximum quantity for products in a cart necessary for checkout.
+dependencies[] = uc_product
+package = Ubercart - extra
+core = 6.x
+; Information added by drupal.org packaging script on 2013-10-19
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "uc_product_minmax"
+datestamp = "1382149555"
+
