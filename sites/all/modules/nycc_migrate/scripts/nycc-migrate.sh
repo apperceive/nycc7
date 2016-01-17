@@ -257,7 +257,7 @@ function nycc_migrate_copy_source_to_target() {
   # field_data_field_ride_rwgps_link
 
   # Region
-  $fieldcopy --type=region --kind=lid region_location 
+  $fieldcopy --type=region --kind=lid region_location --where="content_type_region.field_region_location_lid > 0"
   
   # Events
   $fieldcopy event_category event_spots
