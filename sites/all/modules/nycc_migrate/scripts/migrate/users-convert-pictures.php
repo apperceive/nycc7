@@ -13,7 +13,7 @@
   $filesdir = drush_get_option(array('filesdir'), 'sites/default/files');
   $subdir = drush_get_option(array('subdir'), 'pictures');
   // TODO: simplify this down to a single regex if possible
-  $glob = drush_get_option(array('glob'), 'picture-');
+  $glob = drush_get_option(array('glob'), 'picture-*');
   $extensions = drush_get_option(array('extensions'), 'jpg|png|gif|jpeg');
   $pattern = drush_get_option(array('pattern'), "~picture\-[0-9]+\.(jpg|png|gif|jpeg)~");
   
@@ -44,17 +44,16 @@
       continue;
     }
     
-    $pos = strrpos($filename, '.');
-    if (!($pos >0)) {
+    $epos = strrpos($filename, '.');
+    if (!($epos >0)) {
       drush_print("Notice: file skipped because it has no extension or is 'dot' file - rm $filename");
       $rejected++;
       continue;
-      
     }
-    $patlen = drupal_strlen($pattern);
-    $len = drupal_strlen($filename) - $patlen - $pos - 2;
-    $uid = substr($filename, $patlen, $len);
-    $acct = user_load($uid);
+    $spos = strrpos($filename, '-');
+    $uid = substr($filename, $spos+1, $epos-$spos-1);
+    
+    $acct = $uid ? user_load($uid) : NULL;
     
     if (!$acct) {
       drush_print("Notice: orphan file with no matching account - rm $filepath");
@@ -98,11 +97,11 @@
       //drush_print("INSERT FILE_MANAGED: uid: $uid, filename: $filename, uri: $uri, filemime: $imgtype, filesize: $filesize, timestamp: $time");
       if (!$no) {
         // test for existing primary key (uri)
-        $q = db_select('file_managed', 'fm')->fields('fm', array('uid', 'fid'))->condition('uri', $fmuri)->execute();
-        if (!$q)
+        //$q = db_select('file_managed', 'fm')->fields('fm', array('uid', 'fid'))->condition('uri', $fmuri)->execute();
+        //if (!$q)
           $fid = db_insert('file_managed')->fields(array('uid' => $uid, 'filename' => $filename, 'uri' => $uri, 'filemime' => $imgtype, 'filesize' => $filesize, 'timestamp' => $time))->execute();
-        else
-          $fid = $q->fetchField(1);
+        //else
+          //$fid = $q->fetchField(1);
       }
       if ($no && !$fid) $fid = "TBD";  // for testing only
       $fminserted++;

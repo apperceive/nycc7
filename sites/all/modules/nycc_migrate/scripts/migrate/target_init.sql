@@ -17,6 +17,8 @@ TRUNCATE field_data_comment_body;
 TRUNCATE profile;
 TRUNCATE history;
 TRUNCATE node_comment_statistics;
+TRUNCATE forum;
+TRUNCATE forum_index;
 
 DELETE FROM variable WHERE name LIKE 'backup_migrate_%';
 DELETE FROM variable WHERE name LIKE 'nodesquirrel_%';

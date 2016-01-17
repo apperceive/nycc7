@@ -6,8 +6,7 @@ REPLACE INTO $targetdb`file_managed`
 `filemime`,
 `filesize`,
 `status`,
-`timestamp`,
-`uuid`)
+`timestamp`)
 SELECT `files`.`fid`,
     `files`.`uid`,
     `files`.`filename`,
@@ -15,6 +14,5 @@ SELECT `files`.`fid`,
     `files`.`filemime`,
     `files`.`filesize`,
     `files`.`status`,
-    `files`.`timestamp`,
-    UUID()
+    `files`.`timestamp`
 FROM $sourcedb`files` WHERE filepath LIKE 'sites/default/files%'

@@ -199,8 +199,8 @@ function nycc_migrate_init_target() {
   #sudo mkdir $targetdir/files
   # NOTE: can't use rm -R *
   # NOTE: so not delete .htaccess
-  find $targetdir/files -type f -name "*" -exec sudo rm -f {} \;
-  find $targetdir/files -type d -name "*" -exec sudo rm -R -f {} \;
+  find $targetdir/files -maxdepth 1 -type f -exec sudo rm -f {} \;
+  find $targetdir/files -maxdepth 1 -type d -not -name "files" -exec sudo rm -R -f {} \;
   
   echo "nycc_migrate_init_target complete."
 }
@@ -212,12 +212,12 @@ function nycc_migrate_copy_source_to_target() {
   echo "Copying core tables..."
   $mysqlexec $scriptsdir/role.sql
   $mysqlexec $scriptsdir/users.sql
-  $mysqlexec $scriptsdir/profile.sql
+  # $mysqlexec $scriptsdir/profile.sql
   $mysqlexec $scriptsdir/users_roles.sql
   $mysqlexec $scriptsdir/node.sql
   $mysqlexec $scriptsdir/node_revision.sql
   $mysqlexec $scriptsdir/file_managed.sql
-  $mysqlexec $scriptsdir/comments.sql
+  $mysqlexec $scriptsdir/comment.sql
   $mysqlexec $scriptsdir/copy_comments_body.sql
   $mysqlexec $scriptsdir/url_alias.sql
   $mysqlexec $scriptsdir/history.sql
@@ -618,8 +618,7 @@ else
   # declare -p targetprivatedir
 
   show_script_vars | tee --append $logfile
-  
-   # $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');" 
+
   
   echo ""
   echo "Test run complete." | tee --append $logfile

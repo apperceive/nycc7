@@ -67,6 +67,7 @@ $args = drush_get_arguments();
 
 // specifying type sets source to content_type_, omitting sets source table to content_field source_
 $srctype = $type ? 'type' : 'field';
+$where = $where ? "WHERE $where " : "";
 
 foreach ($args as $ndx => $arg) {
   // skip scr and this script as first two args to drush scr scriptname fielda fieldb
@@ -76,22 +77,16 @@ foreach ($args as $ndx => $arg) {
     $suffixstr = $nosuffix ? "" : "_$targetkind";
     $srctable = ($noprefix ? "" : "content_{$srctype}_") . ($type ? $type : $arg);
     $targetcol = $targetfield ? $targetfield : $arg;
-    $sourceexp = $sourceexp ? $sourceexp : "{$srctable}.{$prefixstr}{$arg}_{$kind}";
+    $sexpr = $sourceexp ? $sourceexp : "{$srctable}.{$prefixstr}{$arg}_{$kind}";
 
-    /*
-    $where = $where ? "WHERE $where " : "";
-    if ($notnull) {
-      $where .= ($where ? "WHERE" : "AND");
-      $where .= " NOT $sourceexp IS NULL";
-    }
-    */
-    $where = $notnull ? (($where ? "$where AND " : "WHERE ") . "NOT $sourceexp IS NULL") : $where;
+    /* NOTE: using tests, only assign, never concatenate, strings in this loop, e.g. WHERE clause */
+    $where = $notnull ? (($where ? "$where AND " : "WHERE ") . "NOT $sexpr IS NULL") : $where;
     
     $dcol = "{$prefixstr}{$targetcol}{$suffixstr}";
     
     $tables = array('data', 'revision');
     foreach ($tables as $table) {
-      /* NOTE: only assign, never concatenate, strings in this loop, e.g. WHERE clause */
+      /* NOTE: using conditionals, only assign, never concatenate, strings in this loop, e.g. WHERE clause */
       $dtable = "{$prefixstr}{$table}_{$prefixstr}{$targetcol}";
             
       if (!$notruncate) {
@@ -112,11 +107,11 @@ foreach ($args as $ndx => $arg) {
       }
 
       $sql =<<<EOS
-REPLACE INTO `$dtable` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $dcol  $extracol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $expr $extraval FROM $sourcedb.`$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$srctable`.nid=node.nid AND $sourcedb.`$srctable`.vid=node.vid) $where;
+REPLACE INTO `$dtable` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $dcol  $extracol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $sexpr $extraval FROM $sourcedb.`$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$srctable`.nid=node.nid AND $sourcedb.`$srctable`.vid=node.vid) $where;
 EOS;
 
       //if ($trace) drush_print("field_copy ($table): executing $sourcedb $srctable $type $kind $arg $expr -> $targetcol $targetkind");
-      if ($trace) drush_print("field_copy ($table): executing $sourcedb $type $kind $srctable $sourceexp -> $dtable $tcol $targetkind");
+      if ($trace) drush_print("field_copy ($table): executing $sourcedb $type $kind $srctable $sexpr -> $dtable $tcol $targetkind");
       if ($debug) drush_print('Debug: defined variables ' . var_export(get_defined_vars(),1));
       if (!$no) {
         try {
