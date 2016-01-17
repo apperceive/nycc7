@@ -6,9 +6,9 @@ package = MoneySuite - Bonus Pack
 dependencies[] = rules
 configure = admin/structure/ms_drip_sets
 
-; Information added by Drupal.org packaging script on 2015-12-27
-version = "7.x-10.x-dev"
+; Information added by Drupal.org packaging script on 2016-01-13
+version = "7.x-10.0"
 core = "7.x"
 project = "moneysuite"
-datestamp = "1451215142"
+datestamp = "1452716964"
 
