@@ -1358,7 +1358,6 @@ function ms_ppv_form_alter(&$form, $form_state, $form_id) {
       //Add the stuff to the content type settings
       if (user_access('set ms nodes pricing')) {
         $defaults = ms_ppv_get_type_defaults($form['#node_type']->type);
- 				dpm($defaults);
         $form['ms_ppv'] = array(
           '#type' => 'fieldset',
           '#title' => t('Pay Per View Settings'),

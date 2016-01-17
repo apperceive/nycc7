@@ -113,11 +113,15 @@ function nycc_migrate_init_migration() {
 
 # EXPORT PRODUCTION DATABASE, RYSYNC DATABASE AND FILES TO TARGET
 function nycc_migrate_backup_source_and_target() {
-  echo "Making backup of source database..."
-  $mysqldump $sourcedb > $tmpdir/$sourcedb-$timestamp.sql
 
-  echo "Making backup of target database..."
-  $mysqldump $targetdb > $tmpdir/$targetdb-$timestamp.sql
+  echo "Removing old temporary backups ($tmpdir/*.sql.bz2)..."
+  rm $tmpdir/*.sql.bz2
+
+  echo "Making (bzip2) backup of source database..."
+  $mysqldump $sourcedb | bzip2 - c > $tmpdir/$sourcedb-$timestamp.sql.bz2
+
+  echo "Making (bzip2) backup of target database..."
+  $mysqldump $targetdb | bzip2 -c > $tmpdir/$targetdb-$timestamp.sql.bz2
   
   # TODO: backup sourcedirs and targetdir's
   echo "nycc_migrate_backup_source_and_target complete."
@@ -139,6 +143,7 @@ function nycc_migrate_sync_production_to_source() {
 
   # NOTE: these modules give us errors in drush so turn them off
   # NOTE: some are a problem on the site too, so leave off?
+  # TODO: move this to a source_init function
   $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
 
   echo "nycc_migrate_sync_production_to_source complete."
@@ -166,7 +171,7 @@ function nycc_migrate_init_target() {
   # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
   $mysql $targetdb < $scriptsdir/target_init.sql
   
-  drush $targetalias watchdog-delete -y -q 
+  drush $targetalias watchdog-delete all -y -q 
   
   # disable rules
   # echo "Disabling rules..."
@@ -186,14 +191,16 @@ function nycc_migrate_init_target() {
   sudo chown -R nyccftp:apache $targetdir/files
   sudo chown -R 775 $targetdir/files
 
+  # TODO: set the acl to keep files and folders owned by apache  
+  
   # Clear out target files directory
   echo "Deleting target files..."
   #sudo rm -R $targetdir/files/
   #sudo mkdir $targetdir/files
   # NOTE: can't use rm -R *
   # NOTE: so not delete .htaccess
-  find $targetdir -type f -name "*" -exec rm {} \;
-  find $targetdir -type d -name "*" -exec rm -R {} \;
+  find $targetdir/files -maxdepth 1 -type f -exec sudo rm -f {} \;
+  find $targetdir/files -maxdepth 1 -type d -not -name "files" -exec sudo rm -R -f {} \;
   
   echo "nycc_migrate_init_target complete."
 }
@@ -205,14 +212,15 @@ function nycc_migrate_copy_source_to_target() {
   echo "Copying core tables..."
   $mysqlexec $scriptsdir/role.sql
   $mysqlexec $scriptsdir/users.sql
-  $mysqlexec $scriptsdir/profile.sql
+  # $mysqlexec $scriptsdir/profile.sql
   $mysqlexec $scriptsdir/users_roles.sql
   $mysqlexec $scriptsdir/node.sql
   $mysqlexec $scriptsdir/node_revision.sql
   $mysqlexec $scriptsdir/file_managed.sql
-  $mysqlexec $scriptsdir/comments.sql
+  $mysqlexec $scriptsdir/comment.sql
   $mysqlexec $scriptsdir/copy_comments_body.sql
   $mysqlexec $scriptsdir/url_alias.sql
+  $mysqlexec $scriptsdir/history.sql
 
   echo "Copying field tables..."
   # content-types page and event fields - multivalued fields
@@ -249,7 +257,7 @@ function nycc_migrate_copy_source_to_target() {
   # field_data_field_ride_rwgps_link
 
   # Region
-  $fieldcopy --type=region --kind=lid region_location 
+  $fieldcopy --type=region --kind=lid region_location --where="content_type_region.field_region_location_lid > 0"
   
   # Events
   $fieldcopy event_category event_spots
@@ -302,7 +310,7 @@ function nycc_migrate_copy_source_to_target() {
   
   # copy files from $source to $target
   echo "Copying files from source to target..."
-  sudo rsync --recursive --update --quiet --delete --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files"  --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files/ $targetdir/files
+  sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files $targetdir
 
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
@@ -342,11 +350,8 @@ function nycc_migrate_cleanup_target() {
   
   # factor this out into own operation as it is a long one
   echo "Load/save nodes..." >> $logfile
-  # load/save all nodes and users to trigger other modules hooks?
-  ####################drush $targetalias scr $scriptsdir/node-convert-load-save.php
-
-  # TODO: Additional processing:
-  # check that profile2 pid's work as expected. what is test for this?
+  # load/save all nodes and users to trigger other modules hooks
+  drush $targetalias scr $scriptsdir/node-convert-load-save.php
   
   sudo mkdir -p sites/default/files/backup_migrate
   
@@ -355,7 +360,7 @@ function nycc_migrate_cleanup_target() {
   sudo chmod -R 775 $targetdir/files
   
   # TODO: enable when running for real
-  echo "Re-enable modules (NOT smtp!) ..."
+  echo "Re-enable modules (TODO: NOT smtp!) ..."
   # drush $targetalias en -y -q smtp 
   drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides print_pdf
   
@@ -366,12 +371,14 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias vset -q nycc_profile_should_redirect_to_membership_review 1
   
   
-  echo "Re-enable rules (NOT!) ..."
+  echo "Re-enable rules (TODO: NOT!) ..."
   #drush $targetalias rules-enable -q rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
   
   $mysql $targetdb < $scriptsdir/target_cleanup.sql
   
   drush $targetalias cc all -q 
+  
+  # TODO: put message to watchdog
   
   # clean up target files folder 
   # clear out ctools?, css? js? print_pdf?
@@ -399,6 +406,8 @@ function nycc_migrate_cleanup_migration() {
   echo "nycc_migrate_cleanup_migration - no-op..."
   # TODO: delete $tmpdir/production.sql after successful import
   # TODO: delete $productiontmpdir/production.sql after successful rsync
+  # TODO: delete backups from previous migration tests (.sql)
+  
   echo "nycc_migrate_cleanup_migration complete."
 }
 
@@ -430,7 +439,20 @@ function nycc_migrate_status() {
   # report on smtp status
   
   echo "logfile: `ls -la $logfile`"
-  
+}
+
+function show_script_vars() { 
+  echo ""
+  echo "Script variables:"
+  declare -p | grep "\-\- production" | sed -e "s/declare \-\- //"
+  echo ""
+  declare -p | grep "\-\- source" | sed -e "s/declare \-\- //"
+  echo ""
+  declare -p | grep "\-\- target" | sed -e "s/declare \-\- //"
+  echo ""
+  declare -p | grep "\-\- tmpdir" | sed -e "s/declare \-\- //"
+  declare -p | grep "\-\- logfile" | sed -e "s/declare \-\- //"
+  declare -p | grep "\-\- scriptsdir" | sed -e "s/declare \-\- //"
 }
 
 ###### END OF MIGRATION FUNCTIONS
@@ -577,26 +599,33 @@ then
 #  echo "Skipped: test (-t)"
   echo ""
 else
-  echo "Test run..." | tee --append $logfile
+  echo "Starting test run..." | tee --append $logfile
   
   # echo "drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb" $scriptsdir/test.sql
-  echo "$mysqlexec $scriptsdir/test.sql --sql"
-  echo "Note: no output from test.sql"
+  # echo "$mysqlexec $scriptsdir/test.sql --sql"
+  # echo "Note: no output from test.sql"
   # $mysqlexec $scriptsdir/test.sql --sql
-  echo "Test of mysqlexec test.sql complete."
+  # echo "Test of mysqlexec test.sql complete."
   echo ""
  
   # $mysqlexec $scriptsdir/url_alias.sql  --sql --no 
-  $fieldcopy --sql --no --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
+  #$fieldcopy --sql --no --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
 
   
   #view declared vars:
   # declare -p
   # declare -p targetprivatedir
 
-  echo "Test complete."
+  show_script_vars | tee --append $logfile
+
+  # sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files $targetdir
+    
+  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
+    
+  echo ""
+  echo "Test run complete." | tee --append $logfile
 
 fi
  
 
-echo "Migration tasks completed."  | tee --append $logfile
+echo "All migration tasks completed." | tee --append $logfile

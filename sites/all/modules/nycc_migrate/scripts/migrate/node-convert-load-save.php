@@ -23,6 +23,17 @@ foreach ($q as $r) {
   if (($cnt % 1000) == 0) drush_print("$cnt nodes processed");
   try{
     $node = node_load($nid);
+    
+    /* perform special operataions (eg, forum_index) */
+    if ($node && $node->type == 'forum' && $node->status)  {
+      _forum_update_forum_index($node->nid);
+      // TODO: need to do this for comments too
+      
+      $qq = db_query("SELECT cid FROM comment WHERE nid = :nid", array(':nid' => $nid));
+      foreach($qq as $rr)
+        _forum_update_forum_index($rr->cid);
+    }
+    
     try{
       
       // TODO: test for missing fields/values?

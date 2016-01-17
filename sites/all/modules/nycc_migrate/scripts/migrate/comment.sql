@@ -12,8 +12,7 @@ REPLACE INTO $targetdb`comment`
 `mail`,
 `homepage`,
 `language`,
-`created`, 
-`uuid`)
+`created`)
 SELECT `comments`.`cid`,
     `comments`.`pid`,
     `comments`.`nid`,
@@ -27,6 +26,5 @@ SELECT `comments`.`cid`,
     `comments`.`mail`,
     `comments`.`homepage`,
     'und',
-    `comments`.`timestamp`,
-    UUID()
+    `comments`.`timestamp`
 FROM $sourcedb`comments`;
