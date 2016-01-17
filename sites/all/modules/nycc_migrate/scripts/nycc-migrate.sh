@@ -310,7 +310,7 @@ function nycc_migrate_copy_source_to_target() {
   
   # copy files from $source to $target
   echo "Copying files from source to target..."
-  sudo rsync --recursive --update --quiet --delete --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files"  --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files/ $targetdir/files
+  sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files $targetdir
 
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
@@ -350,11 +350,8 @@ function nycc_migrate_cleanup_target() {
   
   # factor this out into own operation as it is a long one
   echo "Load/save nodes..." >> $logfile
-  # load/save all nodes and users to trigger other modules hooks?
-  ####################drush $targetalias scr $scriptsdir/node-convert-load-save.php
-
-  # TODO: Additional processing:
-  # check that profile2 pid's work as expected. what is test for this?
+  # load/save all nodes and users to trigger other modules hooks
+  drush $targetalias scr $scriptsdir/node-convert-load-save.php
   
   sudo mkdir -p sites/default/files/backup_migrate
   
@@ -363,7 +360,7 @@ function nycc_migrate_cleanup_target() {
   sudo chmod -R 775 $targetdir/files
   
   # TODO: enable when running for real
-  echo "Re-enable modules (NOT smtp!) ..."
+  echo "Re-enable modules (TODO: NOT smtp!) ..."
   # drush $targetalias en -y -q smtp 
   drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides print_pdf
   
@@ -374,12 +371,14 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias vset -q nycc_profile_should_redirect_to_membership_review 1
   
   
-  echo "Re-enable rules (NOT!) ..."
+  echo "Re-enable rules (TODO: NOT!) ..."
   #drush $targetalias rules-enable -q rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved  
   
   $mysql $targetdb < $scriptsdir/target_cleanup.sql
   
   drush $targetalias cc all -q 
+  
+  # TODO: put message to watchdog
   
   # clean up target files folder 
   # clear out ctools?, css? js? print_pdf?
@@ -619,7 +618,10 @@ else
 
   show_script_vars | tee --append $logfile
 
-  
+  # sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files $targetdir
+    
+  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
+    
   echo ""
   echo "Test run complete." | tee --append $logfile
 

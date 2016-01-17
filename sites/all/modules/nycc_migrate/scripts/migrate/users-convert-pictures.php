@@ -97,11 +97,11 @@
       //drush_print("INSERT FILE_MANAGED: uid: $uid, filename: $filename, uri: $uri, filemime: $imgtype, filesize: $filesize, timestamp: $time");
       if (!$no) {
         // test for existing primary key (uri)
-        //$q = db_select('file_managed', 'fm')->fields('fm', array('uid', 'fid'))->condition('uri', $fmuri)->execute();
-        //if (!$q)
+        $q = db_select('file_managed', 'fm')->fields('fm', array('uid', 'fid'))->condition('uri', $$uri)->execute();
+        if (!$q)
           $fid = db_insert('file_managed')->fields(array('uid' => $uid, 'filename' => $filename, 'uri' => $uri, 'filemime' => $imgtype, 'filesize' => $filesize, 'timestamp' => $time))->execute();
-        //else
-          //$fid = $q->fetchField(1);
+        else
+          $fid = $q->fetchField(1);
       }
       if ($no && !$fid) $fid = "TBD";  // for testing only
       $fminserted++;
@@ -109,7 +109,7 @@
     
     // insert failed?
     if (!$fid) {
-      drush_print("ERROR: no fid!!! insert failed?");      // not expecting this, but let's test just in case
+      //drush_print("ERROR: no fid!!! insert failed?");      // not expecting this, but let's test just in case
       continue;
     } // !$fid
     

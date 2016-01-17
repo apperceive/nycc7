@@ -37,6 +37,9 @@ function nycc_profile_has_valid_review_date($account = null) {
     $user = user_load($account);
   }
   
+  dpm(get_defined_vars());
+  
+  
   if (is_object($user) && $user->uid) {
     $cp = profile2_load_by_user($user->uid, "profile");
     if ($cp) {
@@ -226,7 +229,7 @@ function nycc_profile_review_membership() {
     $form['description'] = array(
       '#prefix' => '<div>',
       '#value' => $description,
-      '#value' => t("Please review your contact information and acknowledge your agreement with the NYCC Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement."),
+      //'#value' => t("Please review your contact information and acknowledge your agreement with the NYCC Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement."),
       '#suffix' => '</div>',
     );
 
@@ -342,6 +345,8 @@ function nycc_profile_review_membership() {
     //$form['#redirect'] = "nycc-review-membership?destination=$destination";
   }
 
+  dpm(get_defined_vars());
+ 
   return $form;
 }
 
