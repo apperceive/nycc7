@@ -272,27 +272,27 @@ function nycc_migrate_copy_source_to_target() {
   # field_data_field_event_view_signups   #boolean
 
   # Profile
-  $fieldcopy --type=profile age_range gender registration_date_import
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 age_range gender registration_date_import
   
-  $fieldcopy --type=profile --addcol="field_city_format,5" city 
-  $fieldcopy --type=profile --addcol="field_contact_name_format,5" contact_name 
-  $fieldcopy --type=profile --addcol="field_country_format,5" country 
-  $fieldcopy --type=profile --addcol="field_emergency_contact_no_format,5" emergency_contact_no 
-  $fieldcopy --type=profile --addcol="field_first_name_format,5" first_name 
-  $fieldcopy --type=profile --addcol="field_profile_last_eny_year_format,5" profile_last_eny_year 
-  $fieldcopy --type=profile --addcol="field_last_name_format,5" last_name 
-  $fieldcopy --type=profile --addcol="field_phone_format,5" phone 
-  $fieldcopy --type=profile --addcol="field_profile_extra_format,5" profile_extra 
-  $fieldcopy --type=profile --addcol="field_review_last_date_format,5" review_last_date 
-  $fieldcopy --type=profile --addcol="field_state_format,5" state 
-  $fieldcopy --type=profile --addcol="field_waiver_last_date_format,5" waiver_last_date 
-  $fieldcopy --type=profile --addcol="field_zip_format,5" zip
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_city_format,5" city 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_contact_name_format,5" contact_name 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_country_format,5" country 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_emergency_contact_no_format,5" emergency_contact_no 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_first_name_format,5" first_name 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_profile_last_eny_year_format,5" profile_last_eny_year 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_last_name_format,5" last_name 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_phone_format,5" phone 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_profile_extra_format,5" profile_extra 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_review_last_date_format,5" review_last_date 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_state_format,5" state 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_waiver_last_date_format,5" waiver_last_date 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_zip_format,5" zip
 
-  $fieldcopy --type=profile --sourceexp="IF(content_type_profile.field_email_list_flag_value='off',0,1)" email_list_flag 
-  $fieldcopy --type=profile --sourceexp="IF(content_type_profile.field_publish_email_flag_value='off',0,1)" publish_email_flag 
-  $fieldcopy --type=profile --sourceexp="IF(content_type_profile.field_publish_address_flag_value='off',0,1)" publish_address_flag 
-  $fieldcopy --type=profile --sourceexp="IF(content_type_profile.field_publish_phone_flag_value='off',0,1)" publish_phone_flag 
-  $fieldcopy --type=profile --sourceexp="IF(content_type_profile.field_terms_of_use_value='off',0,1)" terms_of_use 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_email_list_flag_value='off',0,1)" email_list_flag 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_publish_email_flag_value='off',0,1)" publish_email_flag 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_publish_address_flag_value='off',0,1)" publish_address_flag 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_publish_phone_flag_value='off',0,1)" publish_phone_flag 
+  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_terms_of_use_value='off',0,1)" terms_of_use 
   
   # Cue-Sheets
   $fieldcopy --type="cue_sheet" cuesheet_rating cuesheet_distance cue_sheet_difficulty
@@ -628,7 +628,9 @@ else
 
   # sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files $targetdir
     
-  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
+  # drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
+  
+  # drush $targetalias cp2p2-migrate "profile"
     
   echo ""
   echo "Test run complete." | tee --append $logfile

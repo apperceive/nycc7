@@ -44,6 +44,9 @@ $targetfield = drush_get_option(array('targetfield'), '');
 $noprefix = drush_get_option(array('noprefix'), FALSE);
 $nosuffix = drush_get_option(array('nosuffix'), FALSE);
 
+$bundle = drush_get_option(array('bundle'), "IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page')");
+$entitytype = drush_get_option(array('entitytype'), 'node');
+
 // additional conditions as expressions after "WHERE "
 $where = drush_get_option(array('where'), '');
 
@@ -107,7 +110,7 @@ foreach ($args as $ndx => $arg) {
       }
 
       $sql =<<<EOS
-REPLACE INTO `$dtable` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $dcol  $extracol) SELECT 'node', IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page'), 0, node.nid, node.vid, 'und', 0, $sexpr $extraval FROM $sourcedb.`$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$srctable`.nid=node.nid AND $sourcedb.`$srctable`.vid=node.vid) $where;
+REPLACE INTO `$dtable` (entity_type, bundle, deleted, entity_id, revision_id, language, delta, $dcol  $extracol) SELECT $entitytype, $bundle, 0, node.nid, node.vid, 'und', 0, $sexpr $extraval FROM $sourcedb.`$srctable` INNER JOIN $sourcedb.`node` ON ($sourcedb.`$srctable`.nid=node.nid AND $sourcedb.`$srctable`.vid=node.vid) $where;
 EOS;
 
       //if ($trace) drush_print("field_copy ($table): executing $sourcedb $srctable $type $kind $arg $expr -> $targetcol $targetkind");
