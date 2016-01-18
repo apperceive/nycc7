@@ -97,7 +97,7 @@
       //drush_print("INSERT FILE_MANAGED: uid: $uid, filename: $filename, uri: $uri, filemime: $imgtype, filesize: $filesize, timestamp: $time");
       if (!$no) {
         // test for existing primary key (uri)
-        $q = db_select('file_managed', 'fm')->fields('fm', array('uid', 'fid'))->condition('uri', $$uri)->execute();
+        $q = db_select('file_managed', 'fm')->fields('fm', array('uid', 'fid'))->condition('uri', $uri)->execute();
         if (!$q)
           $fid = db_insert('file_managed')->fields(array('uid' => $uid, 'filename' => $filename, 'uri' => $uri, 'filemime' => $imgtype, 'filesize' => $filesize, 'timestamp' => $time))->execute();
         else

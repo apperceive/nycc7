@@ -138,12 +138,18 @@ function nycc_migrate_export_production() {
 }
 
 function nycc_migrate_sync_production_to_source() {
+
+  echo "Clearing out source files folder..."
+  find $sourcedir/files -maxdepth 1 -type f -exec sudo rm -f {} \;
+  find $sourcedir/files -maxdepth 1 -type d -not -name "files" -exec sudo rm -R -f {} \;
+  
   echo "Rsyncing production files to source (update)..."
   sudo rsync -azu -e "ssh -i $productionssh" --exclude="backup_migrate/scheduled"  --exclude="backup_migrate/manual" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files"  --exclude="print_pdf" --exclude="imagefield_thumbs" $productionuser:$productionfilesdir/files/ $sourcedir/files
 
   # NOTE: these modules give us errors in drush so turn them off
   # NOTE: some are a problem on the site too, so leave off?
   # TODO: move this to a source_init function
+  echo "Deactivating specific source modules..."
   $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
 
   echo "nycc_migrate_sync_production_to_source complete."
@@ -321,10 +327,12 @@ function nycc_migrate_copy_source_to_target() {
 }
 
 function nycc_migrate_cleanup_source() {
-  echo "Cleaning up source - no-op..."
+  echo "Cleaning up source..."
   # NOTE: these modules give us errors in drush so we turned them off during migration
   # NOTE: some are a problem on the site too, so leave off?
-  # $mysql $sourcedb -e"UPDATE system SET status = 1 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');  
+  echo "Reactivating specific source modules (TODO: NOT!)..."
+  # DONE: nycc_ipn
+  # $mysql $sourcedb -e"UPDATE system SET status = 1 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts');  
   
   # clean up source files folder before rsync
   # clear out ctools?, css? js? print_pdf?
@@ -403,7 +411,7 @@ function nycc_migrate_cleanup_target() {
 
 # TODO: delete migrate related objects not part of site (eg temp tables)
 function nycc_migrate_cleanup_migration() {
-  echo "nycc_migrate_cleanup_migration - no-op..."
+  echo "nycc_migrate_cleanup_migration..."
   # TODO: delete $tmpdir/production.sql after successful import
   # TODO: delete $productiontmpdir/production.sql after successful rsync
   # TODO: delete backups from previous migration tests (.sql)

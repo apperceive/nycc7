@@ -29,7 +29,7 @@ SELECT
 `users`.`login`,
 `users`.`status`,
 `users`.`timezone_name`,
-`users`.`language`,
+'und',
 `users`.`init`,
 `users`.`data`,
 0

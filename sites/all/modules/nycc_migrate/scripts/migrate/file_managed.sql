@@ -10,7 +10,7 @@ REPLACE INTO $targetdb`file_managed`
 SELECT `files`.`fid`,
     `files`.`uid`,
     `files`.`filename`,
-    REPLACE(`files`.`filepath`,'sites/default/files','public://'),
+    REPLACE(`files`.`filepath`,'sites/default/files/','public://'),
     `files`.`filemime`,
     `files`.`filesize`,
     `files`.`status`,

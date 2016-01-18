@@ -16,7 +16,7 @@ REPLACE INTO $targetdb`node`
 SELECT `node`.`nid`,
     `node`.`vid`,
     `node`.`type`,
-    `node`.`language`,
+    'und',
     `node`.`title`,
     `node`.`uid`,
     `node`.`status`,
