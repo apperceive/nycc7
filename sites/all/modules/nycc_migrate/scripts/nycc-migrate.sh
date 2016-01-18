@@ -90,6 +90,7 @@ Usage: $(basename $0) [-options] [conf]
     -i              source report (trivial)
     -j              target report (trivial)
     -h              this usage help text
+    -S              sync reference site to target prior to migration
     conf            alternate configuration file (default is nycc_migrate.conf)
 Migrate NYCC Drupal 6 to 7
 Examples:
@@ -466,6 +467,22 @@ function nycc_migrate_status() {
   echo "logfile: `ls -la $logfile`"
 }
 
+function nycc_migrate_sync_reference_to_target() {
+
+# update target from reference site to target site prior to migration
+#
+# goal: site runs and produces no drush migration errors
+#
+#
+# assumes same / similar code base via git
+
+drush cc all $referencealias
+
+drush sql-sync $referencealias $targetalias -y
+
+drush rsync $referencealias $targetalias -y
+}
+
 function show_script_vars() { 
   echo ""
   echo "Script variables:"
@@ -488,7 +505,7 @@ function show_script_vars() {
 [[ ! "$*" ]] && nycc_migrate_usage 1
 
 # Parse command line options
-while getopts abcdmpstvwxyz0123456789h\? option
+while getopts abcdmpstvwxyzS0123456789h\? option
 do
     case $option in
         m|1) migration_init=1 ;;
@@ -506,6 +523,7 @@ do
         i) report_source=1 ;;
         j) report_target=1 ;;
         h) nycc_migrate_usage ;;
+        S) sync_reference_to_target ;;
         \?) nycc_migrate_usage 1 ;;
     esac
 done
@@ -616,6 +634,15 @@ then
   echo ""
 else
   nycc_migrate_status
+fi
+
+
+if [ -z "$sync_reference_to_target" ]
+then
+  # echo "Skipped: sync_reference_to_target (-S)"
+  echo ""
+else
+  nycc_migrate_sync_reference_to_target
 fi
 
 
