@@ -45,7 +45,7 @@ $noprefix = drush_get_option(array('noprefix'), FALSE);
 $nosuffix = drush_get_option(array('nosuffix'), FALSE);
 
 $bundle = drush_get_option(array('bundle'), "IF(LENGTH(TRIM(node.type)) > 0, node.type, 'page')");
-$entitytype = drush_get_option(array('entitytype'), 'node');
+$entitytype = drush_get_option(array('entitytype'), "'node'");
 
 // additional conditions as expressions after "WHERE "
 $where = drush_get_option(array('where'), '');

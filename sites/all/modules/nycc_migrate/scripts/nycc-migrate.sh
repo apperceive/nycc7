@@ -118,7 +118,7 @@ function nycc_migrate_backup_source_and_target() {
   rm $tmpdir/*.sql.bz2
 
   echo "Making (bzip2) backup of source database..."
-  $mysqldump $sourcedb | bzip2 - c > $tmpdir/$sourcedb-$timestamp.sql.bz2
+  $mysqldump $sourcedb | bzip2 -c > $tmpdir/$sourcedb-$timestamp.sql.bz2
 
   echo "Making (bzip2) backup of target database..."
   $mysqldump $targetdb | bzip2 -c > $tmpdir/$targetdb-$timestamp.sql.bz2
@@ -149,8 +149,14 @@ function nycc_migrate_sync_production_to_source() {
   # NOTE: these modules give us errors in drush so turn them off
   # NOTE: some are a problem on the site too, so leave off?
   # TODO: move this to a source_init function
+  
   echo "Deactivating specific source modules..."
-  $mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn');"
+  
+  drush @d6Test dis -y  ms_product_kit , ms_products, ms_core ms,_authorizenet, ms_bonus_pack, ms_authorizenet, ms_bonus_pack, ms_check, ms_membership, ms_paypal_wpp, ms_paypal_wps, ms_reports_2, ms_stripe 
+  
+  drush @d6Test pmu -y ms_product_kit, ms_products, ms_core, ms_authorizenet, ms_bonus_pack, ms_authorizenet, ms_bonus_pack, ms_check, ms_membership, ms_paypal_wpp, ms_paypal_wps, ms_reports_2, ms_stripe
+  
+  #$mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn', 'ms_core');"
 
   echo "nycc_migrate_sync_production_to_source complete."
 }
@@ -179,9 +185,13 @@ function nycc_migrate_init_target() {
   
   drush $targetalias watchdog-delete all -y -q 
   
-  # disable rules
-  # echo "Disabling rules..."
-  drush $targetalias rules-disable -q rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
+  # TODO: again, test for rules enabled
+  truledisabled=`drush @targetalias pml --status=disabled | grep "Rules (rules)"`
+  if [ -z "$truledisabled" ]
+  then
+    echo "Disabling rules..."
+    drush $targetalias rules-disable -q rules_display_ride_signup_messages rules_anonymous_user_views_profile rules_ride_join_send_email rules_waitlist_join_send_email_show_message rules_ride_is_submitted rules_ride_is_cancelled rules_ride_withdraw_send_email_show_message rules_ride_is_approved
+  fi
   
   echo "Disabling smpt and other target modules during migration..."
   # turn off smtp module and others 
@@ -272,27 +282,28 @@ function nycc_migrate_copy_source_to_target() {
   # field_data_field_event_view_signups   #boolean
 
   # Profile
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 age_range gender registration_date_import
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" age_range gender registration_date_import
   
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_city_format,5" city 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_contact_name_format,5" contact_name 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_country_format,5" country 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_emergency_contact_no_format,5" emergency_contact_no 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_first_name_format,5" first_name 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_profile_last_eny_year_format,5" profile_last_eny_year 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_last_name_format,5" last_name 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_phone_format,5" phone 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_profile_extra_format,5" profile_extra 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_review_last_date_format,5" review_last_date 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_state_format,5" state 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_waiver_last_date_format,5" waiver_last_date 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --addcol="field_zip_format,5" zip
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_address_format,5" address 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_city_format,5" city 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_contact_name_format,5" contact_name 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_country_format,5" country 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_emergency_contact_no_format,5" emergency_contact_no 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_first_name_format,5" first_name 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_profile_last_eny_year_format,5" profile_last_eny_year 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_last_name_format,5" last_name 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_phone_format,5" phone 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_profile_extra_format,5" profile_extra 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_review_last_date_format,5" review_last_date 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_state_format,5" state 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_waiver_last_date_format,5" waiver_last_date 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_zip_format,5" zip
 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_email_list_flag_value='off',0,1)" email_list_flag 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_publish_email_flag_value='off',0,1)" publish_email_flag 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_publish_address_flag_value='off',0,1)" publish_address_flag 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_publish_phone_flag_value='off',0,1)" publish_phone_flag 
-  $fieldcopy --type=profile --bundle=profile --entitytype=profile2 --sourceexp="IF(content_type_profile.field_terms_of_use_value='off',0,1)" terms_of_use 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_email_list_flag_value='off',0,1)" email_list_flag 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_publish_email_flag_value='off',0,1)" publish_email_flag 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_publish_address_flag_value='off',0,1)" publish_address_flag 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_publish_phone_flag_value='off',0,1)" publish_phone_flag 
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_terms_of_use_value='off',0,1)" terms_of_use 
   
   # Cue-Sheets
   $fieldcopy --type="cue_sheet" cuesheet_rating cuesheet_distance cue_sheet_difficulty
@@ -361,7 +372,10 @@ function nycc_migrate_cleanup_target() {
   # load/save all nodes and users to trigger other modules hooks
   drush $targetalias scr $scriptsdir/node-convert-load-save.php
   
+  
   sudo mkdir -p sites/default/files/backup_migrate
+  # TODO: create other folders?
+  
   
   echo "Seting files perms..."
   sudo chown -R nyccftp:apache $targetdir/files
@@ -615,23 +629,16 @@ else
   # $mysqlexec $scriptsdir/test.sql --sql
   # echo "Test of mysqlexec test.sql complete."
   echo ""
- 
-  # $mysqlexec $scriptsdir/url_alias.sql  --sql --no 
-  #$fieldcopy --sql --no --type=rides ride_timestamp --where="NOT content_type_rides.field_ride_timestamp_value LIKE '0000%'"
-
-  
-  #view declared vars:
-  # declare -p
-  # declare -p targetprivatedir
-
   show_script_vars | tee --append $logfile
 
-  # sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files $targetdir
-    
-  # drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
   
-  # drush $targetalias cp2p2-migrate "profile"
-    
+  
+  echo "Convert files..."
+  # convert files for d7 use
+  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
+
+  
+  
   echo ""
   echo "Test run complete." | tee --append $logfile
 

@@ -25,7 +25,7 @@
   $usersupdated = 0;
   $fmupdated = 0;
   $fminserted = 0;
-  $userspicok = 0;
+  $nofid = 0;
   $rejected = 0;
   $orphans = 0;
   $blocked = 0;
@@ -36,7 +36,7 @@
     $pos = strpos($filepath, "/$subdir/");        // note: by defn of glob pos > 0
     $filename = substr($filepath, $pos+drupal_strlen("/$subdir/"));
     $uri = "public://$subdir/$filename";
-    $fmuri = "$filesdir/$subdir/$filename";
+    //$fmuri = "$filesdir/$subdir/$filename";
     
     if (!preg_match($pattern, $filename)) {  // check file matches pattern 
       drush_print("Notice: file skipped because it does not match pattern - rm $filename");
@@ -68,11 +68,41 @@
     } // blocked
    
     $filesprocessed++;
+    
     list($width, $height, $type, $attr) = getimagesize($filepath);
-    $filesize = filesize($filepath);
     $imgtype = image_type_to_mime_type($type);
+    
+    /*
+    $file = new stdClass;
+    $file->uid = $acct->uid;
+    $file->filename = $filename;
+    $file->uri = $uri;
+    $file->status = 1;
+    $file->filemime = $imgtype;
+
+    //$ful = file_usage_list($file);
+    $q = db_select('file_managed', 'fm')->fields('fm', array('uid', 'fid'))->condition('uri', $uri)->execute();
+    $r = $q->fetchAssoc();
+    $fid = 0;
+    //if (!$no && !array_key_exists('user', $ful)) {
+    if (!$no && !$r) {
+      file_save($file);
+      $fid = $file->fid;
+      file_usage_add($file, 'user', 'user',  $acct->uid);
+      if ($fid)
+        $fmupdated++;
+      else
+        $nofid++;
+    }
+    else {
+      $fid = $r['fid'];
+      $fmexisting++;
+    }
+    */
+    
     $fid = 0;
     
+    $filesize = filesize($filepath);
     //drush_print("PROCESSING filename: $filename, uri: $uri, type: $type, imgtype: $imgtype, filesize: $filesize, attr: $attr");
     
     // is this file managed?  if so, get the first one - TODO: consider case where two rows ref same file
@@ -113,27 +143,28 @@
       continue;
     } // !$fid
     
+    
     // ensure users picture is correct
     // reminder: while in the db, users.picture is an fid; in $acct user object, picture is an object of file_managed properties
-    if (isset($acct->picture) && $fid && ($acct->picture->fid != $fid)) {
-      $acctfid = $acct->picture->fid;
+    //if (isset($acct->picture) && $fid && ($acct->picture->fid != $fid)) {
+    if ($fid) {
+      //$acctfid = $acct->picture->fid;
       //drush_print("UPDATE USER: $acct->name ($uid) with new picture: $fid : $filename because user.picture.fid: $acctfid while fid: $fid");
       if (!$no) {
-        db_update('users')->fields(array('picture' => $fid))->condition('uid', $uid)->execute();
-        user_load($uid);  // reload for changed picture data
-        //user_save($acct);
+        //db_update('users')->fields(array('picture' => $fid))->condition('uid', $uid)->execute();
+        //user_load($uid);  // reload for changed picture data
+        $acct->picture = file_load($fid);
+        user_save($acct);
       }
       $usersupdated++;
     } // update required
     else {
-      $userspicok++;
+      $nofid++;
     } // diff pic/fid
  
     
   } // files
     
-  drush_print("STATS: Processed $filesprocessed out of $filesfound, rejected: $rejected, blocked: $blocked, orphans: $orphans.");
-  drush_print("STATS: file_managed inserts: $fminserted, file_managed updates: $fmupdated, file_managed existing: $fmexisting.");
-  drush_print("STATS: Users with correct picture fids: $userspicok, users updated: $usersupdated.");
+  drush_print("STATS: Processed $filesprocessed out of $filesfound, rejected: $rejected, blocked: $blocked, orphans: $orphans, failed saves: $nofid, users updated: $usersupdated, fm saves: $fmupdated.");
   if ($debug) drush_print(var_export(get_defined_vars(),1));
 ?>
