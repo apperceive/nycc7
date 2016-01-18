@@ -46,11 +46,18 @@ productionuser="$produser@nycc.org"
 productiontmpdir="/tmp"
 productionssh="/home/$produser/.ssh/id_rsa"
 
+# TODO: do a more efficient call for drush info (at most one call per site)
+
+
 if [ -z "$referencealias" ]
 then
   # alias for reference site containing target init database (configuration)
   referencealias="@d7Test"
 fi
+referencerootdir=`drush $referencealias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+referencesite=`drush $referencealias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+# note: all commands must append /files to $referencedir for safety
+referencedir="$referencerootdir/$referencesite"
 
 # NOTE: assumes no spaces in any of these values or they are removed
 sourcedb=`drush $sourcealias status | grep "Database name" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
@@ -474,23 +481,34 @@ function nycc_migrate_status() {
   # report on target and source rules, modules and variables of interest to migration
   # report on smtp status
   
-  echo "logfile: `ls -la $logfile`"
+  echo "Status: logfile: `ls -la $logfile`"
 }
 
 function nycc_migrate_sync_reference_to_target() {
+  # update target from reference site to target site prior to migration
+  #
+  # goal: site runs and produces no drush migration errors
+  #
+  #
+  # assumes same / similar code base via git
 
-# update target from reference site to target site prior to migration
-#
-# goal: site runs and produces no drush migration errors
-#
-#
-# assumes same / similar code base via git
+  echo "nycc_migrate_sync_reference_to_target..."
+  drush $referencealias cc all
 
-drush cc all $referencealias
+  drush sql-sync $referencealias $targetalias -y
+  
+  #this does too much
+  #drush rsync $referencealias $targetalias -y
+  
+  # copy files from reference to $target
+  echo "Copying files from reference to target..."
+  sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $referencedir/files $targetdir
 
-drush sql-sync $referencealias $targetalias -y
-
-drush rsync $referencealias $targetalias -y
+  echo "Setting target file permissions..."
+  sudo chown -R nyccftp:apache $targetdir/files
+  sudo chmod 775 $targetdir/files
+  sudo chmod -R 775 $targetdir/files
+  echo "nycc_migrate_sync_reference_to_target complete."
 }
 
 function show_script_vars() { 
@@ -502,6 +520,7 @@ function show_script_vars() {
   echo ""
   declare -p | grep "\-\- target" | sed -e "s/declare \-\- //"
   echo ""
+  declare -p | grep "\-\- reference" | sed -e "s/declare \-\- //"
   declare -p | grep "\-\- tmpdir" | sed -e "s/declare \-\- //"
   declare -p | grep "\-\- logfile" | sed -e "s/declare \-\- //"
   declare -p | grep "\-\- scriptsdir" | sed -e "s/declare \-\- //"
@@ -528,12 +547,12 @@ do
         x|8) cleanup_target=1 ;;
         y|9) cleanup_migration=1 ;;
         s) migration_status=1 ;;
+        S) sync_reference_to_target=1 ;;
         t|0) migration_test=1 ;;
         v) is_verbose=1 ;;
         i) report_source=1 ;;
         j) report_target=1 ;;
         h) nycc_migrate_usage ;;
-        S) sync_reference_to_target ;;
         \?) nycc_migrate_usage 1 ;;
     esac
 done
@@ -673,9 +692,9 @@ else
 
   
   
-  echo "Convert files..."
+  #echo "Convert files..."
   # convert files for d7 use
-  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
+  #drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
 
   
   
