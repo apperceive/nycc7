@@ -282,7 +282,10 @@ function nycc_migrate_copy_source_to_target() {
   # field_data_field_event_view_signups   #boolean
 
   # Profile
-  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" age_range gender registration_date_import
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" age_range gender registration_date_import riding_style ride_coordinator
+  
+  # TODO: file attach?/upload - why?, more checkboxes?/options: field_ride_reminders, field_ride_rosters
+  # TODO: init new field? field_profile_extra(new)
   
   $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_address_format,5" address 
   $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" --addcol="field_city_format,5" city 
