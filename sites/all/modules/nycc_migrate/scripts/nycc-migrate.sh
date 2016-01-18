@@ -6,6 +6,10 @@
 #
 # copy database and file from production to source
 # perform migration from source to target
+#
+# assumes base vars in .conf file in same folder
+# as this command script
+#
 ####################################################
 
 shdir="$(dirname "$0")"
@@ -41,6 +45,12 @@ productionuser="$produser@nycc.org"
 productionuser="$produser@nycc.org"
 productiontmpdir="/tmp"
 productionssh="/home/$produser/.ssh/id_rsa"
+
+if [ -z "$referencealias" ]
+then
+  # alias for reference site containing target init database (configuration)
+  referencealias="@d7Test"
+fi
 
 # NOTE: assumes no spaces in any of these values or they are removed
 sourcedb=`drush $sourcealias status | grep "Database name" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
