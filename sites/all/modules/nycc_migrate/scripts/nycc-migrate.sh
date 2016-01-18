@@ -150,11 +150,11 @@ function nycc_migrate_sync_production_to_source() {
   # NOTE: some are a problem on the site too, so leave off?
   # TODO: move this to a source_init function
   
-  echo "Deactivating specific source modules..."
+  echo "Deactivating specific source modules (NOT TODO?)..."
   
-  drush @d6Test dis -y  ms_product_kit , ms_products, ms_core ms,_authorizenet, ms_bonus_pack, ms_authorizenet, ms_bonus_pack, ms_check, ms_membership, ms_paypal_wpp, ms_paypal_wps, ms_reports_2, ms_stripe 
+  #drush $sourcealias dis -y  ms_product_kit , ms_products, ms_core ms,_authorizenet, ms_bonus_pack, ms_authorizenet, ms_bonus_pack, ms_check, ms_membership, ms_paypal_wpp, ms_paypal_wps, ms_reports_2, ms_stripe 
   
-  drush @d6Test pmu -y ms_product_kit, ms_products, ms_core, ms_authorizenet, ms_bonus_pack, ms_authorizenet, ms_bonus_pack, ms_check, ms_membership, ms_paypal_wpp, ms_paypal_wps, ms_reports_2, ms_stripe
+  #drush $sourcealias pmu -y ms_product_kit, ms_products, ms_core, ms_authorizenet, ms_bonus_pack, ms_authorizenet, ms_bonus_pack, ms_check, ms_membership, ms_paypal_wpp, ms_paypal_wps, ms_reports_2, ms_stripe
   
   #$mysql $sourcedb -e"UPDATE system SET status = 0 WHERE system.name IN ('nycc_email', 'rules', 'watchdog_rules', 'logging_alerts', 'nycc_ipn', 'ms_core');"
 
@@ -186,7 +186,7 @@ function nycc_migrate_init_target() {
   drush $targetalias watchdog-delete all -y -q 
   
   # TODO: again, test for rules enabled
-  truledisabled=`drush @targetalias pml --status=disabled | grep "Rules (rules)"`
+  truledisabled=`drush $targetalias pml --status=disabled | grep "Rules (rules)"`
   if [ -z "$truledisabled" ]
   then
     echo "Disabling rules..."
