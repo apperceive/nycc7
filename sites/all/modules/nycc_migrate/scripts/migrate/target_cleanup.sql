@@ -12,3 +12,5 @@ UPDATE `field_revision_field_ride_current_leaders` l INNER JOIN node n ON n.nid=
 
 DELETE FROM node WHERE type IN ('gpcaptspost', 'test_users', 'block_page', 'poll2', 'webforms')
 /* TODO: clear out all field data and rev tables that have invalid entity_id's */
+
+DELETE FROM field_config_instance WHERE entity_type = 'node' and bundle = 'profile';
