@@ -46,38 +46,37 @@ productionuser="$produser@nycc.org"
 productiontmpdir="/tmp"
 productionssh="/home/$produser/.ssh/id_rsa"
 
-# TODO: do a more efficient call for drush info (at most one call per site)
-
-
 if [ -z "$referencealias" ]
 then
   # alias for reference site containing target init database (configuration)
   referencealias="@d7Test"
 fi
-referencerootdir=`drush $referencealias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-referencesite=`drush $referencealias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+# NOTE: assumes no spaces in any of these values or they are removed
+rds=`drush $referencealias status`
+referencerootdir=`echo "$rds" | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+referencesite=`echo "$rds"  | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
 # note: all commands must append /files to $referencedir for safety
 referencedir="$referencerootdir/$referencesite"
 
-# NOTE: assumes no spaces in any of these values or they are removed
-sourcedb=`drush $sourcealias status | grep "Database name" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-sourcerootdir=`drush $sourcealias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-sourcesite=`drush $sourcealias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+sds=`drush $sourcealias status`
+sourcedb=`echo "$sds" | grep "Database name" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+sourcerootdir=`echo "$sds" | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+sourcesite=`echo "$sds" | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
 # note: all commands must append /files to $sourcedir for safety
 sourcedir="$sourcerootdir/$sourcesite"
 
-targetdb=`drush $targetalias status | grep "Database name" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-targetrootdir=`drush $targetalias status | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-targetsite=`drush $targetalias status | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+tds=`drush $targetalias status`
+targetdb=`echo "$tds" | grep "Database name" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+targetrootdir=`echo "$tds" | grep "Drupal root" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+targetsite=`echo "$tds" | grep "Site path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
 # not currently used, but also seems to be loaded with multi-lined string?!?!
-# targetprivatedir=`drush $targetalias status | grep "Private file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
-# targetpublicdir=`drush $targetalias status | grep "File directory path" | awk -F: '{ print $2 }'`
+# targetprivatedir=`echo "$tds" | grep "Private file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+# targetpublicdir=`echo "$tds" | grep "File directory path" | awk -F: '{ print $2 }'`
 # note: all commands must append /files to $targetdir for safety
 targetdir="$targetrootdir/$targetsite"
 
-tmpdir=`drush $targetalias status | grep "Temporary file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
+tmpdir=`echo "$tds" | grep "Temporary file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
 scriptsdir="$targetrootdir/sites/all/modules/nycc_migrate/scripts/migrate"
-
 logfile="$tmpdir/migrate.log"
 timestamp="`date +%Y-%m-%d_%H-%M`"
 
@@ -86,6 +85,8 @@ mysql='mysql -uroot -pXt2792b8cf'
 mysqldump='mysqldump -uroot -pXt2792b8cf'
 mysqlexec="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
 fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb --trace"
+
+# TODO: sanity check all vars. use an 'are you sure?' prompt
 
 # USAGE - HELP
 
@@ -196,9 +197,7 @@ function nycc_migrate_import_production_to_source() {
 
 function nycc_migrate_init_target() {
   echo "Clear target database..."
-
-  # $mysql $targetdb < $scriptsdir/target_init.sql
-  # drush $targetalias scr $scriptsdir/sqlexec.php --sourcesb=$sourcedb $scriptsdir/target_init.sql
+  
   $mysql $targetdb < $scriptsdir/target_init.sql
   
   drush $targetalias watchdog-delete all -y -q 
@@ -223,7 +222,7 @@ function nycc_migrate_init_target() {
   drush $targetalias vset -q nycc_profile_should_redirect_to_membership_review 0
   
   sudo chown -R nyccftp:apache $targetdir/files
-  sudo chown -R 775 $targetdir/files
+  sudo chmod -R 775 $targetdir/files
 
   # TODO: set the acl to keep files and folders owned by apache  
   
@@ -352,7 +351,6 @@ function nycc_migrate_copy_source_to_target() {
 
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
-  sudo chmod 775 $targetdir/files
   sudo chmod -R 775 $targetdir/files
 
   echo "nycc_migrate_copy_source_to_target complete."
@@ -438,9 +436,6 @@ function nycc_migrate_cleanup_target() {
   # 6. consider leader conversion from nid to uid that has no join (eg, invaid uid?). this is probably not considered in current migration query and left in place
   #
   
-  
-  
-  
   echo "nycc_migrate_cleanup_target complete."
 }
 
@@ -496,18 +491,33 @@ function nycc_migrate_sync_reference_to_target() {
   drush $referencealias cc all
 
   drush sql-sync $referencealias $targetalias -y
-  
-  #this does too much
-  #drush rsync $referencealias $targetalias -y
+
+  # Clear out target files directory
+  echo "Deleting target files..."
+  find $targetdir/files -maxdepth 1 -type f -exec sudo rm -f {} \;
+  find $targetdir/files -maxdepth 1 -type d -not -name "files" -exec sudo rm -R -f {} \;
   
   # copy files from reference to $target
   echo "Copying files from reference to target..."
-  sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $referencedir/files $targetdir
-
+  sudo rsync --recursive --exclude="files/files" $referencedir/files $targetdir
+   
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
   sudo chmod 775 $targetdir/files
-  sudo chmod -R 775 $targetdir/files
+  sudo chmod -R 775 $targetdir/files  
+
+  # backup_migrate residues?
+  #
+  #
+  # turn off rules, mods? and smtp/email?
+  # Q how is that different from target_init script?
+  # A it clears tables we don't want to clear here yet for goal
+  #
+  
+   
+  drush $targetalias watchdog-delete all -y -q 
+  drush $targetalias cc all
+  
   echo "nycc_migrate_sync_reference_to_target complete."
 }
 
