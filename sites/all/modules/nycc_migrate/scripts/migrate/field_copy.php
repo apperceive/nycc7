@@ -93,7 +93,7 @@ foreach ($args as $ndx => $arg) {
       $dtable = "{$prefixstr}{$table}_{$prefixstr}{$targetcol}";
             
       if (!$notruncate) {
-        if ($trace) drush_print("field_copy ($table): truncating $arg ($dtable)");
+        //if ($trace) drush_print("field_copy ($table): truncating $arg ($dtable)");
         $sqlt = "TRUNCATE `$dtable`";
         if (!$no) {
           try {
@@ -114,7 +114,8 @@ REPLACE INTO `$dtable` (entity_type, bundle, deleted, entity_id, revision_id, la
 EOS;
 
       //if ($trace) drush_print("field_copy ($table): executing $sourcedb $srctable $type $kind $arg $expr -> $targetcol $targetkind");
-      if ($trace) drush_print("field_copy ($table): executing $sourcedb $type $kind $srctable $sexpr -> $dtable $tcol $targetkind");
+      //if ($trace) drush_print("field_copy ($table): executing $sourcedb $type $kind $srctable $sexpr -> $dtable $tcol $targetkind");
+      if ($trace && ($table == 'data')) drush_print("copying $sourcedb $type $kind $srctable $sexpr -> $dtable $tcol $targetkind");
       if ($debug) drush_print('Debug: defined variables ' . var_export(get_defined_vars(),1));
       if (!$no) {
         try {

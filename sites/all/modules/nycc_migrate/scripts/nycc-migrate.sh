@@ -299,7 +299,9 @@ function nycc_migrate_copy_source_to_target() {
   # field_data_field_event_view_signups   #boolean
 
   # Profile
-  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" age_range gender registration_date_import riding_style ride_coordinator
+  $fieldcopy --type=profile --bundle="'profile'" --entitytype="'profile2'" age_range gender registration_date_import riding_style 
+  
+  $fieldcopy ride_coordinator
   
   # TODO: file attach?/upload - why?, more checkboxes?/options: field_ride_reminders, field_ride_rosters
   # TODO: init new field? field_profile_extra(new)
@@ -544,7 +546,7 @@ function show_script_vars() {
 [[ ! "$*" ]] && nycc_migrate_usage 1
 
 # Parse command line options
-while getopts abcdmpstvwxyzS0123456789h\? option
+while getopts abcdmprstvwxyz0123456789h\? option
 do
     case $option in
         m|1) migration_init=1 ;;
@@ -557,7 +559,7 @@ do
         x|8) cleanup_target=1 ;;
         y|9) cleanup_migration=1 ;;
         s) migration_status=1 ;;
-        S) sync_reference_to_target=1 ;;
+        r) sync_reference_to_target=1 ;;
         t|0) migration_test=1 ;;
         v) is_verbose=1 ;;
         i) report_source=1 ;;
@@ -678,7 +680,7 @@ fi
 
 if [ -z "$sync_reference_to_target" ]
 then
-  # echo "Skipped: sync_reference_to_target (-S)"
+  # echo "Skipped: sync_reference_to_target (-r)"
   echo ""
 else
   nycc_migrate_sync_reference_to_target

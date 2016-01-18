@@ -14,7 +14,7 @@ $debug = drush_get_option(array('sql'), FALSE);
 $no = drush_get_option(array('no'), FALSE);
 
 drush_print("Load/save nodes...");
-$q = db_query("SELECT nid FROM {node}");
+$q = db_query("SELECT nid FROM {node} WHERE 1=0");
 $cnt = 0;
 foreach ($q as $r) {
   $nid = $r->nid;
