@@ -8,6 +8,7 @@ dependencies[] = og
 dependencies[] = rules
 files[]=nycc_og.module
 files[]=nycc_og.admin.inc
+files[]=nycc_og.actions.inc
 files[]=nycc_og.rules.inc
 files[]=nycc_og.email_integration.inc
 configure=admin/config/nycc/nycc_og
