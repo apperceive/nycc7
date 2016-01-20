@@ -9,6 +9,9 @@
     db_update('users')->fields(array('picture' => ''))->execute();
   */
   
+  watchdog('nycc_migrate', "Convert user pictures - start.");  
+  
+  
   $no = drush_get_option(array('no'), FALSE);
   $filesdir = drush_get_option(array('filesdir'), 'sites/default/files');
   $subdir = drush_get_option(array('subdir'), 'pictures');
@@ -170,4 +173,7 @@
     
   drush_print("STATS: Processed $filesprocessed out of $filesfound, rejected: $rejected, blocked: $blocked, orphans: $orphans, failed saves: $nofid, users updated: $usersupdated, fm saves: $fmupdated, existing: $fmexisting, inserted: $fminserted, failedinserts: $fmfailedinsert.");
   if ($debug) drush_print(var_export(get_defined_vars(),1));
+  
+  watchdog('nycc_migrate', "Convert user pictures - complete.");
+  
 ?>

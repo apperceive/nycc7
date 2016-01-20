@@ -14,3 +14,9 @@ DELETE FROM node WHERE type IN ('gpcaptspost', 'test_users', 'block_page', 'poll
 /* TODO: clear out all field data and rev tables that have invalid entity_id's */
 
 DELETE FROM field_config_instance WHERE entity_type = 'node' and bundle = 'profile';
+
+DELETE FROM node WHERE type = 'profile' AND NOT uid IN (SELECT uid FROM users WHERE uid > 0);
+
+
+/* TODO: de-dup profile nodes */
+

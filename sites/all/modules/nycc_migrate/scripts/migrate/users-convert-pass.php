@@ -17,6 +17,8 @@
   drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
 
+
+  watchdog('nycc_migrate', "Convert user passwords - start.");
   // Lower than DRUPAL_HASH_COUNT to make the update run at a reasonable speed.
   $hash_count_log2 = 11;
 
@@ -36,4 +38,4 @@
     }
   }
   
-  
+  watchdog('nycc_migrate', "Convert user passwords - complete.");

@@ -245,7 +245,7 @@ function nycc_migrate_copy_source_to_target() {
   echo "Copying core tables..."
   $mysqlexec $scriptsdir/role.sql
   $mysqlexec $scriptsdir/users.sql
-  # $mysqlexec $scriptsdir/profile.sql
+  $mysqlexec $scriptsdir/profile.sql
   $mysqlexec $scriptsdir/users_roles.sql
   $mysqlexec $scriptsdir/node.sql
   $mysqlexec $scriptsdir/node_revision.sql
