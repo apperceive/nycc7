@@ -276,7 +276,7 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=rides --kind=nid ride_cue_sheet 
   $fieldcopy --kind=uid ride_current_riders
   # copy profile nids to uids for now, convert in target cleanup
-  $fieldcopy --kind=nid --targetkind=uid --targettype=ride_current_leaders  --targetfield=ride_current_leaders ride_leaders
+  $fieldcopy --kind=nid --targetkind=uid --targettype=ride_current_leaders --targetfield=ride_current_leaders ride_leaders
   # handle field renames and simple conversions
   $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')"  --addcol="field_ride_start_location_format,7" ride_start_location
 
@@ -303,7 +303,7 @@ function nycc_migrate_copy_source_to_target() {
   
   $fieldcopy ride_coordinator
   
-  # TODO: file attach?/upload - why?, more checkboxes?/options: field_ride_reminders, field_ride_rosters
+  # TODO: file attach?/upload - why?
   # TODO: init new field? field_profile_extra(new)
   
   $fieldcopy --type=profile --entitytype="'profile2'" --addcol="field_address_format,5" address 
@@ -326,6 +326,10 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_publish_address_flag_value='off',0,1)" publish_address_flag 
   $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_publish_phone_flag_value='off',0,1)" publish_phone_flag 
   $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_terms_of_use_value='off',0,1)" terms_of_use 
+
+  # init new fields
+  $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="1" ride_reminders
+  $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="1" ride_rosters
   
   # Cue-Sheets
   $fieldcopy --type="cue_sheet" cuesheet_rating cuesheet_distance cue_sheet_difficulty
@@ -389,9 +393,9 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
   
   # factor this out into own operation as it is a long one
-  echo "Load/save nodes..." >> $logfile
+  echo "Load/save nodes (TODO: NOT!)..." >> $logfile
   # load/save all nodes and users to trigger other modules hooks
-  drush $targetalias scr $scriptsdir/node-convert-load-save.php
+  # drush $targetalias scr $scriptsdir/node-convert-load-save.php
   
   
   # TODO: create other folders?
@@ -422,6 +426,9 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias cc all -q 
   
   # TODO: put message to watchdog
+  
+  # TODO: set caching and aggregation off in target if not a production deploy
+  # /admin/config/development/performance
   
   # clean up target files folder 
   # clear out ctools?, css? js? print_pdf?
@@ -508,15 +515,8 @@ function nycc_migrate_sync_reference_to_target() {
   sudo chmod 775 $targetdir/files
   sudo chmod -R 775 $targetdir/files  
 
-  # backup_migrate residues?
-  #
-  #
-  # turn off rules, mods? and smtp/email?
-  # Q how is that different from target_init script?
-  # A it clears tables we don't want to clear here yet for goal
-  #
+  $mysql $targetdb < $scriptsdir/target_post_reference_sync.sql
   
-   
   drush $targetalias watchdog-delete all -y -q 
   drush $targetalias cc all
   
@@ -702,7 +702,7 @@ else
   echo ""
   show_script_vars | tee --append $logfile
 
-  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
+  # drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
   
   
   
@@ -710,6 +710,11 @@ else
   # convert files for d7 use
   #drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
 
+  
+  # convert profiles
+  #drush $targetalias scr $scriptsdir/users-convert-profile.php
+
+  $mysqlexec $scriptsdir/profile.sql
   
   
   echo ""
