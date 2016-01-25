@@ -8,13 +8,16 @@
  // TODO: add more stats: read errors, save errors, total
  // TODO: option for show total first and counts in increments (1000 default)
  // TODO: option for read only 
+ // TODO: add comments processing? last comment -> comment_node_statistics.cid 
  // TODO: option for save errors until end or seaparate output?
 
 $debug = drush_get_option(array('sql'), FALSE);
 $no = drush_get_option(array('no'), FALSE);
+$where = drush_get_option(array('where'), '');
+$where = $where ? "WHERE $where " : "0=1";          // default is no nodes
 
 drush_print("Load/save nodes...");
-$q = db_query("SELECT nid FROM {node} WHERE 1=0");
+$q = db_query("SELECT nid FROM {node} $where");
 $cnt = 0;
 foreach ($q as $r) {
   $nid = $r->nid;
@@ -27,11 +30,13 @@ foreach ($q as $r) {
     /* perform special operataions (eg, forum_index) */
     if ($node && $node->type == 'forum' && $node->status)  {
       _forum_update_forum_index($node->nid);
-      // TODO: need to do this for comments too
       
+      /*
+      // TODO: omit in d7? looks this is causing dups
       $qq = db_query("SELECT cid FROM comment WHERE nid = :nid", array(':nid' => $nid));
       foreach($qq as $rr)
         _forum_update_forum_index($rr->cid);
+      */
     }
     
     try{

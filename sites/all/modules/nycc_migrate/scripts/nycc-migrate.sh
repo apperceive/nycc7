@@ -252,14 +252,18 @@ function nycc_migrate_copy_source_to_target() {
   $mysqlexec $scriptsdir/file_managed.sql
   $mysqlexec $scriptsdir/comment.sql
   $mysqlexec $scriptsdir/copy_comments_body.sql
+  $mysqlexec $scriptsdir/node_comment_statistics.sql
   $mysqlexec $scriptsdir/url_alias.sql
   $mysqlexec $scriptsdir/history.sql
+  $mysqlexec $scriptsdir/field_body.sql
+  $mysqlexec $scriptsdir/taxonomy_index.sql
+  
 
   echo "Copying field tables..."
   # content-types page and event fields - multivalued fields
-  $fieldcopy carousel_order
+  $fieldcopy --nodelta carousel_order
   $fieldcopy date
-  $fieldcopy --kind=fid image_cache 
+  $fieldcopy --kind=fid --notnull image_cache 
 
   # content-type rides single values
   $fieldcopy --type=rides ride_type ride_select_level ride_speed  ride_spots ride_status ride_signups ride_token ride_dow
@@ -281,9 +285,9 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')"  --addcol="field_ride_start_location_format,7" ride_start_location
 
   # content-type rides multis
-  $fieldcopy --kind=fid ride_image
+  $fieldcopy --kind=fid --notnull ride_image
   $fieldcopy --kind=uid ride_waitlist
-  $fieldcopy --kind=fid ride_attachments 
+  $fieldcopy --kind=fid --notnull ride_attachments 
   
   # TODO: new ride fields not populated at this time - skipping - do we need to init?
   # field_data_field_ride_open_signup_days
@@ -293,7 +297,7 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=region --kind=lid region_location --where="content_type_region.field_region_location_lid > 0"
   
   # Events
-  $fieldcopy event_category event_spots
+  $fieldcopy --nodelta event_category event_spots
   
   # TODO: skip? looks like this may be different from similarly name souce field? 
   # field_data_field_event_view_signups   #boolean
@@ -345,8 +349,6 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type="cue_sheet" --addcol="field_vertical_gain_format,5" vertical_gain
   $fieldcopy --type="cue_sheet" --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
   
-  $mysqlexec $scriptsdir/cue-sheet_field_body.sql
-    
   # TODO: special case: files in d6.content_type_cue_sheet.cue_sheet_map_fid, etc
   # TODO: ? field_data_field_cue_sheet_rwgps_link                 ### link
   # TODO: more content-type copies here: obride, others?
@@ -395,7 +397,9 @@ function nycc_migrate_cleanup_target() {
   # factor this out into own operation as it is a long one
   echo "Load/save nodes (TODO: NOT!)..." >> $logfile
   # load/save all nodes and users to trigger other modules hooks
-  # drush $targetalias scr $scriptsdir/node-convert-load-save.php
+  # WARNING: this processes approx 37K records and can take an hour or so if not filtered
+  # default is to filter 1=0
+  drush $targetalias scr $scriptsdir/node-convert-load-save.php --where="type='forum'"
   
   
   # TODO: create other folders?
@@ -409,7 +413,7 @@ function nycc_migrate_cleanup_target() {
   # TODO: enable when running for real
   echo "Re-enable modules (TODO: NOT smtp!) ..."
   # drush $targetalias en -y -q smtp 
-  drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides print_pdf
+  drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides nycc_rides2 print_pdf
   
   echo "Re-enable email and membership review ..."
   # /admin/config/nycc/nycc_email_trap
@@ -702,20 +706,7 @@ else
   echo ""
   show_script_vars | tee --append $logfile
 
-  # drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
-  
-  
-  
-  #echo "Convert files..."
-  # convert files for d7 use
-  #drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
-
-  
-  # convert profiles
-  #drush $targetalias scr $scriptsdir/users-convert-profile.php
-
-  $mysqlexec $scriptsdir/profile.sql
-  
+ $mysqlexec $scriptsdir/node_comment_statistics.sql
   
   echo ""
   echo "Test run complete." | tee --append $logfile

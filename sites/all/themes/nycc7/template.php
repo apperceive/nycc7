@@ -316,11 +316,13 @@ function _nycc7_navbar_nav_links() {
 
     $arr[] = _nycc7_navbar_button("Account settings for $username", 'fa-user', '/user');
     
+    /*
     srand();
     $rand = rand(-2,12);
     $badge = $rand > -1 ? $rand : "";
     $arr[] = _nycc7_navbar_button("You have $badge unread notifications", 'fa-envelope-o', "/user/$uid/messages", $badge);
-        
+    */
+    
     if ($can_approve) 
       $arr[] = _nycc7_navbar_button('Approve rides', 'fa-thumbs-o-up', '/approve-rides');       
 
@@ -331,8 +333,6 @@ function _nycc7_navbar_nav_links() {
         $gp = node_load($gid);
         $gtitle = 'Group: ' . $gp->title;
         $icon = 'fa-users';
-        //$icon = stripos($gtitle, 'group') ? 'fa-user-plus' : $icon;
-        //$icon = stripos($gtitle, 'sts') ? 'fa-user-plus' : $icon;
         $icon = stripos($gtitle, 'volunteer') ? 'fa-heart' : $icon;
         $icon = stripos($gtitle, 'sig') ? 'fa-bicycle' : $icon;
         $icon = stripos($gtitle, 'sts') ? 'fa-cogs' : $icon;

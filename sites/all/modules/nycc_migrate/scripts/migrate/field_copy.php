@@ -33,6 +33,9 @@ $type = drush_get_option(array('type'), '');
 // so as to allow for more actions (e.g. add's fields)
 $kind = drush_get_option(array('kind'), 'value');
 
+// use 0 for delta instead of src col named delta (for when missing, d6/field/singleton)
+$nodelta = drush_get_option(array('nodelta'), FALSE);
+
 // default is source field is prefix_arg_suffix_kind
 $targetkind = drush_get_option(array('targetkind'), $kind);
 $targetfield = drush_get_option(array('targetfield'), '');
@@ -72,7 +75,7 @@ $args = drush_get_arguments();
 // specifying type sets source to content_type_, omitting sets source table to content_field source_
 $srctype = $type ? 'type' : 'field';
 $where = $where ? "WHERE $where " : "";
-$delta = ($srctype == 'type') ? 0 : "delta";
+$delta = ($nodelta || $type) ? 0 : "delta";
 
 foreach ($args as $ndx => $arg) {
   // skip scr and this script as first two args to drush scr scriptname fielda fieldb
