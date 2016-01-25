@@ -104,7 +104,7 @@
     $type = 'missing';
   
   //dpm(array($result, $result['node']->type, $type));
-  dpm(get_defined_vars());
+  //dpm(get_defined_vars());
   
   // handle subtypes if present
   //if ($type == 'resources')
