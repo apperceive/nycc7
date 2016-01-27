@@ -363,16 +363,47 @@ function _nycc_block_render($module, $block_id) {
   return $block_rendered;
 } // _nycc_block_render
 
-/*
 
-function xxxnycc7_menu_local_tasks(&$variables) {
+function nycc7_menu_local_tasks(&$variables) {
+  $output = '';
+
+  if (!empty($variables['primary'])) {
+    $variables['primary']['#prefix'] = '<h2 class="element-invisible">' . t('Primary tabs') . '</h2>';
+    $variables['primary']['#prefix'] .= '<ul class="tabs primary nav nav-tabs">';
+    $variables['primary']['#suffix'] = '</ul>';
+    $output .= drupal_render($variables['primary']);
+  }
+  if (!empty($variables['secondary'])) {
+    $variables['secondary']['#prefix'] = '<h2 class="element-invisible">' . t('Secondary tabs') . '</h2>';
+    $variables['secondary']['#prefix'] .= '<ul class="tabs secondary nav nav-tabs">';
+    $variables['secondary']['#suffix'] = '</ul>';
+    $output .= drupal_render($variables['secondary']);
+  }
+
+  return $output;
+}
+
+/*
+function nycc7_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  if ($some_condition) {
+    // Grab the first tab.
+    $first_tab = &$data['tabs'][0]['output'][0];
+
+    // Add a class to the link element.
+    $first_tab['#link']['localized_options']['attributes']['class'][] = 'some-class';
+  }
+}
+
+function nycc7_menu_local_tasks(&$variables) {
+  dpm($variables);
   if (isset($variables['primary'])) {
     foreach($variables['primary'] as $menu_item_key => $menu_attributes) {
-      //$variables['primary'][$menu_item_key]['#link']['localized_options'] = array(      'attributes' => array('class' => array('xxx')),);
+      $variables['primary'][$menu_item_key]['#link']['localized_options'] = array(      'attributes' => array('class' => array('xxx')),);
     }
   }
-  //return theme_menu_local_tasks($variables);
+  return theme_menu_local_tasks($variables);
 } // nycc7_menu_local_tasks
+
 
 
 function nycc7_preprocess_image_style(&$variables) {

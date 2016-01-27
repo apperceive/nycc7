@@ -7,3 +7,7 @@ sites/*/private
 
 # Dev tools or extras
 sites/all/modules/mysqlreport
+
+# mpdf font files
+dejavusanscondensed.*
+dejavuserifcondensed.*
