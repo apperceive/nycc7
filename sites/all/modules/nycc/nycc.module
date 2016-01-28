@@ -679,3 +679,9 @@ class NyccException extends Exception
 }
 
 
+// http://drupal.stackexchange.com/questions/100433/remove-administration-theme-from-user-edit
+function nycc_admin_paths_alter(&$paths) {
+  // Treat all user pages as not administrative.
+  $paths['user/*'] = FALSE;
+}
+

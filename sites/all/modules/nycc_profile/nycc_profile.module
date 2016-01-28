@@ -422,8 +422,6 @@ function nycc_profile_default_review_membership_header() {
   return "Please review your contact information and acknowledge your agreement with the NYCC Release and Waiver of Liability, Assumption of Risk, and Indemnity Agreement.";
 }
 
-
-
 // function nycc_form_alter(&$form, &$form_state, $form_id) {
 //   global $user;
 // 
