@@ -365,69 +365,45 @@ function _nycc_block_render($module, $block_id) {
 
 
 function nycc7_menu_local_task(&$variables) {
-
-  //dpm(get_defined_vars());
-
   $link = $variables['element']['#link'];
   $link_text = $link['title'];
-
   if (!empty($variables['element']['#active'])) {
     // Add text to indicate active tab for non-visual users.
     $active = '<span class="element-invisible">' . t('(active tab)') . '</span>';
-
     // If the link does not contain HTML already, check_plain() it now.
     // After we set 'html'=TRUE the link will not be sanitized by l().
-    if (empty($link['localized_options']['html'])) {
+    if (empty($link['localized_options']['html'])) 
       $link['title'] = check_plain($link['title']);
-    }
     $link['localized_options']['html'] = TRUE;
     $link_text = t('!local-task-title!active', array('!local-task-title' => $link['title'], '!active' => $active));
   }
-
+  $link['localized_options']['attributes'] = array('class' => array('btn btn-primary'));
   // return '<li' . (!empty($variables['element']['#active']) ? ' class="active"' : '') . '>' . l($link_text, $link['href'], $link['localized_options']) . "</li>\n";
-  
   return l($link_text, $link['href'], $link['localized_options']);
-  
 }
 
 function nycc7_menu_local_tasks(&$variables) {
   $output = '';
-  
   if (!empty($variables['primary'])) 
     $output .= _nycc7_output_tab_menu($variables['primary']);
-
   if (!empty($variables['secondary'])) 
     $output .= _nycc7_output_tab_menu($variables['secondary'], 'secondary');
-  
-  //dpm(get_defined_vars());
-
   return $output;
 }
 
 function _nycc7_output_tab_menu(&$menu, $class='primary') {
   $output = '';
-
   $activetitle = '';
   foreach($menu as $menu_item_key => $menu_attributes) {
-    $menu[$menu_item_key]['#link']['localized_options'] = array('attributes' => array('class' => array('btn btn-primary')),);
     if (isset($menu[$menu_item_key]['#active']))
       $activetitle = $menu[$menu_item_key]['#link']['title'];
   }
-
   $menu['#prefix'] = '<h2 class="element-invisible">' . t($activetitle) . '</h2>';
   $menu['#prefix'] .= '<div class="btn-group">';
-  //$menu['#prefix'] .= '<div class="dropdown">';
-  //$menu['#prefix'] .= '<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">';
-  //$menu['#prefix'] .= t($activetitle);
-  //$menu['#prefix'] .= '<span class="caret"></span>';
-  //$menu['#prefix'] .= '</button>';
-  //$menu['#prefix'] .= '<ul class="tabs $class dropdown-menu">';
-  //$menu['#suffix'] = '</ul>';
   $menu['#suffix'] = '</div>';
+  $menu['#suffix'] .= '<div class="clearfix"></div>';
   $output .= drupal_render($menu);
-  
   return $output;
-
 }
 
 
