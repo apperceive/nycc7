@@ -25,7 +25,11 @@ function nycc_og_action_info() {
     'label' => t('Make Waiter'),
     'configurable' => FALSE,
   );
-  
+  $actions['nycc_og_add_to_group_action'] = array(
+    'type' => 'user',
+    'label' => t('Add To Group'),
+    'configurable' => FALSE,
+  );  
   return $actions;
 }
 /**
@@ -56,7 +60,11 @@ function nycc_og_action_info() {
 
 
 
+function nycc_og_add_to_group_action($user, $context) {
+  dpm(get_defined_vars());
+}
 function nycc_og_make_leader_action($og_membership, $context) {
+  dpm($context);
   $group_type = $og_membership->group_type;
   $gid = $og_membership->gid;
   $uid = $og_membership->etid;
@@ -77,7 +85,7 @@ function nycc_og_make_captain_action($og_membership, $context) {
   // Don't process the group manager, if exists.
   $group = entity_load_single($group_type, $gid);
   if ($og_membership->entity_type == 'user') {
-    nycc_og_add_role_captain($gid, $uid);
+    nycc_og_add_role_captain($gid, $uid, $context);
   }
 }
 
