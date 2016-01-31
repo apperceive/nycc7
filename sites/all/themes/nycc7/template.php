@@ -316,11 +316,13 @@ function _nycc7_navbar_nav_links() {
 
     $arr[] = _nycc7_navbar_button("Account settings for $username", 'fa-user', '/user');
     
+    /*
     srand();
     $rand = rand(-2,12);
     $badge = $rand > -1 ? $rand : "";
     $arr[] = _nycc7_navbar_button("You have $badge unread notifications", 'fa-envelope-o', "/user/$uid/messages", $badge);
-        
+    */
+    
     if ($can_approve) 
       $arr[] = _nycc7_navbar_button('Approve rides', 'fa-thumbs-o-up', '/approve-rides');       
 
@@ -331,8 +333,6 @@ function _nycc7_navbar_nav_links() {
         $gp = node_load($gid);
         $gtitle = 'Group: ' . $gp->title;
         $icon = 'fa-users';
-        //$icon = stripos($gtitle, 'group') ? 'fa-user-plus' : $icon;
-        //$icon = stripos($gtitle, 'sts') ? 'fa-user-plus' : $icon;
         $icon = stripos($gtitle, 'volunteer') ? 'fa-heart' : $icon;
         $icon = stripos($gtitle, 'sig') ? 'fa-bicycle' : $icon;
         $icon = stripos($gtitle, 'sts') ? 'fa-cogs' : $icon;
@@ -363,16 +363,60 @@ function _nycc_block_render($module, $block_id) {
   return $block_rendered;
 } // _nycc_block_render
 
-/*
 
-function xxxnycc7_menu_local_tasks(&$variables) {
-  if (isset($variables['primary'])) {
-    foreach($variables['primary'] as $menu_item_key => $menu_attributes) {
-      //$variables['primary'][$menu_item_key]['#link']['localized_options'] = array(      'attributes' => array('class' => array('xxx')),);
-    }
+function nycc7_menu_local_task(&$variables) {
+  $link = $variables['element']['#link'];
+  $link_text = $link['title'];
+  if (!empty($variables['element']['#active'])) {
+    // Add text to indicate active tab for non-visual users.
+    $active = '<span class="element-invisible">' . t('(active tab)') . '</span>';
+    // If the link does not contain HTML already, check_plain() it now.
+    // After we set 'html'=TRUE the link will not be sanitized by l().
+    if (empty($link['localized_options']['html'])) 
+      $link['title'] = check_plain($link['title']);
+    $link['localized_options']['html'] = TRUE;
+    $link_text = t('!local-task-title!active', array('!local-task-title' => $link['title'], '!active' => $active));
   }
-  //return theme_menu_local_tasks($variables);
-} // nycc7_menu_local_tasks
+  $link['localized_options']['attributes'] = array('class' => array('btn btn-primary'));
+  // return '<li' . (!empty($variables['element']['#active']) ? ' class="active"' : '') . '>' . l($link_text, $link['href'], $link['localized_options']) . "</li>\n";
+  return l($link_text, $link['href'], $link['localized_options']);
+}
+
+function nycc7_menu_local_tasks(&$variables) {
+  $output = '';
+  if (!empty($variables['primary'])) 
+    $output .= _nycc7_output_tab_menu($variables['primary']);
+  if (!empty($variables['secondary'])) 
+    $output .= _nycc7_output_tab_menu($variables['secondary'], 'secondary');
+  return $output;
+}
+
+function _nycc7_output_tab_menu(&$menu, $class='primary') {
+  $output = '';
+  $activetitle = '';
+  foreach($menu as $menu_item_key => $menu_attributes) {
+    if (isset($menu[$menu_item_key]['#active']))
+      $activetitle = $menu[$menu_item_key]['#link']['title'];
+  }
+  $menu['#prefix'] = '<h2 class="element-invisible">' . t($activetitle) . '</h2>';
+  $menu['#prefix'] .= '<div class="btn-group">';
+  $menu['#suffix'] = '</div>';
+  $menu['#suffix'] .= '<div class="clearfix"></div>';
+  $output .= drupal_render($menu);
+  return $output;
+}
+
+
+/*
+function nycc7_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  if ($some_condition) {
+    // Grab the first tab.
+    $first_tab = &$data['tabs'][0]['output'][0];
+
+    // Add a class to the link element.
+    $first_tab['#link']['localized_options']['attributes']['class'][] = 'some-class';
+  }
+}
 
 
 function nycc7_preprocess_image_style(&$variables) {

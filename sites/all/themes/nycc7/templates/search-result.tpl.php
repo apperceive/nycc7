@@ -75,6 +75,8 @@
     'block_page' => 'file-text-o',   
     'story' => 'file-text',   
     'group' => 'users',   
+    'users' => 'users',   
+    'user' => 'user',   
     'gpforumpost' => 'list-alt',
     'picture' => 'image',   
     'cue_sheet' => 'map-signs',   
@@ -96,11 +98,13 @@
   //$temp = preg_split('~\/~', $url);
   //$type = strtolower($temp[4]);
   
-  $type = array_key_exists('node', $result) ? $result['node']->type : 'unknown';
+  $type = array_key_exists('node', $result) ? $result['node']->type : $module;
+
   if (!in_array($type, array_keys($icons)))
     $type = 'missing';
   
   //dpm(array($result, $result['node']->type, $type));
+  //dpm(get_defined_vars());
   
   // handle subtypes if present
   //if ($type == 'resources')

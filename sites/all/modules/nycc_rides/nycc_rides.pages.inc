@@ -141,7 +141,7 @@ function nycc_rides_output_riders_roster_pdf($ride) {
     $title = $ride->title . "-" . substr($timestamp, 0, 10);
     drupal_set_title($title);
     $output = "";
-    $output .= views_embed_view('nrides_detail_on_riders_list', 'block_1', $nid);
+    $output .= views_embed_view('rides_detail_on_riders_list', 'block_1', $nid);
     $output .= $waiver;
     $output .= views_embed_view('ride_participants', 'block_2', implode("+", array_merge($leaders, $riders)));
     $output .= views_embed_view('ride_participants', 'block_3', implode("+", $waiters));

@@ -293,7 +293,7 @@
 
 <div class='row row-colophon'>
   <div class='col-xs-12'>
-    <p>Copyright © 2015 - New York Cycle Club. No images, text, graphics or design may be reproduced without permission. All rights reserved.</p>
+    <p>Copyright © 2016 - New York Cycle Club. No images, text, graphics or design may be reproduced without permission. All rights reserved.</p>
   </div>
 </div> <!-- row -->
 

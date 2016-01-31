@@ -20,9 +20,10 @@ TRUNCATE node_comment_statistics;
 TRUNCATE forum;
 TRUNCATE forum_index;
 
+/*
 DELETE FROM variable WHERE name LIKE 'backup_migrate_%';
-DELETE FROM variable WHERE name LIKE 'nodesquirrel_%';
+DELETE FROM variable WHERE name LIKE 'nodesquirrel_%';*/
 
 /* Remove autoloads using targetdir that is wiped */
-DELETE FROM registry WHERE FILENAME LIKE "sites/default/files/%";
-DELETE FROM cache_bootstrap WHERE DATA LIKE "%backup_migrate%";
+/*DELETE FROM registry WHERE FILENAME LIKE "sites/default/files/%";
+DELETE FROM cache_bootstrap WHERE DATA LIKE "%backup_migrate%";*/

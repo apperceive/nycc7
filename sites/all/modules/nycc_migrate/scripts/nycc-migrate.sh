@@ -245,21 +245,25 @@ function nycc_migrate_copy_source_to_target() {
   echo "Copying core tables..."
   $mysqlexec $scriptsdir/role.sql
   $mysqlexec $scriptsdir/users.sql
-  # $mysqlexec $scriptsdir/profile.sql
+  $mysqlexec $scriptsdir/profile.sql
   $mysqlexec $scriptsdir/users_roles.sql
   $mysqlexec $scriptsdir/node.sql
   $mysqlexec $scriptsdir/node_revision.sql
   $mysqlexec $scriptsdir/file_managed.sql
   $mysqlexec $scriptsdir/comment.sql
   $mysqlexec $scriptsdir/copy_comments_body.sql
+  $mysqlexec $scriptsdir/node_comment_statistics.sql
   $mysqlexec $scriptsdir/url_alias.sql
   $mysqlexec $scriptsdir/history.sql
+  $mysqlexec $scriptsdir/field_body.sql
+  $mysqlexec $scriptsdir/taxonomy_index.sql
+  
 
   echo "Copying field tables..."
   # content-types page and event fields - multivalued fields
-  $fieldcopy carousel_order
+  $fieldcopy --nodelta carousel_order
   $fieldcopy date
-  $fieldcopy --kind=fid image_cache 
+  $fieldcopy --kind=fid --notnull image_cache 
 
   # content-type rides single values
   $fieldcopy --type=rides ride_type ride_select_level ride_speed  ride_spots ride_status ride_signups ride_token ride_dow
@@ -276,14 +280,14 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=rides --kind=nid ride_cue_sheet 
   $fieldcopy --kind=uid ride_current_riders
   # copy profile nids to uids for now, convert in target cleanup
-  $fieldcopy --kind=nid --targetkind=uid --targettype=ride_current_leaders  --targetfield=ride_current_leaders ride_leaders
+  $fieldcopy --kind=nid --targetkind=uid --targettype=ride_current_leaders --targetfield=ride_current_leaders ride_leaders
   # handle field renames and simple conversions
   $fieldcopy --type=rides --targetfield=ride_start_location --sourceexp="IFNULL(REPLACE(REPLACE(IFNULL(field_ride_from_value,SUBSTR(field_ride_from_select_value, LOCATE('>',field_ride_from_select_value)+1)),'&#39;','&apos;'),'</a>',''),'TBA')"  --addcol="field_ride_start_location_format,7" ride_start_location
 
   # content-type rides multis
-  $fieldcopy --kind=fid ride_image
+  $fieldcopy --kind=fid --notnull ride_image
   $fieldcopy --kind=uid ride_waitlist
-  $fieldcopy --kind=fid ride_attachments 
+  $fieldcopy --kind=fid --notnull ride_attachments 
   
   # TODO: new ride fields not populated at this time - skipping - do we need to init?
   # field_data_field_ride_open_signup_days
@@ -293,7 +297,7 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=region --kind=lid region_location --where="content_type_region.field_region_location_lid > 0"
   
   # Events
-  $fieldcopy event_category event_spots
+  $fieldcopy --nodelta event_category event_spots
   
   # TODO: skip? looks like this may be different from similarly name souce field? 
   # field_data_field_event_view_signups   #boolean
@@ -303,7 +307,7 @@ function nycc_migrate_copy_source_to_target() {
   
   $fieldcopy ride_coordinator
   
-  # TODO: file attach?/upload - why?, more checkboxes?/options: field_ride_reminders, field_ride_rosters
+  # TODO: file attach?/upload - why?
   # TODO: init new field? field_profile_extra(new)
   
   $fieldcopy --type=profile --entitytype="'profile2'" --addcol="field_address_format,5" address 
@@ -326,6 +330,10 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_publish_address_flag_value='off',0,1)" publish_address_flag 
   $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_publish_phone_flag_value='off',0,1)" publish_phone_flag 
   $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="IF(content_type_profile.field_terms_of_use_value='off',0,1)" terms_of_use 
+
+  # init new fields
+  $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="1" ride_reminders
+  $fieldcopy --type=profile --entitytype="'profile2'" --sourceexp="1" ride_rosters
   
   # Cue-Sheets
   $fieldcopy --type="cue_sheet" cuesheet_rating cuesheet_distance cue_sheet_difficulty
@@ -341,8 +349,6 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type="cue_sheet" --addcol="field_vertical_gain_format,5" vertical_gain
   $fieldcopy --type="cue_sheet" --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
   
-  $mysqlexec $scriptsdir/cue-sheet_field_body.sql
-    
   # TODO: special case: files in d6.content_type_cue_sheet.cue_sheet_map_fid, etc
   # TODO: ? field_data_field_cue_sheet_rwgps_link                 ### link
   # TODO: more content-type copies here: obride, others?
@@ -389,9 +395,11 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
   
   # factor this out into own operation as it is a long one
-  echo "Load/save nodes..." >> $logfile
+  echo "Load/save nodes (TODO: NOT!)..." >> $logfile
   # load/save all nodes and users to trigger other modules hooks
-  drush $targetalias scr $scriptsdir/node-convert-load-save.php
+  # WARNING: this processes approx 37K records and can take an hour or so if not filtered
+  # default is to filter 1=0
+  drush $targetalias scr $scriptsdir/node-convert-load-save.php --where="type='forum'"
   
   
   # TODO: create other folders?
@@ -405,7 +413,7 @@ function nycc_migrate_cleanup_target() {
   # TODO: enable when running for real
   echo "Re-enable modules (TODO: NOT smtp!) ..."
   # drush $targetalias en -y -q smtp 
-  drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides print_pdf
+  drush $targetalias en -y -q rules nycc_pic_otw rules_admin rules_scheduler nycc_rides nycc_rides2 print_pdf
   
   echo "Re-enable email and membership review ..."
   # /admin/config/nycc/nycc_email_trap
@@ -422,6 +430,9 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias cc all -q 
   
   # TODO: put message to watchdog
+  
+  # TODO: set caching and aggregation off in target if not a production deploy
+  # /admin/config/development/performance
   
   # clean up target files folder 
   # clear out ctools?, css? js? print_pdf?
@@ -508,15 +519,8 @@ function nycc_migrate_sync_reference_to_target() {
   sudo chmod 775 $targetdir/files
   sudo chmod -R 775 $targetdir/files  
 
-  # backup_migrate residues?
-  #
-  #
-  # turn off rules, mods? and smtp/email?
-  # Q how is that different from target_init script?
-  # A it clears tables we don't want to clear here yet for goal
-  #
+  $mysql $targetdb < $scriptsdir/target_post_reference_sync.sql
   
-   
   drush $targetalias watchdog-delete all -y -q 
   drush $targetalias cc all
   
@@ -702,15 +706,7 @@ else
   echo ""
   show_script_vars | tee --append $logfile
 
-  drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
-  
-  
-  
-  #echo "Convert files..."
-  # convert files for d7 use
-  #drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
-
-  
+ $mysqlexec $scriptsdir/node_comment_statistics.sql
   
   echo ""
   echo "Test run complete." | tee --append $logfile
