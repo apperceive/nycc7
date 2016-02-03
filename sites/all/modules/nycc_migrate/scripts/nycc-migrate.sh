@@ -12,6 +12,8 @@
 #
 ####################################################
 
+curuser=`whoami`
+
 shdir="$(dirname "$0")"
 
 migconf=$shdir/`echo $(basename $0)| sed -e 's/\.sh$//'`.conf 
@@ -77,7 +79,7 @@ targetdir="$targetrootdir/$targetsite"
 
 tmpdir=`echo "$tds" | grep "Temporary file directory path" | awk -F: '{ print $2 }' | sed -e 's/ //g'`
 scriptsdir="$targetrootdir/sites/all/modules/nycc_migrate/scripts/migrate"
-logfile="$tmpdir/migrate.log"
+logfile="$tmpdir/migrate-$curuser.log"
 timestamp="`date +%Y-%m-%d_%H-%M`"
 
 # command aliases
