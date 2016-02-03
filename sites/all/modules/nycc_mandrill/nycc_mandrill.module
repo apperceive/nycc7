@@ -239,7 +239,8 @@ function nycc_mandrill_send_email($msg){
       && array_key_exists('subject', $msg) ) {
       
     $message = array(
-      'html' => $msg['html'], 
+      'html' => $msg['html'],
+      'text' => is_array($msg['text']) ? array_values($msg['text'])[0] : $msg['text'],
       'subject' => $msg['subject'],
       'from_email' => array_key_exists('from_email', $msg)  ? $msg['from_email'] : variable_get('mandrill_from', ''),
       'from_name' => array_key_exists('from_name', $msg)  ? $msg['from_name'] : variable_get('mandrill_from_name', variable_get('site_name')),

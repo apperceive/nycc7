@@ -72,8 +72,10 @@ function nycc_og_group_email_callback() {
                     'Sending email with subject @subject to: <pre>@to</pre>', 
                     array('@to' => print_r($send_to, TRUE), '@subject' => $args['subject']), WATCHDOG_NOTICE) ;
     
+    
     $message = array(
-          'html' => $args['html'], 
+          'html' => $args['html'],
+          'text' => $args['text'],
           'subject' => $args['subject'],
           'from_email' => $args['to_mail'],
           'from_name' => $args['from_name'] . ' (via ' . variable_get('nycc_og_signing_domain', '') . ')',
