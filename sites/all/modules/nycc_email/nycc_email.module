@@ -438,24 +438,24 @@ function _nycc_email_parse_email($email = '') {
 }
 
 
-function _nycc_email_isValid_signature($urlSuffix='', $_POST=''){
+function _nycc_email_isValid_signature($urlSuffix='', $post=''){
 	//compares mandrill signature in the inbound event against the authorized signatures provided by Mandrill for a given dns domain
-	if(!empty($urlSuffix) && !empty($_POST)) {
+	if(!empty($urlSuffix) && !empty($post)) {
 		$url = url($urlSuffix, array('absolute' => TRUE));	
 		try {
 			foreach (nycc_email_mandrill_get_api_object()->request('webhooks/list') as $list) {
 				if (($url == $list['url']) 
-					&& (_nycc_email_generate_signature($url, $list['auth_key'], $_POST) == $_SERVER['HTTP_X_MANDRILL_SIGNATURE']))
+					&& (_nycc_email_generate_signature($url, $list['auth_key'], $post) == $_SERVER['HTTP_X_MANDRILL_SIGNATURE']))
 				{
 					return true;
 				}
 			}
 		} catch (Mandrill_Exception $e) {
-			watchdog('nycc_email', "_nycc_email_isValid_signature generated exception: " . $e->getMessage(), array('url' => $url,'_POST' => $_POST),  WATCHDOG_WARNING) ;	
+			watchdog('nycc_email', "_nycc_email_isValid_signature generated exception: " . $e->getMessage(), array('url' => $url,'$post' => $post),  WATCHDOG_WARNING) ;	
 			return false;
 		}
 	} else {
-		watchdog('nycc_email', "_nycc_email_isValid_signature. recieved invalid parameters " , array('url' => $url,'_POST' => $_POST),  WATCHDOG_WARNING) ;	
+		watchdog('nycc_email', "_nycc_email_isValid_signature. recieved invalid parameters " , array('url' => $url,'$post' => $post),  WATCHDOG_WARNING) ;	
 		return false;
 	}
 }
