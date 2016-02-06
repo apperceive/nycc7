@@ -125,7 +125,7 @@ Examples:
 # NOTE: this is only for migration objects, not source or target - assume no backup yet
 function nycc_migrate_init_migration() {
   echo "Migration init..."
-  mkdir -p $tmpdir
+  mkdir -p $tmpdir/nycc_migrate
   echo "NYCC Migration - $timestamp"
   # TODO: display config/options
   # echo "$@"
@@ -136,13 +136,13 @@ function nycc_migrate_init_migration() {
 function nycc_migrate_backup_source_and_target() {
 
   echo "Removing old temporary backups ($tmpdir/*.sql.bz2)..."
-  rm $tmpdir/*.sql.bz2
-
+  sudo rm -fR $tmpdir/nycc_migrate/*
+  
   echo "Making (bzip2) backup of source database..."
-  $mysqldump $sourcedb | bzip2 -c > $tmpdir/$sourcedb-$timestamp.sql.bz2
+  $mysqldump $sourcedb | bzip2 -c > $tmpdir/nycc_migrate/$sourcedb-$timestamp.sql.bz2
 
   echo "Making (bzip2) backup of target database..."
-  $mysqldump $targetdb | bzip2 -c > $tmpdir/$targetdb-$timestamp.sql.bz2
+  $mysqldump $targetdb | bzip2 -c > $tmpdir/nycc_migrate/$targetdb-$timestamp.sql.bz2
   
   # TODO: backup sourcedirs and targetdir's
   echo "nycc_migrate_backup_source_and_target complete."
@@ -150,10 +150,19 @@ function nycc_migrate_backup_source_and_target() {
 
 function nycc_migrate_export_production() {
   echo "Exporting production database..."
+  
+  # TODO: use a command script on production to limit number of calls or combine here
+  
+  ssh $productionuser "rm -f $productiontmpdir/production.sql"  
   ssh $productionuser "$mysqldump $productiondb > $productiontmpdir/production.sql"
   
   echo "Rsyncing production database export..."
+  sudo rm -f $tmpdir/production.sql
   sudo rsync -z -e "ssh -i $productionssh" $productionuser:$productiontmpdir/production.sql $tmpdir
+  sudo chmod 775 $tmpdir/production.sql
+
+  echo "Removing export from production temp folder"
+  ssh $productionuser "rm -f $productiontmpdir/production.sql"
   
   echo "nycc_migrate_export_production complete."
 }
@@ -350,6 +359,11 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type="cue_sheet" --addcol="field_cue_sheet_author_format,5" cue_sheet_author
   $fieldcopy --type="cue_sheet" --addcol="field_vertical_gain_format,5" vertical_gain
   $fieldcopy --type="cue_sheet" --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
+
+  # Gear
+  $fieldcopy field_gear_image
+  $fieldcopy field_gear_buy_link
+
   
   # TODO: special case: files in d6.content_type_cue_sheet.cue_sheet_map_fid, etc
   # TODO: ? field_data_field_cue_sheet_rwgps_link                 ### link
@@ -397,7 +411,7 @@ function nycc_migrate_cleanup_target() {
   drush $targetalias scr $scriptsdir/users-convert-pictures.php --filesdir="$targetdir/files" --subdir=pictures
   
   # factor this out into own operation as it is a long one
-  echo "Load/save nodes (TODO: NOT!)..." >> $logfile
+  echo "Load/save nodes..." >> $logfile
   # load/save all nodes and users to trigger other modules hooks
   # WARNING: this processes approx 37K records and can take an hour or so if not filtered
   # default is to filter 1=0
@@ -708,7 +722,12 @@ else
   echo ""
   show_script_vars | tee --append $logfile
 
- $mysqlexec $scriptsdir/node_comment_statistics.sql
+  
+  $mysqlexec $scriptsdir/nycc_user_badge_award.sql
+  $mysqlexec $scriptsdir/user_badges_badges.sql
+  $mysqlexec $scriptsdir/user_badges_roles.sql
+  $mysqlexec $scriptsdir/user_badges_user.sql
+    
   
   echo ""
   echo "Test run complete." | tee --append $logfile
