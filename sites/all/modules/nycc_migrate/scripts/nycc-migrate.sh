@@ -268,7 +268,10 @@ function nycc_migrate_copy_source_to_target() {
   $mysqlexec $scriptsdir/history.sql
   $mysqlexec $scriptsdir/field_body.sql
   $mysqlexec $scriptsdir/taxonomy_index.sql
-  
+  $mysqlexec $scriptsdir/nycc_user_badge_award.sql
+  $mysqlexec $scriptsdir/user_badges_badges.sql
+  $mysqlexec $scriptsdir/user_badges_roles.sql
+  $mysqlexec $scriptsdir/user_badges_user.sql
 
   echo "Copying field tables..."
   # content-types page and event fields - multivalued fields
@@ -361,8 +364,8 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type="cue_sheet" --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
 
   # Gear
-  $fieldcopy field_gear_image
-  $fieldcopy field_gear_buy_link
+  $fieldcopy --kind=fid field_gear_image
+  $fieldcopy --kind=url field_gear_buy_link
 
   
   # TODO: special case: files in d6.content_type_cue_sheet.cue_sheet_map_fid, etc
@@ -370,8 +373,9 @@ function nycc_migrate_copy_source_to_target() {
   # TODO: more content-type copies here: obride, others?
   
   # copy files from $source to $target
+  #  --exclude="files/files"
   echo "Copying files from source to target..."
-  sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="files/files" --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files $targetdir
+  sudo rsync --recursive --exclude="backup_migrate/backup_migrate" --exclude="styles" --exclude="js" --exclude="css" --exclude="imagecache" --exclude="ctools" --exclude="print_pdf" --exclude="imagefield_thumbs" $sourcedir/files $targetdir
 
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
@@ -528,7 +532,8 @@ function nycc_migrate_sync_reference_to_target() {
   
   # copy files from reference to $target
   echo "Copying files from reference to target..."
-  sudo rsync --recursive --exclude="files/files" $referencedir/files $targetdir
+  #sudo rsync --recursive --exclude="files/files" $referencedir/files $targetdir
+  sudo rsync --recursive $referencedir/files $targetdir
    
   echo "Setting target file permissions..."
   sudo chown -R nyccftp:apache $targetdir/files
@@ -728,6 +733,9 @@ else
   $mysqlexec $scriptsdir/user_badges_roles.sql
   $mysqlexec $scriptsdir/user_badges_user.sql
     
+  # Gear
+  $fieldcopy --kind=fid field_gear_image
+  $fieldcopy --kind=url field_gear_buy_link
   
   echo ""
   echo "Test run complete." | tee --append $logfile
