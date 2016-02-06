@@ -364,8 +364,8 @@ function nycc_migrate_copy_source_to_target() {
   $fieldcopy --type="cue_sheet" --sourceexp="IF(content_type_cue_sheet.field_cuesheet_signature_route_value='off',0,1)" cuesheet_signature_route 
 
   # Gear
-  $fieldcopy --kind=fid field_gear_image
-  $fieldcopy --kind=url field_gear_buy_link
+  $fieldcopy --type=gear --kind=fid gear_image
+  $fieldcopy --type=gear --kind=url gear_buy_link
 
   
   # TODO: special case: files in d6.content_type_cue_sheet.cue_sheet_map_fid, etc
@@ -726,16 +726,10 @@ else
   # echo "Test of mysqlexec test.sql complete."
   echo ""
   show_script_vars | tee --append $logfile
-
-  
-  $mysqlexec $scriptsdir/nycc_user_badge_award.sql
-  $mysqlexec $scriptsdir/user_badges_badges.sql
-  $mysqlexec $scriptsdir/user_badges_roles.sql
-  $mysqlexec $scriptsdir/user_badges_user.sql
-    
+ 
   # Gear
-  $fieldcopy --kind=fid field_gear_image
-  $fieldcopy --kind=url field_gear_buy_link
+  $fieldcopy --type=gear --kind=fid gear_image
+  $fieldcopy --type=gear --kind=url gear_buy_link
   
   echo ""
   echo "Test run complete." | tee --append $logfile
