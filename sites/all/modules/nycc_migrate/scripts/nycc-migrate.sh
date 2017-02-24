@@ -83,8 +83,8 @@ logfile="$tmpdir/migrate-$curuser.log"
 timestamp="`date +%Y-%m-%d_%H-%M`"
 
 # command aliases
-mysql='mysql -uroot -pXt2792b8cf'
-mysqldump='mysqldump -uroot -pXt2792b8cf'
+mysql='mysql -uroot -p$MYSQLPASSWD'
+mysqldump='mysqldump -uroot -p$MYSQLPASSWD'
 mysqlexec="drush $targetalias scr $scriptsdir/sqlexec.php --sourcedb=$sourcedb"
 fieldcopy="drush $targetalias scr $scriptsdir/field_copy.php --sourcedb=$sourcedb --trace"
 
