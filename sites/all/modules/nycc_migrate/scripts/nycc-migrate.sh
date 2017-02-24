@@ -10,6 +10,8 @@
 # assumes base vars in .conf file in same folder
 # as this command script
 #
+# TODO: define $MYSQLPASSWD
+#
 ####################################################
 
 curuser=`whoami`
